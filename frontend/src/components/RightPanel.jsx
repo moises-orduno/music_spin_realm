@@ -13,19 +13,20 @@ function SectionHeader({ title, link = "View all" }) {
   );
 }
 
-export default function RightPanel() {
+export default function RightPanel({ mobile = false }) {
+  const outerCls = mobile
+    ? "w-full px-4 sm:px-6 py-8 space-y-8 grid md:grid-cols-2 xl:grid-cols-1 gap-x-8"
+    : "w-[300px] shrink-0 px-6 py-6 space-y-7 border-l border-[var(--border)]";
+
   return (
-    <aside className="w-[300px] shrink-0 px-6 py-6 space-y-7 border-l border-[var(--border)]" data-testid="right-panel">
+    <aside className={outerCls} data-testid={mobile ? "right-panel-mobile" : "right-panel"}>
       {/* Currently Hunting */}
       <div data-testid="currently-hunting">
         <SectionHeader title="Currently Hunting" />
         <div className="space-y-4">
           {hunting.slice(0, 4).map((h) => (
             <div key={h.id} className="flex gap-3 items-start group cursor-pointer" data-testid={`hunt-item-${h.id}`}>
-              <div
-                className="cover cover-placeholder w-[54px] h-[54px] shrink-0"
-                style={{ background: h.cover }}
-              >
+              <div className="cover cover-placeholder w-[54px] h-[54px] shrink-0" style={{ background: h.cover }}>
                 <span className="opacity-70">{h.title}</span>
               </div>
               <div className="flex-1 min-w-0">
@@ -80,10 +81,7 @@ export default function RightPanel() {
         <div className="space-y-4">
           {rareFinds.map((r) => (
             <div key={r.id} className="flex gap-3 items-start cursor-pointer group" data-testid={`rare-find-${r.id}`}>
-              <div
-                className="cover cover-placeholder w-[54px] h-[54px] shrink-0"
-                style={{ background: r.cover }}
-              >
+              <div className="cover cover-placeholder w-[54px] h-[54px] shrink-0" style={{ background: r.cover }}>
                 <span className="opacity-70">{r.title.split(" ").slice(0,2).join(" ")}</span>
               </div>
               <div className="flex-1 min-w-0">

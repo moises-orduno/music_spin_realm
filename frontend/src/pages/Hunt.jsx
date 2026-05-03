@@ -28,9 +28,9 @@ export default function Hunt() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {hunting.map((h) => (
-          <div key={h.id} className="card-panel hover-lift p-5 flex gap-5 cursor-pointer" data-testid={`hunt-${h.id}`}>
+          <div key={h.id} className="card-panel hover-lift p-4 sm:p-5 flex gap-4 sm:gap-5 cursor-pointer" data-testid={`hunt-${h.id}`}>
             <div
-              className="cover cover-placeholder w-[110px] h-[110px] shrink-0"
+              className="cover cover-placeholder w-[88px] h-[88px] sm:w-[110px] sm:h-[110px] shrink-0"
               style={{ background: h.cover }}
             >
               <div className="font-serif opacity-80 text-[11px]">{h.title}</div>

@@ -8,7 +8,7 @@ export default function Debates() {
     <div className="space-y-8 fade-in-up" data-testid="debates-page">
       <div>
         <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">Music Court</div>
-        <h1 className="font-serif text-[40px] leading-tight mb-3">The Debates Floor</h1>
+        <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">The Debates Floor</h1>
         <p className="text-[14px] text-[var(--text-muted)] max-w-[560px]">
           Defend your picks. Challenge the canon. Every vinyl lover has an opinion — here's where they're tested.
         </p>
@@ -35,7 +35,7 @@ export default function Debates() {
         Ongoing Debates
       </SectionTitle>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
         {debates.map((d) => (
           <div key={d.id} className="card-panel hover-lift p-0 overflow-hidden cursor-pointer" data-testid={`debate-${d.id}`}>
             <div className="aspect-[4/5] relative" style={{ background: d.cover }}>

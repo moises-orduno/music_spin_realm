@@ -8,7 +8,7 @@ export default function Tops() {
     <div className="space-y-8 fade-in-up" data-testid="tops-page">
       <div>
         <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">Community Rankings</div>
-        <h1 className="font-serif text-[40px] leading-tight mb-3">The Tops</h1>
+        <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">The Tops</h1>
         <p className="text-[14px] text-[var(--text-muted)] max-w-[560px]">
           Curated top 10 lists from the sharpest ears in the community. Agree. Disagree. Make your own.
         </p>

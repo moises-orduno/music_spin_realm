@@ -9,7 +9,7 @@ export default function People() {
     <div className="space-y-8 fade-in-up" data-testid="people-page">
       <div>
         <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">The Community</div>
-        <h1 className="font-serif text-[40px] leading-tight mb-3">People</h1>
+        <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">People</h1>
         <p className="text-[14px] text-[var(--text-muted)] max-w-[560px]">
           Discover collectors who share your taste — and others who will open your ears to something new.
         </p>

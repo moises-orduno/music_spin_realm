@@ -8,7 +8,7 @@ export default function Home() {
     <div className="space-y-10 fade-in-up" data-testid="home-page">
       {/* Hero — Music Court */}
       <section
-        className="relative overflow-hidden rounded-2xl border border-[var(--border)] p-10 min-h-[360px] flex items-center grain"
+        className="relative overflow-hidden rounded-2xl border border-[var(--border)] p-6 sm:p-8 lg:p-10 min-h-[320px] sm:min-h-[360px] flex items-center grain"
         style={{
           background:
             "linear-gradient(115deg, #0f0d0b 0%, #1a1612 40%, #2a2018 60%, #0a0806 100%), radial-gradient(circle at 70% 50%, rgba(100,80,50,0.25), transparent 60%)",
@@ -20,7 +20,7 @@ export default function Home() {
             <Crown size={14} className="text-[var(--accent)]" />
             <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)]">Music Court</span>
           </div>
-          <h1 className="font-serif text-[44px] leading-[1.05] font-normal mb-4">
+          <h1 className="font-serif text-[30px] sm:text-[38px] lg:text-[44px] leading-[1.05] font-normal mb-4">
             Which albums<br/>truly have no skips?
           </h1>
           <p className="text-[14px] text-[var(--text-muted)] mb-7 max-w-[420px]">
@@ -92,7 +92,7 @@ export default function Home() {
         >
           Top Debates This Week
         </SectionTitle>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {debates.slice(0, 5).map((d) => (
             <div key={d.id} className="card-panel hover-lift p-0 overflow-hidden cursor-pointer" data-testid={`debate-card-${d.id}`}>
               <div
@@ -124,7 +124,7 @@ export default function Home() {
         >
           Tops by the Community
         </SectionTitle>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {topsByCommunity.map((t) => (
             <div key={t.id} className="card-panel hover-lift overflow-hidden cursor-pointer" data-testid={`top-card-${t.id}`}>
               <div className="h-[120px] relative" style={{ background: t.cover }}>

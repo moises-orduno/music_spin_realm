@@ -9,7 +9,7 @@ export default function Collection() {
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">The Shelf</div>
-          <h1 className="font-serif text-[40px] leading-tight mb-3">My Collection</h1>
+          <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">My Collection</h1>
           <div className="flex items-center gap-6 text-[13px] text-[var(--text-muted)]">
             <span><span className="text-[var(--text)] font-medium">142</span> albums</span>
             <span><span className="text-[var(--text)] font-medium">38</span> artists</span>
