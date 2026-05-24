@@ -237,7 +237,7 @@ export default function Profile() {
                   <div className="p-3">
                     <div className="text-[13px] truncate font-medium">{a.title}</div>
                     <div className="text-[11px] text-[var(--text-muted)] truncate">{a.artist}</div>
-                    <div className={`text-[10.5px] mt-1.5 flex items-center gap-1 ${a.status === "Owned" ? "text-[var(--accent)]" : "text-[#e8755a]"}`}>
+                    <div className={`text-[10.5px] mt-1.5 flex items-center gap-1 ${a.status === "Owned" ? "text-[var(--accent-2)]" : "text-[#e8755a]"}`}>
                       {a.status === "Owned" ? <CheckCircle2 size={11} /> : <Target size={11} />}
                       {a.status}
                     </div>
@@ -249,11 +249,82 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Other tabs simple placeholder */}
-        {activeTab !== "Top 10" && (
-          <div className="card-panel p-10 text-center" data-testid={`empty-${activeTab.toLowerCase().replace(/\s/g, "-")}`}>
-            <div className="font-serif text-[20px] mb-2">{activeTab}</div>
-            <p className="text-[13px] text-[var(--text-muted)]">Coming soon. We're still curating this view.</p>
+        {/* Collection tab — show owned albums */}
+        {activeTab === "Collection" && (
+          <div data-testid="collection-content">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-serif text-[20px]">Collection</h2>
+                <div className="text-[11.5px] text-[var(--text-muted)] mt-0.5">142 albums owned</div>
+              </div>
+              <button className="text-[12px] text-[var(--text-muted)] hover:text-[var(--accent)] flex items-center gap-1">View all <ArrowRight size={12}/></button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+              {profile.top10.filter((a) => a.status === "Owned").map((a) => (
+                <div key={a.rank} className="card-panel overflow-hidden hover-lift cursor-pointer" data-testid={`collection-album-${a.rank}`}>
+                  <div className="aspect-square cover" style={{ background: a.cover }} />
+                  <div className="p-3">
+                    <div className="text-[13px] truncate font-medium">{a.title}</div>
+                    <div className="text-[11px] text-[var(--text-muted)] truncate">{a.artist}</div>
+                    <div className="text-[10.5px] mt-1.5 text-[var(--accent-2)] flex items-center gap-1">
+                      <CheckCircle2 size={11} /> Owned
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Hunt List tab */}
+        {activeTab === "Hunt List" && (
+          <div data-testid="huntlist-content">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-serif text-[20px]">Hunt List</h2>
+              <span className="text-[11.5px] text-[var(--text-muted)]">{profile.huntList.length} records being hunted</span>
+            </div>
+            <div className="space-y-3">
+              {profile.huntList.map((h, i) => (
+                <div key={h.id} className="card-panel p-4 flex items-center gap-4" data-testid={`huntlist-item-${h.id}`}>
+                  <div className="w-14 h-14 rounded shrink-0 cover cover-placeholder" style={{ background: `linear-gradient(135deg, hsl(${i*80}, 35%, 35%), #1a1612)` }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] font-medium truncate">{h.title}</div>
+                    <div className="text-[12px] text-[var(--text-muted)] truncate">{h.sub}</div>
+                    <div className="text-[11px] text-[var(--text-dim)]">{h.detail}</div>
+                  </div>
+                  <div className="text-[16px] text-[var(--accent-2)] font-serif shrink-0">{h.price}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Activity tab */}
+        {activeTab === "Activity" && (
+          <div data-testid="activity-content">
+            <h2 className="font-serif text-[20px] mb-4">Recent Activity</h2>
+            <div className="card-panel p-5">
+              <div className="space-y-4">
+                {profile.activity.map((a) => (
+                  <div key={a.id} className="flex gap-3 items-start">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] mt-2 shrink-0"/>
+                    <div className="flex-1">
+                      <div className="text-[13px] text-[var(--text-muted)]">{a.text}</div>
+                      {a.target && <div className="text-[14px] mt-0.5">{a.target}</div>}
+                    </div>
+                    <div className="text-[11px] text-[var(--text-dim)] shrink-0">{a.time}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Playlists tab */}
+        {activeTab === "Playlists" && (
+          <div className="card-panel p-10 text-center" data-testid="playlists-content">
+            <div className="font-serif text-[20px] mb-2">Playlists</div>
+            <p className="text-[13px] text-[var(--text-muted)]">No playlists yet. {profile.handle} hasn't published any playlists.</p>
           </div>
         )}
 

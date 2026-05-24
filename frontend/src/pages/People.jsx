@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { spotlight } from "../data/mock";
 import { Chip } from "../components/ui-bits";
 import { UserPlus } from "lucide-react";
@@ -25,7 +26,7 @@ export default function People() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {extended.map((s) => (
-          <div key={s.id} className="card-panel hover-lift p-6 cursor-pointer" data-testid={`person-${s.id}`}>
+          <Link key={s.id} to={`/profile/${s.handle}`} className="card-panel hover-lift p-6 cursor-pointer block" data-testid={`person-${s.id}`}>
             <div className="flex items-start gap-4 mb-4">
               <div
                 className="w-[64px] h-[64px] rounded-full shrink-0 border border-[var(--border-2)]"
@@ -36,12 +37,16 @@ export default function People() {
                 <div className="text-[11.5px] text-[var(--text-muted)] truncate">{s.type}</div>
                 <div className="text-[10.5px] text-[var(--text-dim)] mt-0.5">Top 10 · {s.followers} followers</div>
               </div>
-              <button className="border border-[var(--accent)]/40 text-[var(--accent)] text-[11.5px] px-3 py-1.5 rounded-full hover:bg-[var(--accent-soft)] transition flex items-center gap-1.5" data-testid={`follow-btn-${s.id}`}>
+              <button
+                onClick={(e) => e.preventDefault()}
+                className="border border-[var(--accent)]/40 text-[var(--accent-2)] text-[11.5px] px-3 py-1.5 rounded-full hover:bg-[var(--accent-soft)] transition flex items-center gap-1.5"
+                data-testid={`follow-btn-${s.id}`}
+              >
                 <UserPlus size={11} /> Follow
               </button>
             </div>
             <p className="font-serif text-[15px] italic text-[var(--text)]/85 leading-snug mb-4">
-              “{s.quote}”
+              "{s.quote}"
             </p>
             <div className="flex gap-2">
               {[0, 1, 2, 3].map((i) => (
@@ -55,7 +60,7 @@ export default function People() {
                 +138
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
