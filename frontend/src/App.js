@@ -7,6 +7,7 @@ import Debates from "./pages/Debates";
 import Tops from "./pages/Tops";
 import Hunt from "./pages/Hunt";
 import Collection from "./pages/Collection";
+import Profile from "./pages/Profile";
 import People from "./pages/People";
 
 function App() {
@@ -21,6 +22,8 @@ function App() {
           <Route path="/marketplace" element={<Layout><Hunt /></Layout>} />
           <Route path="/collection" element={<Layout><Collection /></Layout>} />
           <Route path="/people" element={<Layout><People /></Layout>} />
+          <Route path="/profile" element={<Layout showRightPanel={false}><Profile /></Layout>} />
+          <Route path="/profile/:username" element={<Layout showRightPanel={false}><Profile /></Layout>} />
         </Routes>
       </BrowserRouter>
     </div>
