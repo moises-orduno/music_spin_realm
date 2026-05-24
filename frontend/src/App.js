@@ -4,6 +4,7 @@ import "@/App.css";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Debates from "./pages/Debates";
+import DebateDetail from "./pages/DebateDetail";
 import Tops from "./pages/Tops";
 import Hunt from "./pages/Hunt";
 import Collection from "./pages/Collection";
@@ -17,6 +18,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Layout><Home /></Layout>} />
           <Route path="/debates" element={<Layout showRightPanel={false}><Debates /></Layout>} />
+          <Route path="/debates/:id" element={<Layout showRightPanel={false}><DebateDetail /></Layout>} />
           <Route path="/tops" element={<Layout><Tops /></Layout>} />
           <Route path="/hunt" element={<Layout><Hunt /></Layout>} />
           <Route path="/marketplace" element={<Layout><Hunt /></Layout>} />

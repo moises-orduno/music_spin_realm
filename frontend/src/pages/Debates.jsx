@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Plus, MoreVertical, MessageSquare, Users, Disc, Music, Clock,
   Gamepad2, Hash, Zap, Shield, ChevronDown, ArrowRight,
@@ -98,9 +99,9 @@ function VsCard({ d }) {
           <span className="text-[var(--text-dim)]">•</span>
           <span>{d.comments} comments</span>
         </div>
-        <button className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition" data-testid={`view-debate-${d.id}`}>
+        <Link to={`/debates/${d.id}`} className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block" data-testid={`view-debate-${d.id}`}>
           View Debate
-        </button>
+        </Link>
       </Footer>
     </div>
   );
@@ -144,9 +145,9 @@ function BinaryCard({ d, vote, onVote }) {
           <span className="text-[var(--text-dim)]">•</span>
           <span>{d.comments} comments</span>
         </div>
-        <button className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition">
+        <Link to={`/debates/${d.id}`} className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block">
           View Debate
-        </button>
+        </Link>
       </Footer>
     </div>
   );
@@ -177,9 +178,9 @@ function AlbumPickCard({ d }) {
           <span className="text-[var(--text-dim)]">•</span>
           <span>{d.comments} comments</span>
         </div>
-        <button className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition">
+        <Link to={`/debates/${d.id}`} className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block">
           View Debate
-        </button>
+        </Link>
       </Footer>
     </div>
   );
