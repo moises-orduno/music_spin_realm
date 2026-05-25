@@ -1,0 +1,60 @@
+// Top List detail (e.g., "No Skip Albums") with albums, discussion, remixes
+
+export const listDetail = {
+  id: "no-skip-albums",
+  title: "No Skip Albums",
+  badge: "REMIX LIST",
+  author: "@vinyladdict",
+  description: "Albums so good, not a single track gets skipped.\nThese are perfect from start to finish.",
+  cover: "linear-gradient(135deg, #c2b88a 0%, #4a4030 100%)",
+  likes: "15.6K",
+  comments: "2.1K",
+  remixes: "820",
+  views: "112K",
+  openForRemixes: true,
+  stats: { remixes: "820", users: "6.3K", additions: "27K" },
+  topRemixers: [
+    { handle: "@indie_head", remixes: 24, color: "#e85a6f" },
+    { handle: "@90s_kid", remixes: 18, color: "#4a8a5a" },
+    { handle: "@crate_digger", remixes: 16, color: "#c2a876" },
+  ],
+  recentActivity: [
+    { handle: "@indie_head", text: "added 2 albums to their remix", time: "2h ago" },
+    { handle: "@music_lover22", text: "commented on the original list", time: "3h ago" },
+    { handle: "@metalhead_87", text: "created a new remix", time: "5h ago" },
+  ],
+  rules: [
+    "Keep it respectful",
+    "No removing all original items",
+    "Add your own twist",
+    "No spam or low-effort remixes",
+  ],
+  // The actual albums on the list
+  albums: [
+    { rank: 1, title: "OK Computer", artist: "Radiohead", year: 1997, cover: "linear-gradient(135deg, #8a8575, #3a3630)" },
+    { rank: 2, title: "Abbey Road", artist: "The Beatles", year: 1969, cover: "linear-gradient(135deg, #c2a876, #5a4b2a)" },
+    { rank: 3, title: "The Dark Side of the Moon", artist: "Pink Floyd", year: 1973, cover: "radial-gradient(circle, #fff, #6ab0d8 28%, #0a1530 60%)" },
+    { rank: 4, title: "Rumours", artist: "Fleetwood Mac", year: 1977, cover: "linear-gradient(135deg, #d4c4a0, #6a5a3a)" },
+    { rank: 5, title: "Songs in the Key of Life", artist: "Stevie Wonder", year: 1976, cover: "linear-gradient(135deg, #e85a2f, #4a1a0a)" },
+    { rank: 6, title: "Kind of Blue", artist: "Miles Davis", year: 1959, cover: "linear-gradient(135deg, #2f5a8a, #0f2744)" },
+    { rank: 7, title: "Pet Sounds", artist: "The Beach Boys", year: 1966, cover: "linear-gradient(135deg, #4a8abc, #1a3a5a)" },
+    { rank: 8, title: "Purple Rain", artist: "Prince", year: 1984, cover: "linear-gradient(135deg, #6b3fa0, #2a1552)" },
+    { rank: 9, title: "Nevermind", artist: "Nirvana", year: 1991, cover: "linear-gradient(135deg, #1a5a9c, #0a2f5c)" },
+    { rank: 10, title: "To Pimp a Butterfly", artist: "Kendrick Lamar", year: 2015, cover: "linear-gradient(135deg, #d4d4d4, #2a2a2a)" },
+  ],
+  remixList: [
+    { id: 1, rank: 1, title: "No Skip Albums (Alternative Edition)", author: "@indie_head", desc: "A slightly different take with more alternative and indie gems.", likes: "2.4K", comments: 312, additions: 18, time: "2d ago" },
+    { id: 2, rank: 2, title: "No Skip Albums: 90s Edition", author: "@90s_kid", desc: "Only 90s. Only bangers.", likes: "1.9K", comments: 245, additions: 12, time: "5d ago" },
+    { id: 3, rank: 3, title: "No Skip Albums", author: "@music_lover22", desc: "My personal picks. Might be unpopular, but zero skips for me.", likes: "1.6K", comments: 198, additions: 9, time: "1w ago" },
+    { id: 4, rank: 4, title: "No Skip Albums (Heavy Edition)", author: "@metalhead_87", desc: "All killer, no filler. Metal all the way.", likes: "1.3K", comments: 156, additions: 15, time: "1w ago" },
+    { id: 5, rank: 5, title: "No Skip Albums (Chill Edition)", author: "@late_night_tunes", desc: "Perfect front to back listening for late nights.", likes: "1.1K", comments: 132, additions: 20, time: "2w ago" },
+    { id: 6, rank: 6, title: "No Skip Albums: Hip Hop Edition", author: "@beatsandbars", desc: "Every track hits. Straight classics.", likes: "987", comments: 121, additions: 14, time: "2w ago" },
+    { id: 7, rank: 7, title: "No Skip Albums (Underrated Edition)", author: "@crate_digger", desc: "Hidden gems that deserve more love.", likes: "842", comments: 98, additions: 16, time: "3w ago" },
+    { id: 8, rank: 8, title: "No Skip Albums (Shorter & Tighter)", author: "@minimalist", desc: "No long intros. Just tight, perfect albums.", likes: "623", comments: 77, additions: 8, time: "3w ago" },
+  ],
+  discussion: [
+    { id: 1, author: "@melodrama_", time: "2d ago", text: "No In the Aeroplane Over the Sea? That's a no-skip if I've ever heard one.", likes: 56, avatarColor: "#c2a876" },
+    { id: 2, author: "@sadmusiclover", time: "1d ago", text: "Glad to see Pet Sounds at #7. Underrated for its era.", likes: 23, avatarColor: "#6b3fa0" },
+    { id: 3, author: "@vinylvibes", time: "3d ago", text: "Move Kind of Blue to #1 and we're talking.", likes: 18, avatarColor: "#e85a2f" },
+  ],
+};
