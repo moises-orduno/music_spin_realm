@@ -1,13 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import axios from "axios";
 import {
   Plus, MoreVertical, MessageSquare, Users, Disc, Music, Clock,
-  Gamepad2, Hash, Zap, Shield, ChevronDown, ArrowRight,
+  Gamepad2, Hash, Zap, Shield, ChevronDown, ArrowRight, Loader2,
 } from "lucide-react";
-import { allDebates, debateOfTheDay, activeNow, popularCategories } from "../data/debates";
+import { debateOfTheDay, activeNow, popularCategories } from "../data/debates";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const TABS = ["Trending", "New", "Hot", "My Debates", "Friends"];
 const CATS = ["All", "General", "Bands & Artists", "Albums", "Genres", "Era", "Fun & Games"];
+
+// Compute pct from votes for display
+function withPct(d) {
+  const total = (d.options || []).reduce((s, o) => s + (o.votes || 0), 0) || 1;
+  const opts = (d.options || []).map((o) => ({ ...o, pct: Math.round((o.votes / total) * 100) }));
+  const totalVotes = total;
+  // For vs type, sync contenders pct with computed pct from options
+  let contenders = d.contenders;
+  let extra = d.extra;
+  if (d.type === "vs" && contenders && opts.length >= 2) {
+    contenders = contenders.map((c, i) => ({ ...c, pct: opts[i] ? opts[i].pct : c.pct }));
+    if (extra && opts[2]) extra = { ...extra, pct: opts[2].pct };
+  }
+  // Format votes/comments to short string
+  const votesStr = totalVotes >= 1000 ? `${(totalVotes / 1000).toFixed(1)}K` : `${totalVotes}`;
+  const commentsStr = d.comments >= 1000 ? `${(d.comments / 1000).toFixed(1)}K` : `${d.comments || 0}`;
+  return { ...d, options: opts, contenders, extra, votes: votesStr, comments: commentsStr };
+}
 
 function Badge({ label, color }) {
   return (
@@ -20,14 +41,14 @@ function Badge({ label, color }) {
   );
 }
 
-function VotersAvatars() {
+function VotersAvatars({ seed = 0 }) {
   return (
     <div className="flex -space-x-2">
       {[0, 1, 2].map((i) => (
         <div
           key={i}
           className="w-7 h-7 rounded-full border-2 border-[var(--panel)]"
-          style={{ background: `linear-gradient(135deg, hsl(${i * 80}, 40%, 50%), hsl(${i * 80 + 30}, 30%, 25%))` }}
+          style={{ background: `linear-gradient(135deg, hsl(${(seed + i) * 80 % 360}, 40%, 50%), hsl(${(seed + i) * 80 % 360 + 30}, 30%, 25%))` }}
         />
       ))}
     </div>
@@ -42,46 +63,40 @@ function Footer({ children, testid }) {
   );
 }
 
-function VsCard({ d }) {
+function VsCard({ d, onVote, selectedOption }) {
   return (
     <div className="card-panel p-6" data-testid={`debate-${d.id}`}>
       <div className="flex items-center justify-between mb-2">
-        <Badge label={d.badge} color={d.badgeColor} />
+        <Badge label={d.badge} color={d.badge_color} />
         <button className="text-[var(--text-dim)] hover:text-[var(--text)]"><MoreVertical size={15} /></button>
       </div>
       <h3 className="font-serif text-[24px] sm:text-[26px] leading-tight mb-1">{d.title}</h3>
       {d.subtitle && <p className="text-[12.5px] text-[var(--text-muted)] mb-5">{d.subtitle}</p>}
 
       <div className="flex items-center gap-4 sm:gap-6">
-        {/* Contender 1 */}
-        <div className="flex-1 flex items-center gap-3 sm:gap-4">
-          <div className="w-[80px] h-[60px] sm:w-[120px] sm:h-[80px] rounded-md shrink-0 cover" style={{ background: d.contenders[0].image }} />
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] text-[var(--text-muted)] truncate">{d.contenders[0].name}</div>
-            <div className="text-[22px] sm:text-[26px] font-serif text-[var(--text)]">{d.contenders[0].pct}%</div>
-            <div className="h-1 rounded-full bg-[var(--border)] overflow-hidden mt-1">
-              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${d.contenders[0].pct}%`, background: "var(--accent)" }} />
-            </div>
-          </div>
-        </div>
-
-        {/* VS */}
-        <div className="w-10 h-10 rounded-full border border-[var(--border-2)] flex items-center justify-center text-[10.5px] font-semibold tracking-widest text-[var(--text-muted)] shrink-0">VS</div>
-
-        {/* Contender 2 */}
-        <div className="flex-1 flex items-center gap-3 sm:gap-4 flex-row-reverse sm:flex-row">
-          <div className="w-[80px] h-[60px] sm:w-[120px] sm:h-[80px] rounded-md shrink-0 cover" style={{ background: d.contenders[1].image }} />
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] text-[var(--text-muted)] truncate">{d.contenders[1].name}</div>
-            <div className="text-[22px] sm:text-[26px] font-serif text-[var(--text)]">{d.contenders[1].pct}%</div>
-            <div className="h-1 rounded-full bg-[var(--border)] overflow-hidden mt-1">
-              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${d.contenders[1].pct}%`, background: "var(--accent)" }} />
-            </div>
-          </div>
-        </div>
+        {d.contenders && d.contenders.slice(0, 2).map((c, i) => (
+          <React.Fragment key={i}>
+            {i === 1 && (
+              <div className="w-10 h-10 rounded-full border border-[var(--border-2)] flex items-center justify-center text-[10.5px] font-semibold tracking-widest text-[var(--text-muted)] shrink-0">VS</div>
+            )}
+            <button
+              onClick={() => onVote(d.id, i)}
+              data-testid={`vs-option-${d.id}-${i}`}
+              className="flex-1 flex items-center gap-3 sm:gap-4 text-left"
+            >
+              <div className="w-[80px] h-[60px] sm:w-[120px] sm:h-[80px] rounded-md shrink-0 cover" style={{ background: c.image }} />
+              <div className="min-w-0 flex-1">
+                <div className="text-[12px] text-[var(--text-muted)] truncate">{c.name}</div>
+                <div className={`text-[22px] sm:text-[26px] font-serif transition ${selectedOption === i ? "text-[var(--accent-2)]" : "text-[var(--text)]"}`}>{c.pct}%</div>
+                <div className="h-1 rounded-full bg-[var(--border)] overflow-hidden mt-1">
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${c.pct}%`, background: "var(--accent)", boxShadow: selectedOption === i ? "0 0 12px var(--accent-glow)" : "none" }} />
+                </div>
+              </div>
+            </button>
+          </React.Fragment>
+        ))}
       </div>
 
-      {/* Extra contender (e.g. AC/DC at 20%) */}
       {d.extra && (
         <div className="mt-4 flex items-center gap-3 px-2">
           <div className="text-[12.5px] text-[var(--text-muted)] w-16">{d.extra.name}</div>
@@ -94,9 +109,9 @@ function VsCard({ d }) {
 
       <Footer testid={`debate-footer-${d.id}`}>
         <div className="flex items-center gap-3 text-[12px] text-[var(--text-muted)]">
-          <VotersAvatars />
+          <VotersAvatars seed={d.id.charCodeAt(0)} />
           <span>{d.votes} votes</span>
-          <span className="text-[var(--text-dim)]">•</span>
+          <span className="text-[var(--text-dim)]">·</span>
           <span>{d.comments} comments</span>
         </div>
         <Link to={`/debates/${d.id}`} className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block" data-testid={`view-debate-${d.id}`}>
@@ -111,7 +126,7 @@ function BinaryCard({ d, vote, onVote }) {
   return (
     <div className="card-panel p-6" data-testid={`debate-${d.id}`}>
       <div className="flex items-center justify-between mb-2">
-        <Badge label={d.badge} color={d.badgeColor} />
+        <Badge label={d.badge} color={d.badge_color} />
         <button className="text-[var(--text-dim)] hover:text-[var(--text)]"><MoreVertical size={15} /></button>
       </div>
       <h3 className="font-serif text-[24px] sm:text-[26px] leading-tight mb-1">{d.title}</h3>
@@ -140,9 +155,9 @@ function BinaryCard({ d, vote, onVote }) {
 
       <Footer testid={`debate-footer-${d.id}`}>
         <div className="flex items-center gap-3 text-[12px] text-[var(--text-muted)]">
-          <VotersAvatars />
+          <VotersAvatars seed={d.id.charCodeAt(0)} />
           <span>{d.votes} votes</span>
-          <span className="text-[var(--text-dim)]">•</span>
+          <span className="text-[var(--text-dim)]">·</span>
           <span>{d.comments} comments</span>
         </div>
         <Link to={`/debates/${d.id}`} className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block">
@@ -153,19 +168,19 @@ function BinaryCard({ d, vote, onVote }) {
   );
 }
 
-function AlbumPickCard({ d }) {
+function AlbumPickCard({ d, onVote }) {
   return (
     <div className="card-panel p-6" data-testid={`debate-${d.id}`}>
       <div className="flex items-center justify-between mb-2">
-        <Badge label={d.badge} color={d.badgeColor} />
+        <Badge label={d.badge} color={d.badge_color} />
         <button className="text-[var(--text-dim)] hover:text-[var(--text)]"><MoreVertical size={15} /></button>
       </div>
       <h3 className="font-serif text-[24px] sm:text-[26px] leading-tight mb-1">{d.title}</h3>
       {d.subtitle && <p className="text-[12.5px] text-[var(--text-muted)] mb-5">{d.subtitle}</p>}
 
       <div className="grid grid-cols-5 gap-2 sm:gap-3">
-        {d.albums.map((a, i) => (
-          <button key={i} className="aspect-square rounded-md cover cover-placeholder hover:scale-105 transition" style={{ background: a.cover }} data-testid={`album-pick-${d.id}-${i}`}>
+        {(d.albums || []).map((a, i) => (
+          <button key={i} onClick={() => onVote(d.id, i)} className="aspect-square rounded-md cover cover-placeholder hover:scale-105 transition" style={{ background: a.cover }} data-testid={`album-pick-${d.id}-${i}`}>
             <span className="opacity-70 text-[10px]">{a.title}</span>
           </button>
         ))}
@@ -173,9 +188,9 @@ function AlbumPickCard({ d }) {
 
       <Footer testid={`debate-footer-${d.id}`}>
         <div className="flex items-center gap-3 text-[12px] text-[var(--text-muted)]">
-          <VotersAvatars />
+          <VotersAvatars seed={d.id.charCodeAt(0)} />
           <span>{d.votes} votes</span>
-          <span className="text-[var(--text-dim)]">•</span>
+          <span className="text-[var(--text-dim)]">·</span>
           <span>{d.comments} comments</span>
         </div>
         <Link to={`/debates/${d.id}`} className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block">
@@ -190,14 +205,14 @@ function GameCard({ d }) {
   return (
     <div className="card-panel p-6" data-testid={`debate-${d.id}`}>
       <div className="flex items-center justify-between mb-2">
-        <Badge label={d.badge} color={d.badgeColor} />
+        <Badge label={d.badge} color={d.badge_color} />
         <button className="text-[var(--text-dim)] hover:text-[var(--text)]"><MoreVertical size={15} /></button>
       </div>
       <h3 className="font-serif text-[24px] sm:text-[26px] leading-tight mb-1">{d.title}</h3>
       <p className="text-[12.5px] text-[var(--text-muted)] mb-5">{d.subtitle}</p>
 
       <div className="flex items-center justify-end gap-2.5">
-        {[...Array(d.avatars)].map((_, i) => (
+        {[...Array(d.avatars || 6)].map((_, i) => (
           <div key={i} className="w-11 h-11 rounded-full border-2 border-[var(--panel)]" style={{ background: `linear-gradient(135deg, hsl(${i * 50}, 40%, 50%), hsl(${i * 50 + 30}, 30%, 25%))` }} />
         ))}
       </div>
@@ -205,11 +220,11 @@ function GameCard({ d }) {
       <Footer testid={`debate-footer-${d.id}`}>
         <div className="flex items-center gap-3 text-[12px] text-[var(--text-muted)]">
           <span>{d.stat}</span>
-          <span className="text-[var(--text-dim)]">•</span>
+          <span className="text-[var(--text-dim)]">·</span>
           <span>{d.comments} comments</span>
         </div>
         <button className="btn-accent text-[12.5px] px-5 py-2 rounded-lg" data-testid={`play-now-${d.id}`}>
-          {d.cta}
+          {d.cta || "Play Now"}
         </button>
       </Footer>
     </div>
@@ -223,13 +238,49 @@ export default function Debates() {
   const [cat, setCat] = useState("All");
   const [sort, setSort] = useState("Most Popular");
   const [showSort, setShowSort] = useState(false);
-  const [votes, setVotes] = useState({});
+  const [debates, setDebates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [myVotes, setMyVotes] = useState({}); // {debateId: optionIndex}
 
-  const handleVote = (id, i) => setVotes({ ...votes, [id]: i });
+  const fetchDebates = async () => {
+    try {
+      const res = await axios.get(`${API}/debates`);
+      if (res.data.length === 0) {
+        // Auto-seed on first visit
+        await axios.post(`${API}/debates/seed`);
+        const seeded = await axios.get(`${API}/debates`);
+        setDebates(seeded.data.map(withPct));
+      } else {
+        setDebates(res.data.map(withPct));
+      }
+      setError(null);
+    } catch (e) {
+      console.error("Failed to load debates", e);
+      setError("Failed to load debates");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDebates();
+  }, []);
+
+  const handleVote = async (id, optionIndex) => {
+    // Optimistic UI: track my vote
+    setMyVotes((v) => ({ ...v, [id]: optionIndex }));
+    try {
+      const res = await axios.post(`${API}/debates/${id}/vote`, { option_index: optionIndex });
+      // Replace this debate in the list with the updated one
+      setDebates((curr) => curr.map((d) => (d.id === id ? withPct(res.data) : d)));
+    } catch (e) {
+      console.error("Vote failed", e);
+    }
+  };
 
   return (
     <div className="flex gap-6 min-w-0" data-testid="debates-page">
-      {/* Main */}
       <div className="flex-1 min-w-0 space-y-6 fade-in-up">
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -287,11 +338,7 @@ export default function Debates() {
             {showSort && (
               <div className="absolute right-0 top-full mt-1 w-[180px] card-panel py-1.5 z-30">
                 {["Most Popular", "Newest", "Most Voted", "Most Commented"].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => { setSort(s); setShowSort(false); }}
-                    className={`w-full text-left px-4 py-2 text-[12.5px] hover:bg-[var(--accent-soft)] ${s === sort ? "text-[var(--accent-2)]" : "text-[var(--text-muted)]"}`}
-                  >
+                  <button key={s} onClick={() => { setSort(s); setShowSort(false); }} className={`w-full text-left px-4 py-2 text-[12.5px] hover:bg-[var(--accent-soft)] ${s === sort ? "text-[var(--accent-2)]" : "text-[var(--text-muted)]"}`}>
                     {s}
                   </button>
                 ))}
@@ -300,16 +347,28 @@ export default function Debates() {
           </div>
         </div>
 
-        {/* Debate cards */}
-        <div className="space-y-5">
-          {allDebates.map((d) => {
-            if (d.type === "vs") return <VsCard key={d.id} d={d} />;
-            if (d.type === "binary") return <BinaryCard key={d.id} d={d} vote={votes[d.id]} onVote={handleVote} />;
-            if (d.type === "album-pick") return <AlbumPickCard key={d.id} d={d} />;
-            if (d.type === "game") return <GameCard key={d.id} d={d} />;
-            return null;
-          })}
-        </div>
+        {/* Loading / Error / List */}
+        {loading && (
+          <div className="card-panel p-12 flex items-center justify-center gap-3 text-[var(--text-muted)]" data-testid="debates-loading">
+            <Loader2 size={18} className="animate-spin" /> Loading debates from the server...
+          </div>
+        )}
+        {error && !loading && (
+          <div className="card-panel p-6 text-center text-[var(--text-muted)]" data-testid="debates-error">
+            {error}. <button onClick={fetchDebates} className="text-[var(--accent-2)] hover:underline ml-2">Try again</button>
+          </div>
+        )}
+        {!loading && !error && (
+          <div className="space-y-5">
+            {debates.map((d) => {
+              if (d.type === "vs") return <VsCard key={d.id} d={d} onVote={handleVote} selectedOption={myVotes[d.id]} />;
+              if (d.type === "binary") return <BinaryCard key={d.id} d={d} vote={myVotes[d.id]} onVote={handleVote} />;
+              if (d.type === "album-pick") return <AlbumPickCard key={d.id} d={d} onVote={handleVote} />;
+              if (d.type === "game") return <GameCard key={d.id} d={d} />;
+              return null;
+            })}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="pt-6 mt-8 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-3 text-[11.5px] text-[var(--text-muted)]">
@@ -329,9 +388,8 @@ export default function Debates() {
         </div>
       </div>
 
-      {/* Right rail */}
+      {/* Right rail (unchanged static for now) */}
       <aside className="hidden xl:block w-[260px] shrink-0 space-y-6 fade-in-up" data-testid="debates-right-rail">
-        {/* Debate of the Day */}
         <div className="card-panel p-5" data-testid="debate-of-day">
           <div className="flex items-center gap-2 mb-3">
             <Zap size={13} className="text-[var(--accent)]" fill="var(--accent)" />
@@ -340,15 +398,12 @@ export default function Debates() {
           <div className="rounded-lg overflow-hidden mb-3 cover" style={{ background: debateOfTheDay.cover, aspectRatio: "1 / 1" }} />
           <div className="font-serif text-[15px] mb-1">{debateOfTheDay.title}</div>
           <p className="text-[11.5px] text-[var(--text-muted)] mb-3">{debateOfTheDay.subtitle}</p>
-          <button className="btn-accent w-full rounded-lg py-2 text-[12px]" data-testid="join-debate-day-btn">
-            Join the Debate
-          </button>
+          <button className="btn-accent w-full rounded-lg py-2 text-[12px]" data-testid="join-debate-day-btn">Join the Debate</button>
           <div className="text-center text-[10.5px] text-[var(--text-dim)] mt-2">
             {debateOfTheDay.votes} votes · {debateOfTheDay.comments} comments
           </div>
         </div>
 
-        {/* Active Now */}
         <div className="card-panel p-5" data-testid="active-now">
           <div className="flex items-center gap-2 mb-4">
             <span className="w-2 h-2 rounded-full bg-[#10b981]" />
@@ -356,7 +411,7 @@ export default function Debates() {
           </div>
           <div className="space-y-3">
             {activeNow.map((u) => (
-              <div key={u.handle} className="flex items-center gap-3" data-testid={`active-user-${u.handle}`}>
+              <div key={u.handle} className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full shrink-0" style={{ background: `linear-gradient(135deg, ${u.color}, #1a1612)` }} />
                 <div className="min-w-0 flex-1">
                   <div className="text-[12.5px] truncate">{u.handle}</div>
@@ -365,31 +420,22 @@ export default function Debates() {
               </div>
             ))}
           </div>
-          <button className="mt-4 w-full border border-[var(--border-2)] rounded-lg py-1.5 text-[11.5px] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--accent)]/40" data-testid="see-all-activity">
-            See all activity
-          </button>
         </div>
 
-        {/* Popular Categories */}
         <div className="card-panel p-5" data-testid="popular-categories">
           <div className="text-[12px] font-medium mb-4">Popular Categories</div>
           <div className="space-y-2.5">
             {popularCategories.map((c) => {
               const Ic = ICON_MAP[c.icon] || Hash;
               return (
-                <button key={c.label} className="w-full flex items-center gap-3 py-1 text-[12.5px] text-[var(--text)]/85 hover:text-[var(--accent-2)] transition" data-testid={`cat-link-${c.label.toLowerCase().replace(/\s/g, "-")}`}>
-                  <Ic size={14} className="text-[var(--text-muted)]" />
-                  {c.label}
+                <button key={c.label} className="w-full flex items-center gap-3 py-1 text-[12.5px] text-[var(--text)]/85 hover:text-[var(--accent-2)] transition">
+                  <Ic size={14} className="text-[var(--text-muted)]" /> {c.label}
                 </button>
               );
             })}
           </div>
-          <button className="mt-4 w-full border border-[var(--border-2)] rounded-lg py-1.5 text-[11.5px] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--accent)]/40" data-testid="browse-all">
-            Browse all
-          </button>
         </div>
 
-        {/* Debate Tips */}
         <div className="card-panel p-5 relative overflow-hidden" data-testid="debate-tips">
           <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full" style={{ background: "radial-gradient(circle, var(--accent-glow), transparent 70%)" }} />
           <div className="flex items-center justify-between mb-3 relative">
@@ -402,9 +448,6 @@ export default function Debates() {
             <li>• Back up your take</li>
             <li>• No hate, just music</li>
           </ul>
-          <button className="text-[11.5px] text-[var(--accent-2)] mt-3 hover:underline relative inline-flex items-center gap-1">
-            Read our guidelines <ArrowRight size={11} />
-          </button>
         </div>
       </aside>
     </div>
