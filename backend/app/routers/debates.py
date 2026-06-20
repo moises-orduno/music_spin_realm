@@ -16,7 +16,7 @@ router = APIRouter(
 
 # ============ Debates CRUD ============
 
-@router.get("/debates", response_model=List[Debate])
+@router.get("", response_model=List[Debate])
 async def list_debates(badge: Optional[str] = None, limit: int = 100):
     query = {}
     if badge:
@@ -25,7 +25,7 @@ async def list_debates(badge: Optional[str] = None, limit: int = 100):
     return [_serialize(d) for d in docs]
 
 
-@router.get("/debates/{debate_id}", response_model=Debate)
+@router.get("/{debate_id}", response_model=Debate)
 async def get_debate(debate_id: str):
     doc = await db.debates.find_one({"id": debate_id}, {"_id": 0})
     if not doc:
@@ -33,7 +33,7 @@ async def get_debate(debate_id: str):
     return _serialize(doc)
 
 
-@router.post("/debates", response_model=Debate, status_code=201)
+@router.post("", response_model=Debate, status_code=201)
 async def create_debate(payload: DebateCreate):
     debate = Debate(**payload.model_dump())
     doc = debate.model_dump()
@@ -42,7 +42,7 @@ async def create_debate(payload: DebateCreate):
     return debate
 
 
-@router.patch("/debates/{debate_id}", response_model=Debate)
+@router.patch("/{debate_id}", response_model=Debate)
 async def update_debate(debate_id: str, payload: DebateUpdate):
     updates = {k: v for k, v in payload.model_dump().items() if v is not None}
     if not updates:
@@ -54,7 +54,7 @@ async def update_debate(debate_id: str, payload: DebateUpdate):
     return _serialize(doc)
 
 
-@router.delete("/debates/{debate_id}", status_code=204)
+@router.delete("/{debate_id}", status_code=204)
 async def delete_debate(debate_id: str):
     result = await db.debates.delete_one({"id": debate_id})
     if result.deleted_count == 0:

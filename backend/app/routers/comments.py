@@ -1,13 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from db.mongodb import db
-from typing import List, Optional
 
 from models.comment import CommentCreate
 from models.comment import Comment
 from models.comment import ReplyCreate
 from models.comment import CommentVoteRequest
-
-from utils import _serialize
 
 router = APIRouter(
     prefix="/comments",
@@ -44,7 +41,7 @@ async def add_comment(
 
     return comment
 
-@router.post("/comments/{comment_id}/reply")
+@router.post("/{comment_id}/reply")
 async def reply_comment(
     comment_id: str,
     payload: ReplyCreate
@@ -72,7 +69,7 @@ async def reply_comment(
 
     return reply
 
-@router.post("/comments/{comment_id}/vote")
+@router.post("/{comment_id}/vote")
 async def vote_comment(
     comment_id: str,
     payload: CommentVoteRequest
