@@ -1,9 +1,38 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Crown, ChevronLeft, ChevronRight, ArrowRight, MessageSquare } from "lucide-react";
-import { debates, topsByCommunity, spotlight } from "../data/mock";
+import {topsByCommunity, spotlight } from "../data/mock";
 import { SectionTitle } from "../components/ui-bits";
 
+import { getDebates } from "../services/debateService";
+
+
+
 export default function Home() {
+
+const [debates, setDebates] = useState([]);
+const [loadingDebates, setLoadingDebates] = useState(true);
+const [error, setError] = useState(null);
+
+
+  useEffect(() => {
+  const loadDebates = async () => {
+    try {
+      setLoadingDebates(true);
+      setError(null);
+
+      const data = await getDebates();
+      setDebates(data);
+
+    } catch (err) {
+      setError(err.message || "Failed to load debates");
+    } finally {
+      setLoadingDebates(false);
+    }
+  };
+
+  loadDebates();
+}, []);
+
   return (
     <div className="space-y-10 fade-in-up" data-testid="home-page">
       {/* Hero — Music Court */}
@@ -86,31 +115,65 @@ export default function Home() {
         <SectionTitle
           action={
             <button className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 hover:text-[var(--accent)]" data-testid="view-all-debates">
-              View all <ArrowRight size={12} />
+              View all Debates<ArrowRight size={12} />
             </button>
           }
         >
-          Top Debates This Week
+           Top Debates This Week
         </SectionTitle>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {debates.slice(0, 5).map((d) => (
-            <div key={d.id} className="card-panel hover-lift p-0 overflow-hidden cursor-pointer" data-testid={`debate-card-${d.id}`}>
+        {loadingDebates ? (
+          <div>Loading debates...</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {debates.slice(0, 5).map((d) => (
               <div
-                className="aspect-[4/5] w-full relative"
-                style={{ background: d.cover }}
+                key={d.id}
+                className="card-panel hover-lift p-0 overflow-hidden cursor-pointer"
               >
-                <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.85)] via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className="font-serif text-[16px] leading-tight mb-2">{d.title}</h3>
-                  <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                    <MessageSquare size={11} />
-                    {d.comments} comments
+                <div
+                  className="aspect-[4/5] w-full relative"
+                  style={{
+                    backgroundImage: `url(${d.image})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.85)] via-transparent to-transparent" />
+
+                  {/* Badge */}
+                  {d.badge && (
+                    <div
+                      className="absolute top-3 left-3 text-[10px] px-2 py-1 rounded"
+                      style={{ backgroundColor: d.badge_color }}
+                    >
+                      {d.badge}
+                    </div>
+                  )}
+
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <h3 className="font-serif text-[16px] leading-tight mb-2">
+                      {d.title}
+                    </h3>
+
+                    <div className="text-[11px] text-[var(--text-muted)] mb-1">
+                      {d.subtitle}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+                      <span>
+                        💬 {d.comments} comments
+                      </span>
+
+                      <span>
+                        👁 {d.views} views
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Tops by the Community */}
