@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Crown, ChevronLeft, ChevronRight, ArrowRight, MessageSquare } from "lucide-react";
 import {topsByCommunity, spotlight } from "../data/mock";
 import { SectionTitle } from "../components/ui-bits";
+import { useNavigate } from "react-router-dom";
 
 import { getDebates } from "../services/debateService";
 
@@ -12,6 +13,12 @@ export default function Home() {
 const [debates, setDebates] = useState([]);
 const [loadingDebates, setLoadingDebates] = useState(true);
 const [error, setError] = useState(null);
+
+const navigate = useNavigate();
+
+const handleDebateClick = (debate) => {
+  navigate(`/debates/${debate.id}`);
+};
 
 
   useEffect(() => {
@@ -124,11 +131,12 @@ const [error, setError] = useState(null);
         {loadingDebates ? (
           <div>Loading debates...</div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4" >
             {debates.slice(0, 5).map((d) => (
               <div
                 key={d.id}
                 className="card-panel hover-lift p-0 overflow-hidden cursor-pointer"
+                onClick={() => handleDebateClick(d)}
               >
                 <div
                   className="aspect-[4/5] w-full relative"

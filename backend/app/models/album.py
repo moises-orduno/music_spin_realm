@@ -29,3 +29,9 @@ class AlbumCreate(BaseModel):
     cover_url: Optional[str] = None
     genres: List[str] = []
     label: Optional[str] = None
+
+class AlbumUpdate(BaseModel):
+    title: Optional[str] = None
+    year: Optional[int] = None
+    cover_url: Optional[str] = None
+    genres: Optional[List[str]] = None

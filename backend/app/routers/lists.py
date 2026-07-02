@@ -1,6 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+
 from db.mongodb import db
 from models.topList import TopList,TopListCreate
+from helpers.token_helper import get_current_user
+from models.user import UserReference
 
 router = APIRouter(
     prefix="/list",
@@ -36,12 +39,23 @@ async def list_lists(limit: int = 50):
 
     return result
 
+
 @router.post("", response_model=TopList, status_code=201)
-async def create_list(payload: TopListCreate):
+async def create_list(
+    payload: TopListCreate,
+    current_user=Depends(get_current_user)
+):
+
+    owner = UserReference(
+        user_id=current_user["id"],
+        username=current_user["username"],
+        display_name=current_user["display_name"],
+        avatar_url=current_user.get("avatar_url")
+    )
 
     top_list = TopList(
-        creator_id=payload.owner.user_id,
-        owner=payload.owner,
+        creator_id=current_user["id"],
+        owner=owner,
         title=payload.title,
         description=payload.description,
         category=payload.category,
@@ -55,7 +69,10 @@ async def create_list(payload: TopListCreate):
     return top_list
 
 @router.post("/{list_id}/remix", response_model=TopList)
-async def remix_list(list_id: str):
+async def remix_list(
+    list_id: str,
+    current_user=Depends(get_current_user)
+):
 
     original = await db.lists.find_one(
         {"id": list_id},
@@ -70,8 +87,17 @@ async def remix_list(list_id: str):
 
     original.pop("id", None)
 
+    owner = UserReference(
+        user_id=current_user["id"],
+        username=current_user["username"],
+        display_name=current_user["display_name"],
+        avatar_url=current_user.get("avatar_url")
+    )
+
     remix = TopList(
         **original,
+        creator_id=current_user["id"],
+        owner=owner,
         parent_list_id=list_id
     )
 

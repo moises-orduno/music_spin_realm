@@ -66,11 +66,9 @@ class DebateCreate(BaseModel):
     image: Optional[str] = None
     tags: List[str] = []
     options: List[DebateOption] = []
-    contenders: Optional[List[dict]] = None
     extra: Optional[dict] = None
-    albums: Optional[List[dict]] = None
     avatars: Optional[int] = None
-    stat: Optional[str] = None
+    total_votes: int = 0
     cta: Optional[str] = None
     created_by: str = "anonymous"
 
@@ -84,4 +82,11 @@ class DebateUpdate(BaseModel):
 
 
 class VoteRequest(BaseModel):
+    debate_id: str
+    user_id: str
+    option_index: int
+
+class Vote(BaseModel):
+    debate_id: str
+    user_id: str
     option_index: int

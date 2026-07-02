@@ -1,19 +1,26 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, EmailStr
 from datetime import datetime, timezone
 import uuid
-
-from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime, timezone
-import uuid
 
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    username: str
+    display_name: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
 
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
+    email: EmailStr
     username: str
     display_name: str
+    password_hash: str
 
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
@@ -31,11 +38,10 @@ class User(BaseModel):
         default_factory=lambda: datetime.now(timezone.utc)
     )
 
-
 class UserCreate(BaseModel):
-    email: str
+    email: EmailStr
+    password: str
     display_name: str
-
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
 
@@ -63,3 +69,14 @@ class UserFollow(BaseModel):
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    username: str
+    display_name: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str

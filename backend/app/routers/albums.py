@@ -1,12 +1,16 @@
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, status
+
 from db.mongodb import db
-from models.album import AlbumCreate, Album
+from helpers.token_helper import get_current_user
+from models.album import AlbumCreate, Album, AlbumUpdate
 
 router = APIRouter(
     prefix="/albums",
     tags=["Albums"]
 )
+
 
 @router.get("")
 async def list_albums(
@@ -19,7 +23,7 @@ async def list_albums(
         query = {
             "$or": [
                 {"title": {"$regex": q, "$options": "i"}},
-                {"artist": {"$regex": q, "$options": "i"}}
+                {"artist.name": {"$regex": q, "$options": "i"}}
             ]
         }
 
@@ -32,58 +36,62 @@ async def list_albums(
 
     return albums
 
-@router.get("/{album_id}")
-async def get_album(album_id: str):
+
+@router.post(
+    "",
+    response_model=Album,
+    status_code=status.HTTP_201_CREATED
+)
+async def create_album(
+    payload: AlbumCreate,
+    current_user=Depends(get_current_user)
+):
+    existing = await db.albums.find_one(
+        {
+            "title": payload.title,
+            "artist.artist_id": payload.artist.artist_id
+        }
+    )
+
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Album already exists"
+        )
+
+    album = Album(**payload.model_dump())
+
+    await db.albums.insert_one(
+        album.model_dump()
+    )
+
+    return album
+
+@router.patch("/{album_id}", response_model=Album)
+async def update_album(
+    album_id: str,
+    payload: AlbumUpdate
+):
+    update_data = payload.model_dump(exclude_unset=True)
+
+    result = await db.albums.update_one(
+        {"id": album_id},
+        {"$set": update_data}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="Album not found"
+        )
 
     album = await db.albums.find_one(
         {"id": album_id},
         {"_id": 0}
     )
 
-    if not album:
-        raise HTTPException(
-            status_code=404,
-            detail="Album not found"
-        )
-
     return album
 
-@router.get("/{album_id}/lists")
-async def get_album_lists(
-    album_id: str,
-    limit: int = 50
-):
-
-    lists = await (
-        db.lists
-        .find(
-            {
-                "items.album.album_id": album_id
-            },
-            {"_id": 0}
-        )
-        .sort("likes_count", -1)
-        .to_list(limit)
-    )
-
-    return lists
-
-@router.get("/{album_id}/stats")
-async def album_stats(album_id: str):
-
-    lists_count = await db.lists.count_documents(
-        {"items.album.album_id": album_id}
-    )
-
-    debates_count = await db.debates.count_documents(
-        {"albums.album_id": album_id}
-    )
-
-    return {
-        "album_id": album_id,
-        "lists_count": lists_count,
-        "debates_count": debates_count
-    }
 
 @router.get("/trending")
 async def trending_albums(limit: int = 20):
@@ -102,37 +110,64 @@ async def trending_albums(limit: int = 20):
         {"$limit": limit}
     ]
 
-    albums = await db.lists.aggregate(
+    return await db.lists.aggregate(
         pipeline
     ).to_list(limit)
 
-    return albums
 
-@router.post("", response_model=Album, status_code=201)
-async def create_album(payload: AlbumCreate):
+@router.get("/{album_id}")
+async def get_album(album_id: str):
 
-    existing = await db.albums.find_one(
-        {
-            "title": payload.title,
-            "artist.artist_id": payload.artist.artist_id
-        }
+    album = await db.albums.find_one(
+        {"id": album_id},
+        {"_id": 0}
     )
 
-    if existing:
+    if album is None:
         raise HTTPException(
-            status_code=409,
-            detail="Album already exists"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Album not found"
         )
-
-    album = Album(**payload.model_dump())
-
-    await db.albums.insert_one(
-        album.model_dump()
-    )
 
     return album
 
-@router.get("/{artist_id}/discography")
+
+@router.get("/{album_id}/lists")
+async def get_album_lists(
+    album_id: str,
+    limit: int = 50
+):
+
+    return await (
+        db.lists
+        .find(
+            {"items.album.album_id": album_id},
+            {"_id": 0}
+        )
+        .sort("likes_count", -1)
+        .to_list(limit)
+    )
+
+
+@router.get("/{album_id}/stats")
+async def album_stats(album_id: str):
+
+    lists_count = await db.lists.count_documents(
+        {"items.album.album_id": album_id}
+    )
+
+    debates_count = await db.debates.count_documents(
+        {"albums.album_id": album_id}
+    )
+
+    return {
+        "album_id": album_id,
+        "lists_count": lists_count,
+        "debates_count": debates_count
+    }
+
+
+@router.get("/artist/{artist_id}/discography")
 async def discography(artist_id: str):
 
     return await (
@@ -145,13 +180,14 @@ async def discography(artist_id: str):
         .to_list(500)
     )
 
-@router.post("/{user_id}/follow-albums/{album_id}")
+
+@router.post("/follow/{album_id}")
 async def follow_album(
-    user_id: str,
-    album_id: str
+    album_id: str,
+    current_user=Depends(get_current_user)
 ):
     await db.users.update_one(
-        {"id": user_id},
+        {"id": current_user["id"]},
         {
             "$addToSet": {
                 "followed_albums": album_id
@@ -161,13 +197,14 @@ async def follow_album(
 
     return {"success": True}
 
-@router.delete("/{user_id}/follow-albums/{album_id}")
+
+@router.delete("/follow/{album_id}")
 async def unfollow_album(
-    user_id: str,
-    album_id: str
+    album_id: str,
+    current_user=Depends(get_current_user)
 ):
     await db.users.update_one(
-        {"id": user_id},
+        {"id": current_user["id"]},
         {
             "$pull": {
                 "followed_albums": album_id
@@ -176,24 +213,3 @@ async def unfollow_album(
     )
 
     return {"success": True}
-
-@router.get("/{user_id}/followed-artists")
-async def followed_artists(user_id: str):
-
-    user = await db.users.find_one(
-        {"id": user_id},
-        {"_id": 0}
-    )
-
-    artist_ids = user.get("followed_artists", [])
-
-    artists = await (
-        db.artists
-        .find(
-            {"id": {"$in": artist_ids}},
-            {"_id": 0}
-        )
-        .to_list(100)
-    )
-
-    return artists

@@ -29,5 +29,4 @@ class CommentVoteRequest(BaseModel):
 
 class CommentCreate(BaseModel):
     text: str
-    author: Optional[str] = "anonymous"
     parent_comment_id: Optional[str] = None

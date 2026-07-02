@@ -47,12 +47,7 @@ class TopList(BaseModel):
     )
 
 class TopListCreate(BaseModel):
-    owner: UserReference
-
     title: str
-
     description: Optional[str] = None
-
     category: Optional[str] = None
-
     items: List[ListItem]

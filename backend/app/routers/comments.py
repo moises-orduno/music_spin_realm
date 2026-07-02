@@ -11,7 +11,7 @@ router = APIRouter(
     tags=["Comments"]
 )
 
-@router.post("/{debate_id}/comments")
+@router.post("/{debate_id}")
 async def add_comment(
     debate_id: str,
     payload: CommentCreate
@@ -24,7 +24,13 @@ async def add_comment(
     comment = Comment(
         debate_id=debate_id,
         text=payload.text,
-        author=payload.author
+        parent_comment_id=payload.parent_comment_id
+        # author=UserReference(
+        #     user_id=current_user.id,
+        #     username=current_user.username,
+        #     display_name=current_user.display_name,
+        #     avatar_url=current_user.avatar_url
+        # )
     )
 
     await db.comments.insert_one(comment.model_dump())
@@ -90,7 +96,7 @@ async def vote_comment(
 
     return {"success": True}
 
-@router.get("/{debate_id}/comments")
+@router.get("/{debate_id}")
 async def get_comments(debate_id: str):
     comments = await (
         db.comments

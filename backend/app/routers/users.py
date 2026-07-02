@@ -1,12 +1,17 @@
+import re
 from fastapi import APIRouter, HTTPException
 from typing import List
 
 from db.mongodb import db
+from helpers.token_helper import create_access_token
+
+from helpers.password_checker import verify_password, hash_password
 
 from models.user import (
     User,
     UserCreate,
-    UserUpdate
+    UserUpdate,
+    LoginRequest
 )
 
 from utils import _serialize
@@ -16,12 +21,9 @@ router = APIRouter(
     tags=["Users"]
 )
 
-import re
+@router.post("/register")
+async def register(payload: UserCreate):
 
-@router.post("", response_model=User, status_code=201)
-async def create_user(payload: UserCreate):
-
-    # Make sure email is unique
     existing_email = await db.users.find_one(
         {"email": payload.email}
     )
@@ -32,10 +34,8 @@ async def create_user(payload: UserCreate):
             detail="Email already exists"
         )
 
-    # username base from email
     base_username = payload.email.split("@")[0]
 
-    # remove special chars
     base_username = re.sub(
         r"[^a-zA-Z0-9_]",
         "",
@@ -45,8 +45,9 @@ async def create_user(payload: UserCreate):
     username = base_username
     counter = 1
 
-    # Find available username
-    while await db.users.find_one({"username": username}):
+    while await db.users.find_one(
+        {"username": username}
+    ):
         username = f"{base_username}{counter}"
         counter += 1
 
@@ -55,14 +56,71 @@ async def create_user(payload: UserCreate):
         display_name=payload.display_name,
         avatar_url=payload.avatar_url,
         bio=payload.bio,
-        email=payload.email
+        email=payload.email,
+        password_hash=hash_password(
+            payload.password
+        )
     )
 
     await db.users.insert_one(
         user.model_dump()
     )
 
-    return user
+    token = create_access_token(
+        user.id
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "display_name": user.display_name,
+            "avatar_url": user.avatar_url,
+            "bio": user.bio,
+            "email": user.email
+        }
+    }
+
+@router.post("/login")
+async def login(payload: LoginRequest):
+
+    user = await db.users.find_one(
+        {"email": payload.email}
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+
+    if not verify_password(
+        payload.password,
+        user["password_hash"]
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+
+    token = create_access_token(
+        user["id"]
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "display_name": user["display_name"],
+            "avatar_url": user.get("avatar_url"),
+            "bio": user.get("bio"),
+            "email": user["email"]
+        }
+    }
 
 @router.get("/{user_id}", response_model=User)
 async def get_user(user_id: str):

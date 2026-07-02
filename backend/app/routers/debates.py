@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from db.mongodb import db
 from typing import List, Optional
 
@@ -6,6 +6,8 @@ from models.debate import Debate
 from models.debate import DebateCreate
 from models.debate import DebateUpdate
 from models.debate import VoteRequest
+
+from helpers.token_helper import get_current_user
 
 from utils import _serialize
 
@@ -61,13 +63,93 @@ async def delete_debate(debate_id: str):
         raise HTTPException(status_code=404, detail="Debate not found")
     return None
 
+@router.post("/{debate_id}/vote")
+async def vote_debate(
+    debate_id: str,
+    payload: VoteRequest,
+    current_user=Depends(get_current_user)
+):
+    user_id = current_user["id"]
 
-@router.post("/debates/{debate_id}/vote", response_model=Debate)
-async def vote_debate(debate_id: str, payload: VoteRequest):
-    doc = await db.debates.find_one({"id": debate_id}, {"_id": 0})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Debate not found")
-    options = doc.get("options", [])
+    # Check debate exists
+    debate = await db.debates.find_one({"id": debate_id})
+    if not debate:
+        raise HTTPException(404, "Debate not found")
+
+    # Validate option
+    options = debate.get("options", [])
     if payload.option_index < 0 or payload.option_index >= len(options):
-        raise HTTPException(status_code=400, detail="Invalid option_index")
- 
+        raise HTTPException(400, "Invalid option_index")
+
+    # 3. Check existing vote for this user
+    existing_vote = await db.votes.find_one({
+        "debate_id": debate_id,
+        "user_id": payload.user_id
+    })
+
+    # -------------------------
+    # CASE 1: No previous vote → CREATE
+    # -------------------------
+    if not existing_vote:
+        await db.votes.insert_one({
+            "debate_id": debate_id,
+            "user_id": payload.user_id,
+            "option_index": payload.option_index
+        })
+
+        await db.debates.update_one(
+            {"id": debate_id},
+            {
+                "$inc": {
+                    f"options.{payload.option_index}.votes": 1,
+                    "total_votes": 1
+                }
+            }
+        )
+
+        return {"action": "created"}
+
+    # -------------------------
+    # CASE 2: Clicking SAME option → REMOVE (toggle off)
+    # -------------------------
+    if existing_vote["option_index"] == payload.option_index:
+
+        await db.votes.delete_one({
+            "debate_id": debate_id,
+            "user_id": payload.user_id
+        })
+
+        await db.debates.update_one(
+            {"id": debate_id},
+            {
+                "$inc": {
+                    f"options.{payload.option_index}.votes": -1,
+                    "total_votes": -1
+                }
+            }
+        )
+
+        return {"action": "removed"}
+
+    # -------------------------
+    # CASE 3: Switching vote
+    # -------------------------
+    old_index = existing_vote["option_index"]
+    new_index = payload.option_index
+
+    await db.votes.update_one(
+        {"_id": existing_vote["_id"]},
+        {"$set": {"option_index": new_index}}
+    )
+
+    await db.debates.update_one(
+        {"id": debate_id},
+        {
+            "$inc": {
+                f"options.{old_index}.votes": -1,
+                f"options.{new_index}.votes": 1
+            }
+        }
+    )
+
+    return {"action": "switched"}
