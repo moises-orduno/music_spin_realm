@@ -10,6 +10,8 @@ import Hunt from "./pages/Hunt";
 import Collection from "./pages/Collection";
 import Profile from "./pages/Profile";
 import People from "./pages/People";
+import Login from "./pages/Login";
+import ListDetail from "./pages/ListDetail";
 
 function App() {
   return (
@@ -24,6 +26,9 @@ function App() {
           <Route path="/marketplace" element={<Layout><Hunt /></Layout>} />
           <Route path="/collection" element={<Layout><Collection /></Layout>} />
           <Route path="/people" element={<Layout><People /></Layout>} />
+          <Route path="/lists/:id" element={<Layout showRightPanel={false}><ListDetail /></Layout>} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Login />} />
           <Route path="/profile" element={<Layout showRightPanel={false}><Profile /></Layout>} />
           <Route path="/profile/:username" element={<Layout showRightPanel={false}><Profile /></Layout>} />
         </Routes>

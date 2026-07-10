@@ -1,25 +1,22 @@
-import React, { useState, useMemo,useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 
 import { useParams, Link } from "react-router-dom";
 import {
-  Bookmark,
-  Share2,
-  MoreHorizontal,
   Disc3,
   Guitar,
   Drum,
   Star,
   Check,
-  ChevronRight,
   Heart,
   MessageCircle,
-  ChevronDown,
-  Target,
   Flame,
 } from "lucide-react";
 
-import { getDebateById,getCommentsByDebateId,createComment } 
-from "../services/debateService";
+import {
+  getDebateById, getCommentsByDebateId, createComment,
+  voteDebate
+}
+  from "../services/debateService";
 
 const ICON_MAP = {
   disc: Disc3,
@@ -37,11 +34,10 @@ function OptionCard({ opt, selected, onSelect }) {
   return (
     <button
       onClick={() => onSelect(opt.letter)}
-      className={`card-panel p-5 text-left relative transition-all ${
-        selected
-          ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-          : "hover:border-[var(--border-2)]"
-      }`}
+      className={`card-panel p-5 text-left relative transition-all ${selected
+        ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+        : "hover:border-[var(--border-2)]"
+        }`}
     >
       <div
         className="absolute top-4 left-4 w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold"
@@ -101,7 +97,7 @@ function ReplyCard({ c, onLike, liked }) {
 
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-[13px]">{c.author}</span>
+            <span className="font-medium text-[13px]">{c.author.display_name}</span>
             <span className="text-[11px] text-[var(--text-dim)]">
               · {c.time}
             </span>
@@ -145,7 +141,7 @@ function CommentCard({ c, onLike, likedMap }) {
 
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-[13.5px]">{c.author}</span>
+            <span className="font-medium text-[13.5px]">{c.author.display_name}</span>
             <span className="text-[11px] text-[var(--text-dim)]">
               · {c.time}
             </span>
@@ -201,15 +197,39 @@ function CommentCard({ c, onLike, likedMap }) {
 export default function DebateDetail() {
   const { id } = useParams();
 
-  const [d, setD] = useState(null);
+  const [debate, setDebate] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [vote, setVote] = useState(null);
+
   const [likedComments, setLikedComments] = useState({});
-  const [activeTab, setActiveTab] = useState("Top");
 
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState([]);
+
+ 
+
+  /* ---------------------------
+     Derived options (safe)
+  ----------------------------*/
+  const options = useMemo(() => {
+    if (!debate?.options) return [];
+
+    const totalVotes = debate.options.reduce((s, o) => s + o.votes, 0);
+
+    return debate.options.map((o, i) => ({
+      ...o,
+      letter: String.fromCharCode(65 + i),
+      title: o.label,
+      desc: "",
+      pct: totalVotes ? ((o.votes / totalVotes) * 100).toFixed(1) : 0,
+      icon: i === 0 ? "disc" : "guitar",
+    }));
+  }, [debate]);
+
+
+  const total = options.reduce((s, o) => s + o.votes, 0);
+  const selectedOpt = options.find((o) => o.letter === vote);
 
   /* ---------------------------
      Fetch debate
@@ -220,7 +240,7 @@ export default function DebateDetail() {
 
       try {
         const data = await getDebateById(id);
-        setD(data);
+        setDebate(data);
       } catch (err) {
         console.error("Failed to load debate:", err);
       } finally {
@@ -233,7 +253,6 @@ export default function DebateDetail() {
 
       try {
         const data = await getCommentsByDebateId(id);
-        console.log("comments", data);
         setComments(data);
       } catch (err) {
         console.error("Failed to load debate:", err);
@@ -246,49 +265,71 @@ export default function DebateDetail() {
     fetchComments();
   }, [id]);
 
-const [postingComment, setPostingComment] = useState(false);
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
 
-const handleAddComment = async () => {
-  if (!commentText.trim()) return;
+    try {
 
-  try {
-    setPostingComment(true);
+      const newComment = await createComment(id, {
+        text: commentText,
+        parent_comment_id: null,
+      });
 
-    const newComment = await createComment(id, {
-      text: commentText,
-      author: "anonymous",
-      parent_comment_id: null,
-    });
+      setComments((prev) => [newComment, ...prev]);
+      setCommentText("");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      
+    }
+  };
 
-    setComments((prev) => [newComment, ...prev]);
-    setCommentText("");
-  } catch (error) {
-    console.error(error);
-  } finally {
-    setPostingComment(false);
-  }
-};
+  const handleVote = async (letter) => {
+    const optionIndex = options.findIndex(
+      (o) => o.letter === letter
+    );
 
-  /* ---------------------------
-     Derived options (safe)
-  ----------------------------*/
-  const options = useMemo(() => {
-    if (!d?.options) return [];
+    try {
+      const result = await voteDebate(debate.id, optionIndex);
 
-    const totalVotes = d.options.reduce((s, o) => s + o.votes, 0);
+      setDebate((prev) => {
+        const updated = {
+          ...prev,
+          options: prev.options.map((o) => ({ ...o }))
+        };
 
-    return d.options.map((o, i) => ({
-      ...o,
-      letter: String.fromCharCode(65 + i),
-      title: o.label,
-      desc: "",
-      pct: totalVotes ? ((o.votes / totalVotes) * 100).toFixed(1) : 0,
-      icon: i === 0 ? "disc" : "guitar",
-    }));
-  }, [d]);
+        if (result.action === "created") {
+          updated.options[optionIndex].votes++;
+          updated.total_votes++;
+          setVote(letter);
+        }
 
-  const total = options.reduce((s, o) => s + o.votes, 0);
-  const selectedOpt = options.find((o) => o.letter === vote);
+        if (result.action === "removed") {
+          updated.options[optionIndex].votes--;
+          updated.total_votes--;
+          setVote(null);
+        }
+
+        if (result.action === "switched") {
+          const previousIndex = options.findIndex(
+            (o) => o.letter === vote
+          );
+
+          if (previousIndex !== -1) {
+            updated.options[previousIndex].votes--;
+          }
+
+          updated.options[optionIndex].votes++;
+          setVote(letter);
+        }
+
+        return updated;
+      });
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   /* ---------------------------
      Donut segments
@@ -312,29 +353,51 @@ const handleAddComment = async () => {
   });
 
   const polarToCartesian = (cx, cy, r, angleDeg) => {
-    const a = ((angleDeg - 90) * Math.PI) / 180;
+    const angle = ((angleDeg - 90) * Math.PI) / 180;
+
     return {
-      x: cx + r * Math.cos(a),
-      y: cy + r * Math.sin(a),
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
     };
   };
 
-  
+
   const arcPath = (cx, cy, r, startPct, endPct) => {
-    const startA = (startPct / 100) * 360;
-    const endA = (endPct / 100) * 360;
+    const sweep = endPct - startPct;
 
-    const s = polarToCartesian(cx, cy, r, endA);
-    const e = polarToCartesian(cx, cy, r, startA);
-    const large = endA - startA > 180 ? 1 : 0;
+    // Don't draw zero-length segments
+    if (sweep <= 0) {
+      return "";
+    }
 
-    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 0 ${e.x} ${e.y}`;
+    // SVG can't draw a complete circle with one arc.
+    // Draw it with two 180° arcs instead.
+    if (sweep >= 100) {
+      return `
+      M ${cx} ${cy - r}
+      A ${r} ${r} 0 1 1 ${cx} ${cy + r}
+      A ${r} ${r} 0 1 1 ${cx} ${cy - r}
+    `;
+    }
+
+    const startAngle = (startPct / 100) * 360;
+    const endAngle = (endPct / 100) * 360;
+
+    const start = polarToCartesian(cx, cy, r, startAngle);
+    const end = polarToCartesian(cx, cy, r, endAngle);
+
+    const largeArcFlag = sweep > 50 ? 1 : 0;
+
+    return `
+    M ${start.x} ${start.y}
+    A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y}
+  `;
   };
 
   /* ---------------------------
      Loading state
   ----------------------------*/
-  if (loading || !d) {
+  if (loading || !debate) {
     return <div className="p-6">Loading debate...</div>;
   }
 
@@ -347,11 +410,11 @@ const handleAddComment = async () => {
         <div className="card-panel p-7">
           <div className="flex items-center gap-2 mb-4">
             <Flame size={13} className="text-red-500" />
-            <span className="uppercase text-red-500 text-xs">{d.badge}</span>
+            <span className="uppercase text-red-500 text-xs">{debate.badge}</span>
           </div>
 
-          <h1 className="text-3xl font-serif">{d.title}</h1>
-          <p className="text-sm text-[var(--text-muted)]">{d.subtitle}</p>
+          <h1 className="text-3xl font-serif">{debate.title}</h1>
+          <p className="text-sm text-[var(--text-muted)]">{debate.subtitle}</p>
         </div>
 
         {/* Options */}
@@ -361,7 +424,7 @@ const handleAddComment = async () => {
               key={opt.letter}
               opt={opt}
               selected={vote === opt.letter}
-              onSelect={setVote}
+              onSelect={handleVote}
             />
           ))}
         </div>
@@ -405,8 +468,6 @@ const handleAddComment = async () => {
 
       </div>
 
-     
-
       {/* Right rail */}
       <aside className="w-[280px] hidden xl:block">
         <div className="card-panel p-5">
@@ -433,7 +494,7 @@ const handleAddComment = async () => {
             ))}
           </svg>
 
-          <div className="text-center mt-2">{d.totalVotes} votes</div>
+          <div className="text-center mt-2">{debate.total_votes} votes</div>
         </div>
       </aside>
     </div>

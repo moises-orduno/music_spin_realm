@@ -43,8 +43,7 @@ async def list_albums(
     status_code=status.HTTP_201_CREATED
 )
 async def create_album(
-    payload: AlbumCreate,
-    current_user=Depends(get_current_user)
+    payload: AlbumCreate
 ):
     existing = await db.albums.find_one(
         {

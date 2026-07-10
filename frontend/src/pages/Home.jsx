@@ -1,44 +1,66 @@
 import React, { useState, useEffect } from "react";
 import { Crown, ChevronLeft, ChevronRight, ArrowRight, MessageSquare } from "lucide-react";
-import {topsByCommunity, spotlight } from "../data/mock";
+import { topsByCommunity, spotlight } from "../data/mock";
 import { SectionTitle } from "../components/ui-bits";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 import { getDebates } from "../services/debateService";
-
+import { getLists } from "../services/listService";
 
 
 export default function Home() {
 
-const [debates, setDebates] = useState([]);
-const [loadingDebates, setLoadingDebates] = useState(true);
-const [error, setError] = useState(null);
+  const [debates, setDebates] = useState([]);
+  const [loadingDebates, setLoadingDebates] = useState(true);
+  const [lists, setLists] = useState([]);
+  const [loadingLists, setLoadingLists] = useState(true);
+  const [error, setError] = useState(null);
 
-const navigate = useNavigate();
+  const navigate = useNavigate();
 
-const handleDebateClick = (debate) => {
-  navigate(`/debates/${debate.id}`);
-};
-
-
-  useEffect(() => {
-  const loadDebates = async () => {
-    try {
-      setLoadingDebates(true);
-      setError(null);
-
-      const data = await getDebates();
-      setDebates(data);
-
-    } catch (err) {
-      setError(err.message || "Failed to load debates");
-    } finally {
-      setLoadingDebates(false);
-    }
+  const handleDebateClick = (debate) => {
+    navigate(`/debates/${debate.id}`);
   };
 
-  loadDebates();
-}, []);
+  const handleListClick = (list) => {
+    navigate(`/lists/${list.id}`);
+  };
+
+  useEffect(() => {
+    const loadDebates = async () => {
+      try {
+        setLoadingDebates(true);
+        setError(null);
+
+        const data = await getDebates();
+        setDebates(data);
+
+      } catch (err) {
+        setError(err.message || "Failed to load debates");
+      } finally {
+        setLoadingDebates(false);
+      }
+    };
+
+    loadDebates();
+
+    const loadLists = async () => {
+      try {
+        setLoadingLists(true);
+        setError(null);
+
+        const data = await getLists();
+        setLists(data);
+
+      } catch (err) {
+        setError(err.message || "Failed to load debates");
+      } finally {
+        setLoadingLists(false);
+      }
+    };
+
+    loadLists();
+  }, []);
 
   return (
     <div className="space-y-10 fade-in-up" data-testid="home-page">
@@ -57,7 +79,7 @@ const handleDebateClick = (debate) => {
             <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)]">Music Court</span>
           </div>
           <h1 className="font-serif text-[30px] sm:text-[38px] lg:text-[44px] leading-[1.05] font-normal mb-4">
-            Which albums<br/>truly have no skips?
+            Which albums<br />truly have no skips?
           </h1>
           <p className="text-[14px] text-[var(--text-muted)] mb-7 max-w-[420px]">
             Defend your pick. Convince the court.
@@ -121,12 +143,18 @@ const handleDebateClick = (debate) => {
       <section data-testid="top-debates-section">
         <SectionTitle
           action={
-            <button className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 hover:text-[var(--accent)]" data-testid="view-all-debates">
-              View all Debates<ArrowRight size={12} />
-            </button>
+            <Link to="/debates">
+              <button
+                className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 hover:text-[var(--accent)]"
+                data-testid="view-all-debates"
+              >
+                View all Debates
+                <ArrowRight size={12} />
+              </button>
+            </Link>
           }
         >
-           Top Debates This Week
+          Top Debates This Week
         </SectionTitle>
         {loadingDebates ? (
           <div>Loading debates...</div>
@@ -188,37 +216,74 @@ const handleDebateClick = (debate) => {
       <section data-testid="tops-section">
         <SectionTitle
           action={
-            <button className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 hover:text-[var(--accent)]">
+            <Link
+              to="/lists"
+              className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 hover:text-[var(--accent)]"
+            >
               View all tops <ArrowRight size={12} />
-            </button>
+            </Link>
           }
         >
           Tops by the Community
         </SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {topsByCommunity.map((t) => (
-            <div key={t.id} className="card-panel hover-lift overflow-hidden cursor-pointer" data-testid={`top-card-${t.id}`}>
-              <div className="h-[120px] relative" style={{ background: t.cover }}>
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[rgba(0,0,0,0.6)]" />
-                <div className="absolute bottom-3 left-4 text-[10.5px] tracking-[0.15em] uppercase text-[var(--accent)] font-medium">
-                  {t.title}
+
+        {loadingLists ? (
+          <div>Loading...</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {lists.map((list) => (
+              <div
+                key={list.id}
+                className="card-panel hover-lift overflow-hidden cursor-pointer"
+                 onClick={() => handleListClick(list)}
+              >
+                <div
+                  className="h-[120px] relative bg-cover bg-center"
+                  style={{
+                    backgroundImage: list.image
+                      ? `url(${list.image})`
+                      : list.recent_albums[0]?.cover_url
+                        ? `url(${list.recent_albums[0].cover_url})`
+                        : undefined,
+                    backgroundColor: "#333",
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[rgba(0,0,0,0.6)]" />
+
+                  <div className="absolute bottom-3 left-4 text-[10.5px] tracking-[0.15em] uppercase text-[var(--accent)] font-medium">
+                    {list.title}
+                  </div>
+                </div>
+
+                <div className="p-4 space-y-2.5">
+                  {list.recent_albums.slice(0, 3).map((album, index) => (
+                    <div key={album.id} className="flex items-center gap-3">
+                      <span className="text-[13px] text-[var(--text-dim)] w-3">
+                        {album.position}
+                      </span>
+
+                      <div className="min-w-0">
+                        <div className="text-[13px] truncate">
+                          {album.album.title}
+                        </div>
+
+                        <div className="text-[10.5px] text-[var(--text-muted)] truncate">
+                          {album.album.artist}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {list.items_count > 3 && (
+                    <div className="text-[10.5px] text-[var(--text-dim)] pt-1">
+                      + {list.items_count - 3} more
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="p-4 space-y-2.5">
-                {t.items.map((it) => (
-                  <div key={it.rank} className="flex items-center gap-3">
-                    <span className="text-[13px] text-[var(--text-dim)] w-3">{it.rank}</span>
-                    <div className="min-w-0">
-                      <div className="text-[13px] truncate">{it.title}</div>
-                      {it.sub && <div className="text-[10.5px] text-[var(--text-muted)] truncate">{it.sub}</div>}
-                    </div>
-                  </div>
-                ))}
-                <div className="text-[10.5px] text-[var(--text-dim)] pt-1">+ {t.more} more</div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Collector Spotlight */}

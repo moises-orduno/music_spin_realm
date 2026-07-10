@@ -1,0 +1,111 @@
+import { API_BASE_URL } from "./api";
+import { getToken } from "./authService";
+
+export async function getLists() {
+  const response = await fetch(
+    `${API_BASE_URL}/lists`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch lists");
+  }
+
+  return response.json();
+}
+
+export async function getListById(id) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/lists/${id}`,
+    {
+      headers: token
+        ? {
+          Authorization: `Bearer ${token}`,
+        }
+        : {},
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch list");
+  }
+
+  return response.json();
+}
+
+export async function toggleLikeById(id) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/lists/${id}/like`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to toggle like");
+  }
+
+  return response.json();
+}
+
+export async function toggleSaveById(id) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/lists/${id}/save`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to toggle save");
+  }
+
+  return response.json();
+}
+
+export async function createComment(listId, comment) {
+  const token = getToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/comments/lists/${listId}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(comment),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to create comment");
+  }
+
+  return response.json();
+}
+
+export async function getCommentsByListId(listId) {
+  const response = await fetch(
+    `${API_BASE_URL}/comments/lists/${listId}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch debate");
+  }
+
+  return response.json();
+}

@@ -71,20 +71,17 @@ async def vote_debate(
 ):
     user_id = current_user["id"]
 
-    # Check debate exists
     debate = await db.debates.find_one({"id": debate_id})
     if not debate:
         raise HTTPException(404, "Debate not found")
 
-    # Validate option
     options = debate.get("options", [])
     if payload.option_index < 0 or payload.option_index >= len(options):
         raise HTTPException(400, "Invalid option_index")
 
-    # 3. Check existing vote for this user
     existing_vote = await db.votes.find_one({
         "debate_id": debate_id,
-        "user_id": payload.user_id
+        "user_id": user_id
     })
 
     # -------------------------
@@ -92,9 +89,9 @@ async def vote_debate(
     # -------------------------
     if not existing_vote:
         await db.votes.insert_one({
-            "debate_id": debate_id,
-            "user_id": payload.user_id,
-            "option_index": payload.option_index
+        "debate_id": debate_id,
+        "user_id": user_id,
+        "option_index": payload.option_index
         })
 
         await db.debates.update_one(
@@ -116,7 +113,7 @@ async def vote_debate(
 
         await db.votes.delete_one({
             "debate_id": debate_id,
-            "user_id": payload.user_id
+            "user_id": user_id
         })
 
         await db.debates.update_one(

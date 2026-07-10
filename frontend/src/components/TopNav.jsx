@@ -2,6 +2,7 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { Search, Bell, MessageCircle, Menu } from "lucide-react";
 import { useDrawer } from "./Layout";
+import { getCurrentUser}  from "../services/authService";
 
 const topLinks = [
   { to: "/", label: "Home", end: true },
@@ -12,8 +13,11 @@ const topLinks = [
   { to: "/people", label: "People" },
 ];
 
+
 export default function TopNav() {
   const { setOpen } = useDrawer();
+  const user = getCurrentUser();
+
   return (
     <header className="sticky top-0 z-40 backdrop-blur-md bg-[rgba(12,11,10,0.85)] border-b border-[var(--border)]" data-testid="top-nav">
       <div className="flex items-center gap-3 md:gap-5 px-4 sm:px-6 lg:px-8 py-3.5">
@@ -62,18 +66,60 @@ export default function TopNav() {
         </nav>
 
         {/* Actions */}
+        
         <div className="flex items-center gap-2 md:gap-3 md:ml-6">
-          <button className="w-9 h-9 rounded-full border border-[var(--border)] items-center justify-center btn-ghost hidden sm:flex" data-testid="notifications-btn">
+
+          {!user ? (
+            <NavLink
+              to="/login"
+              data-testid="login-link"
+              className="hidden sm:inline-flex items-center px-4 py-2 rounded-full border border-[var(--accent)]/40 text-[var(--accent-2)] text-[12.5px] hover:bg-[var(--accent-soft)] transition"
+            >
+              Log in
+            </NavLink>
+          ) : (
+            <NavLink
+              to={`/users/${user.username}`}
+              data-testid="profile-link"
+              className="hidden sm:inline-flex items-center px-4 py-2 rounded-full border border-[var(--border)] text-[13px] hover:bg-[var(--panel)] transition"
+            >
+              {user.display_name}
+            </NavLink>
+          )}
+
+          <button
+            className="w-9 h-9 rounded-full border border-[var(--border)] items-center justify-center btn-ghost hidden sm:flex"
+            data-testid="notifications-btn"
+          >
             <Bell size={15} strokeWidth={1.6} />
           </button>
-          <button className="w-9 h-9 rounded-full border border-[var(--border)] items-center justify-center btn-ghost hidden sm:flex" data-testid="messages-btn">
+
+          <button
+            className="w-9 h-9 rounded-full border border-[var(--border)] items-center justify-center btn-ghost hidden sm:flex"
+            data-testid="messages-btn"
+          >
             <MessageCircle size={15} strokeWidth={1.6} />
           </button>
+
           <div
-            className="w-9 h-9 rounded-full border border-[var(--border-2)] shrink-0"
-            style={{ background: "linear-gradient(135deg, #c2a876, #3a2a1a)" }}
+            className="w-9 h-9 rounded-full border border-[var(--border-2)] shrink-0 overflow-hidden"
             data-testid="user-avatar"
-          />
+          >
+            {user?.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.display_name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div
+                className="w-full h-full"
+                style={{
+                  background: "linear-gradient(135deg, #c2a876, #3a2a1a)",
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
     </header>

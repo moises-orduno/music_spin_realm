@@ -54,18 +54,13 @@ class UserUpdate(BaseModel):
 
 class UserReference(BaseModel):
     user_id: str
-
     username: str
-
     display_name: str
-
     avatar_url: Optional[str] = None
 
 class UserFollow(BaseModel):
     follower_id: str
-
     following_id: str
-
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

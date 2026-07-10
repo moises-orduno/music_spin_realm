@@ -82,8 +82,6 @@ class DebateUpdate(BaseModel):
 
 
 class VoteRequest(BaseModel):
-    debate_id: str
-    user_id: str
     option_index: int
 
 class Vote(BaseModel):

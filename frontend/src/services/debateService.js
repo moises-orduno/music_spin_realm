@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./api";
+import { getToken } from "./authService";
 
 export async function getDebates() {
   const response = await fetch(
@@ -26,7 +27,7 @@ export async function getDebateById(id) {
 
 export async function getCommentsByDebateId(debateId) {
   const response = await fetch(
-    `${API_BASE_URL}/comments/${debateId}`
+    `${API_BASE_URL}/comments/debates/${debateId}`
   );
 
   if (!response.ok) {
@@ -37,12 +38,15 @@ export async function getCommentsByDebateId(debateId) {
 }
 
 export async function createComment(debateId, comment) {
+  const token = getToken();
+
   const response = await fetch(
-    `${API_BASE_URL}/comments/${debateId}`,
+    `${API_BASE_URL}/comments/debates/${debateId}`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(comment),
     }
@@ -50,6 +54,28 @@ export async function createComment(debateId, comment) {
 
   if (!response.ok) {
     throw new Error("Failed to create comment");
+  }
+
+  return response.json();
+}
+
+export async function voteDebate(debateId, optionIndex) {
+  const response = await fetch(
+    `${API_BASE_URL}/debates/${debateId}/vote`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({
+        option_index: optionIndex
+      })
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to vote");
   }
 
   return response.json();
