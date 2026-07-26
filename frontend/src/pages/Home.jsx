@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Crown, ChevronLeft, ChevronRight, ArrowRight, MessageSquare } from "lucide-react";
-import { topsByCommunity, spotlight } from "../data/mock";
+import { Crown, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { spotlight } from "../data/mock";
 import { SectionTitle } from "../components/ui-bits";
 import { useNavigate, Link } from "react-router-dom";
 

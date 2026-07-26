@@ -35,3 +35,12 @@ class AlbumUpdate(BaseModel):
     year: Optional[int] = None
     cover_url: Optional[str] = None
     genres: Optional[List[str]] = None
+
+class AlbumSuggestionRequest(BaseModel):
+    list_id: str
+    limit: int = 10
+    
+class AlbumSearchRequest(BaseModel):
+    query: str
+    limit: int = 10
+    list_id: Optional[str] = None

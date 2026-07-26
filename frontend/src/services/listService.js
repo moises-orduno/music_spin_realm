@@ -34,6 +34,19 @@ export async function getListById(id) {
   return response.json();
 }
 
+export async function getListRemixes(id) {
+
+  const response = await fetch(
+    `${API_BASE_URL}/lists/${id}/remixes`,
+    );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch list remixes");
+  }
+
+  return response.json();
+}
+
 export async function toggleLikeById(id) {
   const token = localStorage.getItem("token");
 
@@ -105,6 +118,28 @@ export async function getCommentsByListId(listId) {
 
   if (!response.ok) {
     throw new Error("Failed to fetch debate");
+  }
+
+  return response.json();
+}
+
+export async function createRemixList(listId, remixData) {
+  const token = getToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/lists/${listId}/remix`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(remixData),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to create remix");
   }
 
   return response.json();

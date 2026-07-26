@@ -5,7 +5,7 @@ import { Home, MessageSquare, ThumbsUp, Search, Store, Users, FolderOpen, Star, 
 const mainNav = [
   { to: "/", label: "Home", icon: Home, end: true },
   { to: "/debates", label: "Debates", icon: MessageSquare },
-  { to: "/tops", label: "Top 10s", icon: ThumbsUp },
+  { to: "/tops", label: "Top Lists", icon: ThumbsUp },
   { to: "/hunt", label: "Hunt", icon: Search },
   { to: "/marketplace", label: "Marketplace", icon: Store },
   { to: "/people", label: "People", icon: Users },

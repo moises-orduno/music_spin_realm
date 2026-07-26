@@ -5,6 +5,8 @@ from models.topList import TopList,TopListCreate
 from helpers.token_helper import get_current_user, get_optional_user
 from models.user import UserReference
 from datetime import datetime, timezone
+import copy
+from models.remixList import RemixCreate
 
 router = APIRouter(
     prefix="/lists",
@@ -15,10 +17,13 @@ router = APIRouter(
 async def list_lists(limit: int = 50):
 
     docs = (
-        await db.lists
-        .find({}, {"_id": 0})
-        .sort("likes_count", -1)
-        .to_list(limit)
+    await db.lists
+    .find(
+        {"parent_list_id": None},
+        {"_id": 0}
+    )
+    .sort("likes_count", -1)
+    .to_list(limit)
     )
 
     result = []
@@ -186,7 +191,6 @@ async def remix_list(
     list_id: str,
     current_user=Depends(get_current_user)
 ):
-
     original = await db.lists.find_one(
         {"id": list_id},
         {"_id": 0}
@@ -198,8 +202,6 @@ async def remix_list(
             detail="List not found"
         )
 
-    original.pop("id", None)
-
     owner = UserReference(
         user_id=current_user["id"],
         username=current_user["username"],
@@ -208,10 +210,24 @@ async def remix_list(
     )
 
     remix = TopList(
-        **original,
         creator_id=current_user["id"],
         owner=owner,
-        parent_list_id=list_id
+
+        title=original["title"],
+        description=original.get("description"),
+        category=original.get("category"),
+
+        # Copy albums so remix can modify independently
+        items=copy.deepcopy(original["items"]),
+
+        parent_list_id=list_id,
+
+        likes_count=0,
+        comments_count=0,
+        remix_count=0,
+        views_count=0,
+
+        is_public=False
     )
 
     await db.lists.insert_one(
@@ -220,7 +236,11 @@ async def remix_list(
 
     await db.lists.update_one(
         {"id": list_id},
-        {"$inc": {"remix_count": 1}}
+        {
+            "$inc": {
+                "remix_count": 1
+            }
+        }
     )
 
     return remix
@@ -338,3 +358,61 @@ async def toggle_like_list(
         "liked": True,
         "message": "List liked"
     }
+
+@router.post("/{list_id}/remix", response_model=TopList)
+async def remix_list(
+    list_id: str,
+    payload: RemixCreate,
+    current_user=Depends(get_current_user)
+):
+    original = await db.lists.find_one(
+        {"id": list_id},
+        {"_id": 0}
+    )
+
+    if not original:
+        raise HTTPException(
+            status_code=404,
+            detail="List not found"
+        )
+
+    owner = UserReference(
+        user_id=current_user["id"],
+        username=current_user["username"],
+        display_name=current_user["display_name"],
+        avatar_url=current_user.get("avatar_url")
+    )
+
+    remix = TopList(
+        creator_id=current_user["id"],
+        owner=owner,
+
+        title=payload.title,
+        description=payload.description,
+        category=payload.category,
+        items=payload.items,
+
+        parent_list_id=list_id,
+
+        likes_count=0,
+        comments_count=0,
+        remix_count=0,
+        views_count=0,
+
+        is_public=True
+    )
+
+    await db.lists.insert_one(
+        remix.model_dump()
+    )
+
+    await db.lists.update_one(
+        {"id": list_id},
+        {
+            "$inc": {
+                "remix_count": 1
+            }
+        }
+    )
+
+    return remix

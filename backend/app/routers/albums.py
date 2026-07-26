@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from db.mongodb import db
 from helpers.token_helper import get_current_user
-from models.album import AlbumCreate, Album, AlbumUpdate
+from models.album import AlbumCreate, Album, AlbumUpdate, AlbumSuggestionRequest, AlbumSearchRequest
+
+import re
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter(
     prefix="/albums",
@@ -212,3 +215,262 @@ async def unfollow_album(
     )
 
     return {"success": True}
+
+@router.post("/suggestions")
+async def album_suggestions(request: AlbumSuggestionRequest):
+
+    # Find the list
+    top_list = await db.lists.find_one(
+        {"id": request.list_id},
+        {"_id": 0}
+    )
+
+    if not top_list:
+        raise HTTPException(
+            status_code=404,
+            detail="List not found"
+        )
+
+    if not top_list.get("items"):
+        raise HTTPException(
+            status_code=404,
+            detail="List has no albums"
+        )
+
+    # Album IDs already in the list
+    existing_album_ids = [
+        item["album"]["id"]
+        for item in top_list["items"]
+    ]
+
+    # Use the first album as the reference
+    album_id = existing_album_ids[0]
+
+    album = await db.albums.find_one(
+        {"id": album_id},
+        {"_id": 0}
+    )
+
+    if not album:
+        raise HTTPException(
+            status_code=404,
+            detail="Album not found"
+        )
+
+    suggestions = []
+
+    # Same artist
+    same_artist = await db.albums.find(
+        {
+            "artist.artist_id": album["artist"]["artist_id"],
+            "id": {
+                "$nin": existing_album_ids
+            }
+        },
+        {"_id": 0}
+    ).limit(request.limit // 2).to_list(request.limit // 2)
+
+    suggestions.extend(same_artist)
+
+    # Albums we've already excluded
+    excluded_ids = existing_album_ids + [
+        a["id"] for a in same_artist
+    ]
+
+    # Same genre
+    similar_genre = await db.albums.find(
+        {
+            "genres": {
+                "$in": album["genres"]
+            },
+            "id": {
+                "$nin": excluded_ids
+            }
+        },
+        {"_id": 0}
+    ).sort(
+        "total_lists",
+        -1
+    ).limit(
+        request.limit - len(same_artist)
+    ).to_list(
+        request.limit - len(same_artist)
+    )
+
+    suggestions.extend(similar_genre)
+
+    # Remove duplicates
+    unique = []
+    seen = set()
+
+    for item in suggestions:
+        if item["id"] not in seen:
+            seen.add(item["id"])
+            unique.append(item)
+
+    return unique
+
+@router.post("/search")
+async def search_albums(request: AlbumSearchRequest):
+
+    query = request.query.strip()
+
+    # Don't search if the query is empty
+    if not query:
+        return []
+
+    excluded_ids = []
+
+    # Exclude albums already in the list (optional)
+    if request.list_id:
+        top_list = await db.lists.find_one(
+            {"id": request.list_id},
+            {"_id": 0}
+        )
+
+        if not top_list:
+            raise HTTPException(
+                status_code=404,
+                detail="List not found"
+            )
+
+        excluded_ids = [
+            item["album"]["id"]
+            for item in top_list.get("items", [])
+        ]
+
+    escaped = re.escape(query)
+
+    pipeline = [
+        {
+            "$match": {
+                "id": {
+                    "$nin": excluded_ids
+                },
+                "$or": [
+                    {
+                        "title": {
+                            "$regex": escaped,
+                            "$options": "i"
+                        }
+                    },
+                    {
+                        "artist.name": {
+                            "$regex": escaped,
+                            "$options": "i"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "$addFields": {
+                "score": {
+                    "$switch": {
+                        "branches": [
+                            # Exact album title
+                            {
+                                "case": {
+                                    "$eq": [
+                                        {"$toLower": "$title"},
+                                        query.lower()
+                                    ]
+                                },
+                                "then": 100
+                            },
+
+                            # Exact artist
+                            {
+                                "case": {
+                                    "$eq": [
+                                        {"$toLower": "$artist.name"},
+                                        query.lower()
+                                    ]
+                                },
+                                "then": 95
+                            },
+
+                            # Album title starts with query
+                            {
+                                "case": {
+                                    "$regexMatch": {
+                                        "input": "$title",
+                                        "regex": f"^{escaped}",
+                                        "options": "i"
+                                    }
+                                },
+                                "then": 90
+                            },
+
+                            # Artist starts with query
+                            {
+                                "case": {
+                                    "$regexMatch": {
+                                        "input": "$artist.name",
+                                        "regex": f"^{escaped}",
+                                        "options": "i"
+                                    }
+                                },
+                                "then": 85
+                            },
+
+                            # Album title contains query
+                            {
+                                "case": {
+                                    "$regexMatch": {
+                                        "input": "$title",
+                                        "regex": escaped,
+                                        "options": "i"
+                                    }
+                                },
+                                "then": 80
+                            },
+
+                            # Artist contains query
+                            {
+                                "case": {
+                                    "$regexMatch": {
+                                        "input": "$artist.name",
+                                        "regex": escaped,
+                                        "options": "i"
+                                    }
+                                },
+                                "then": 75
+                            }
+                        ],
+                        "default": 0
+                    }
+                }
+            }
+        },
+        {
+            "$sort": {
+                "score": -1,
+                "total_lists": -1,
+                "total_debates": -1,
+                "year": -1,
+                "title": 1
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "id": 1,
+                "title": 1,
+                "artist": 1,
+                "cover_url": 1,
+                "year": 1,
+                "genres": 1,
+                "label": 1,
+                "total_lists": 1,
+                "total_debates": 1,
+            }
+        },
+        {
+            "$limit": request.limit
+        }
+    ]
+
+    albums = await db.albums.aggregate(pipeline).to_list(request.limit)
+
+    return albums

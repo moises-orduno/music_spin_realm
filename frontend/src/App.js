@@ -12,6 +12,9 @@ import Profile from "./pages/Profile";
 import People from "./pages/People";
 import Login from "./pages/Login";
 import ListDetail from "./pages/ListDetail";
+import ListRemix from "./pages/ListRemix";
+import ListAddAlbum from "./pages/ListAddAlbum";
+import ListSearch from "./pages/ListSearch";
 
 function App() {
   return (
@@ -27,10 +30,13 @@ function App() {
           <Route path="/collection" element={<Layout><Collection /></Layout>} />
           <Route path="/people" element={<Layout><People /></Layout>} />
           <Route path="/lists/:id" element={<Layout showRightPanel={false}><ListDetail /></Layout>} />
+          <Route path="/listsRemix/:id" element={<Layout showRightPanel={false}><ListRemix /></Layout>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Login />} />
           <Route path="/profile" element={<Layout showRightPanel={false}><Profile /></Layout>} />
           <Route path="/profile/:username" element={<Layout showRightPanel={false}><Profile /></Layout>} />
+          <Route path="/listsRemixAdd/:id" element={<Layout showRightPanel={false}><ListAddAlbum /></Layout>} />
+          <Route path="/listsRemixSearch/:id" element={<Layout showRightPanel={false}><ListSearch /></Layout>}/>
         </Routes>
       </BrowserRouter>
     </div>

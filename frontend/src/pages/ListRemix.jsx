@@ -1,18 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Shuffle, Plus, GripVertical, Trash2, Check, Sparkles,
   Lightbulb, Compass, Users, ArrowRight, ChevronUp, ChevronDown,
 } from "lucide-react";
-import { listDetail } from "../data/listDetail";
+import { createRemixList } from "../services/listService";
 
-const INITIAL_ITEMS = [
-  { rank: 1, title: "Unknown Pleasures", artist: "Joy Division", cover: "linear-gradient(135deg, #3a3a3a, #050505)", reason: "This album feels like loneliness in the most beautiful way.", owned: true, hunting: false },
-  { rank: 2, title: "The Queen Is Dead", artist: "The Smiths", cover: "linear-gradient(135deg, #6a6a3a, #2a2a15)", reason: "Romance and despair. Nothing hits me like this record.", owned: false, hunting: true },
-  { rank: 3, title: "OK Computer", artist: "Radiohead", cover: "linear-gradient(135deg, #8a8575, #3a3630)", reason: "The sound of realizing the world is not what it seems.", owned: true, hunting: false },
-  { rank: 4, title: "Pink Moon", artist: "Nick Drake", cover: "linear-gradient(135deg, #c2a876, #5a4b2a)", reason: "So sparse, so intimate, so devastating.", owned: false, hunting: true },
-  { rank: 5, title: "Either/Or", artist: "Elliott Smith", cover: "linear-gradient(135deg, #4a4a5a, #1a1a25)", reason: "Pain this honest is rare.", owned: true, hunting: false },
-];
+import {
+  getListById,
+  getCommentsByListId
+}
+  from "../services/listService";
+import { da } from "date-fns/locale";
 
 function Toggle({ on, onClick, testid }) {
   return (
@@ -47,7 +46,7 @@ function TipCard({ Icon, title, text, color }) {
         <Icon size={16} style={{ color }} strokeWidth={1.7} />
       </div>
       <div className="min-w-0">
-        <div className="text-[13px] font-medium mb-0.5">{title}</div>
+        <div className="text-[13px] font-medium mb-0.5">draft?.title</div>
         <p className="text-[11.5px] text-[var(--text-muted)] leading-snug">{text}</p>
       </div>
     </div>
@@ -57,22 +56,129 @@ function TipCard({ Icon, title, text, color }) {
 export default function ListRemix() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const original = listDetail;
 
-  const [title, setTitle] = useState("My Saddest Albums Ever");
-  const [description, setDescription] = useState("These albums hit different. They've been with me in the hardest moments.");
-  const [items, setItems] = useState(INITIAL_ITEMS);
   const [showInCollection, setShowInCollection] = useState(true);
   const [privateList, setPrivateList] = useState(false);
   const [dragIndex, setDragIndex] = useState(null);
   const [overIndex, setOverIndex] = useState(null);
 
-  const updateReason = (rank, val) => {
-    setItems(items.map((it) => it.rank === rank ? { ...it, reason: val.slice(0, 150) } : it));
+  const [loading, setLoading] = useState(false);
+  const [comments, setComments] = useState([]);
+
+  const [draft, setDraft] = useState(null);
+
+  const handleAddAlbumClick = () => {
+    navigate(`/listsRemixAdd/${id}`);
   };
-  const toggleOwned = (rank) => setItems(items.map((it) => it.rank === rank ? { ...it, owned: !it.owned, hunting: it.owned ? it.hunting : false } : it));
-  const toggleHunting = (rank) => setItems(items.map((it) => it.rank === rank ? { ...it, hunting: !it.hunting, owned: it.hunting ? it.owned : false } : it));
-  const removeItem = (rank) => setItems(items.filter((it) => it.rank !== rank).map((it, i) => ({ ...it, rank: i + 1 })));
+
+  const updateReason = (albumId, reason) => {
+    saveDraft({
+      ...draft,
+      items: draft.items.map(item =>
+        item.album.id === albumId
+          ? {
+            ...item,
+            why_this_album: reason.slice(0, 150)
+          }
+          : item
+      )
+    });
+  };
+
+  const saveDraft = useCallback((nextDraft) => {
+    setDraft(nextDraft);
+
+    sessionStorage.setItem(
+      `remix-${id}`,
+      JSON.stringify(nextDraft)
+    );
+  }, [id]);
+
+  const initializeDraft = async () => {
+
+    const cached = sessionStorage.getItem(`remix-${id}`);
+
+    if (cached) {
+      const parsed = JSON.parse(cached);
+
+      setDraft(parsed);
+      return;
+    }
+
+    const data = await getListById(id);
+    console.log("data",data);
+    const remixDraft = {
+      id: data.id,
+      title: data.title,
+      description: data.description ?? "",
+      category: data.category,
+      image: data.image,
+      owner: data.owner,
+      likes_count: data.likes_count,
+      remix_count: data.remix_count,
+      comments_count: data.comments_count,
+      items: data.items.map(item => ({
+        id: item.id,
+        position: item.position,
+        album: item.album,
+        why_this_album: item.why_this_album ?? "",
+        favorite_lyric: item.favorite_lyric ?? "",
+        owned: item.owned,
+        hunting: item.hunting,
+      }))
+    };
+
+    sessionStorage.setItem(
+      `remix-${id}`,
+      JSON.stringify(remixDraft)
+    );
+
+    setDraft(remixDraft);
+  };
+
+  const toggleOwned = (albumId) => {
+    saveDraft({
+      ...draft,
+      items: draft.items.map(item =>
+        item.album.id === albumId
+          ? {
+            ...item,
+            owned: !item.owned,
+            hunting: item.owned ? item.hunting : false
+          }
+          : item
+      )
+    });
+  };
+
+  const toggleHunting = (albumId) => {
+    saveDraft({
+      ...draft,
+      items: draft.items.map(item =>
+        item.album.id === albumId
+          ? {
+            ...item,
+            hunting: !item.hunting,
+            owned: item.hunting ? item.owned : false
+          }
+          : item
+      )
+    })
+  };
+
+  const removeItem = (albumId) => {
+    const next = draft.items
+      .filter(item => item.album.id !== albumId)
+      .map((item, index) => ({
+        ...item,
+        position: index
+      }));
+
+    saveDraft({
+      ...draft,
+      items: next
+    });
+  };
 
   // Drag-and-drop handlers
   const handleDragStart = (idx) => (e) => {
@@ -81,37 +187,125 @@ export default function ListRemix() {
     // Firefox requires setData
     try { e.dataTransfer.setData("text/plain", String(idx)); } catch (_) { /* noop */ }
   };
+
   const handleDragOver = (idx) => (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     if (overIndex !== idx) setOverIndex(idx);
   };
+
   const handleDragLeave = () => setOverIndex(null);
   const handleDrop = (idx) => (e) => {
     e.preventDefault();
     if (dragIndex === null || dragIndex === idx) {
       setDragIndex(null); setOverIndex(null); return;
     }
-    const next = [...items];
+    const next = [...draft.items];
     const [moved] = next.splice(dragIndex, 1);
     next.splice(idx, 0, moved);
-    setItems(next.map((it, i) => ({ ...it, rank: i + 1 })));
+    saveDraft({
+      ...draft,
+      items: next.map((it, index) => ({
+        ...it,
+        position: index
+      }))
+    });
     setDragIndex(null); setOverIndex(null);
   };
   const handleDragEnd = () => { setDragIndex(null); setOverIndex(null); };
 
   const moveUp = (idx) => {
     if (idx === 0) return;
-    const next = [...items];
+    const next = [...draft.items];
     [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-    setItems(next.map((it, i) => ({ ...it, rank: i + 1 })));
+    saveDraft({
+      ...draft,
+      items: next.map((it, index) => ({
+        ...it,
+        position: index
+      }))
+    });
   };
   const moveDown = (idx) => {
-    if (idx === items.length - 1) return;
-    const next = [...items];
+
+    if (idx === draft.items.length - 1) return;
+    const next = [...draft.items];
+
     [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
-    setItems(next.map((it, i) => ({ ...it, rank: i + 1 })));
+    saveDraft({
+      ...draft,
+      items: next.map((it, index) => ({
+        ...it,
+        position: index
+      }))
+    });
   };
+
+  const handleRemix = async () => {
+    try {
+      const remixData = {
+        title: draft.title,
+        description: draft.description,
+        category: draft.category,
+        items: draft.items.map((item, index) => ({
+          album_id: item.album.id,
+          position: index,
+          why_this_album: item.why_this_album,
+          favorite_lyric: item.favorite_lyric,
+          owned: item.owned,
+          hunting: item.hunting,
+        })),
+      };
+
+      const remix = await createRemixList(id, remixData);
+
+      console.log("Created remix:", remix);
+      sessionStorage.removeItem(`remix-${id}`);
+
+      // Navigate to the new remix page
+      navigate(`/lists/${remix.id}`);
+
+    } catch (error) {
+      console.error("Failed to create remix:", error);
+    }
+  };
+
+  const updateDescription = (value) => {
+
+    saveDraft({
+
+      ...draft,
+
+      description: value.slice(0, 250)
+
+    });
+
+  };
+
+  /* ---------------------------
+       Fetch list
+    ----------------------------*/
+  useEffect(() => {
+
+    async function initialize() {
+
+      setLoading(true);
+
+      try {
+        await Promise.all([
+          initializeDraft()
+        ]);
+      }
+      catch (err) {
+        console.error(err);
+      }
+      finally {
+        setLoading(false);
+      }
+    }
+    initialize();
+
+  }, [id]);
 
   return (
     <div className="flex gap-6 min-w-0 fade-in-up" data-testid="list-remix-page">
@@ -131,30 +325,30 @@ export default function ListRemix() {
           <p className="text-[13px] text-[var(--text-muted)] ml-14">You&apos;re creating your own version of a list.</p>
         </div>
 
-        {/* Title input */}
+        {/* Original title */}
         <div className="card-panel p-5" data-testid="title-field">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-[12.5px] font-medium">Your remix title <span className="text-[var(--accent-2)]">*</span></label>
-            <span className="text-[11px] text-[var(--text-dim)]">{title.length}/80</span>
+          <label className="text-[12.5px] font-medium mb-2 block">
+            List title
+          </label>
+
+          <div className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)]">
+            {draft?.title}
           </div>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value.slice(0, 80))}
-            data-testid="title-input"
-            className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] focus:outline-none focus:border-[var(--accent)]/50 transition"
-          />
+
+          <p className="text-[11.5px] text-[var(--text-muted)] mt-2">
+            This remix will keep the original list title.
+          </p>
         </div>
 
         {/* Description */}
         <div className="card-panel p-5" data-testid="description-field">
           <div className="flex items-center justify-between mb-2">
             <label className="text-[12.5px] font-medium">Your description <span className="text-[var(--text-muted)]">(optional)</span></label>
-            <span className="text-[11px] text-[var(--text-dim)]">{description.length}/250</span>
+            <span className="text-[11px] text-[var(--text-dim)]">{draft?.description.length}/250</span>
           </div>
           <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value.slice(0, 250))}
+            value={draft?.description ?? ""}
+            onChange={(e) => updateDescription(e.target.value)}
             rows={3}
             data-testid="description-input"
             className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[13.5px] focus:outline-none focus:border-[var(--accent)]/50 transition resize-none"
@@ -168,32 +362,32 @@ export default function ListRemix() {
               <h2 className="font-serif text-[22px] leading-tight">Your ranking</h2>
               <p className="text-[12px] text-[var(--text-muted)] mt-1">Add, remove or reorder albums to make it your own.</p>
             </div>
-            <button className="btn-accent rounded-lg px-4 py-2 text-[12.5px] flex items-center gap-2" data-testid="add-album-btn">
+            <button className="btn-accent rounded-lg px-4 py-2 text-[12.5px] flex items-center gap-2" data-testid="add-album-btn"
+              onClick={handleAddAlbumClick}>
               <Plus size={13} /> Add album
             </button>
           </div>
 
           {/* Items */}
           <div className="space-y-4 mt-5">
-            {items.map((it, idx) => (
+            {draft?.items?.map((it, idx) => (
               <div
-                key={it.rank + "-" + it.title}
+                key={it.id}
                 draggable
                 onDragStart={handleDragStart(idx)}
                 onDragOver={handleDragOver(idx)}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop(idx)}
                 onDragEnd={handleDragEnd}
-                className={`flex items-start gap-3 pt-4 border-t border-[var(--border)] first:border-t-0 first:pt-0 transition-all ${
-                  dragIndex === idx ? "opacity-40" : ""
-                } ${overIndex === idx && dragIndex !== idx ? "bg-[var(--accent-soft)] rounded-lg -mx-2 px-2 pb-2 border-t-[var(--accent)]" : ""}`}
-                data-testid={`item-${it.rank}`}
+                className={`flex items-start gap-3 pt-4 border-t border-[var(--border)] first:border-t-0 first:pt-0 transition-all ${dragIndex === idx ? "opacity-40" : ""
+                  } ${overIndex === idx && dragIndex !== idx ? "bg-[var(--accent-soft)] rounded-lg -mx-2 px-2 pb-2 border-t-[var(--accent)]" : ""}`}
+                data-testid={`item-${it.position + 1}`}
               >
                 <div className="flex flex-col items-center gap-1 mt-3 shrink-0">
                   <button
                     onClick={() => moveUp(idx)}
                     disabled={idx === 0}
-                    data-testid={`up-${it.rank}`}
+                    data-testid={`up-${it.position + 1}`}
                     className="text-[var(--text-dim)] hover:text-[var(--accent-2)] disabled:opacity-30 disabled:cursor-not-allowed transition"
                   >
                     <ChevronUp size={14} />
@@ -203,44 +397,44 @@ export default function ListRemix() {
                   </div>
                   <button
                     onClick={() => moveDown(idx)}
-                    disabled={idx === items.length - 1}
-                    data-testid={`down-${it.rank}`}
+                    disabled={!draft || idx === draft.items.length - 1}
+                    data-testid={`down-${it.position + 1}`}
                     className="text-[var(--text-dim)] hover:text-[var(--accent-2)] disabled:opacity-30 disabled:cursor-not-allowed transition"
                   >
                     <ChevronDown size={14} />
                   </button>
                 </div>
-                <div className="font-serif text-[22px] text-[var(--text-muted)] w-6 text-center shrink-0 mt-2">{it.rank}</div>
-                <div className="w-[70px] h-[70px] rounded shrink-0 cover" style={{ background: it.cover }} />
+                <div className="font-serif text-[22px] text-[var(--text-muted)] w-6 text-center shrink-0 mt-2">{it.position +1}</div>
+                <div className="w-[70px] h-[70px] rounded shrink-0 cover" style={{ background: it.album.cover_url }} />
 
                 <div className="flex-1 min-w-0">
-                  <div className="text-[14px] font-medium">{it.title}</div>
-                  <div className="text-[12px] text-[var(--text-muted)] mb-2">{it.artist}</div>
+                  <div className="text-[14px] font-medium">{it.album.title}</div>
+                  <div className="text-[12px] text-[var(--text-muted)] mb-2">{it.album.artist.name}</div>
                   <div className="relative">
                     <textarea
-                      value={it.reason}
-                      onChange={(e) => updateReason(it.rank, e.target.value)}
+                      value={it.why_this_album}
+                      onChange={(e) => updateReason(it.album.id, e.target.value)}
                       rows={2}
                       placeholder="Why this album?"
-                      data-testid={`reason-${it.rank}`}
+                      data-testid={`reason-${it.position + 1}`}
                       className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-3 py-2 pr-14 text-[12.5px] focus:outline-none focus:border-[var(--accent)]/50 transition resize-none"
                     />
-                    <span className="absolute right-3 bottom-2 text-[10.5px] text-[var(--text-dim)]">{it.reason.length}/150</span>
+                    <span className="absolute right-3 bottom-2 text-[10.5px] text-[var(--text-dim)]">{it.why_this_album.length}/150</span>
                   </div>
                   <div className="flex items-center gap-5 mt-2.5">
-                    <Checkbox checked={it.owned} onChange={() => toggleOwned(it.rank)} label="Owned" testid={`owned-${it.rank}`} />
-                    <Checkbox checked={it.hunting} onChange={() => toggleHunting(it.rank)} label="Hunting" testid={`hunting-${it.rank}`} />
+                    <Checkbox checked={it.owned} onChange={() => toggleOwned(it.album.id)} label="Owned" testid={`owned-${it.position + 1}`} />
+                    <Checkbox checked={it.hunting} onChange={() => toggleHunting(it.album.id)} label="Hunting" testid={`hunting-${it.position + 1}`} />
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 mt-2">
-                  <button className="border border-[var(--border-2)] text-[12px] px-3 py-1.5 rounded-lg hover:border-[var(--accent)]/40 hover:text-[var(--accent-2)] transition" data-testid={`replace-${it.rank}`}>
+                  <button className="border border-[var(--border-2)] text-[12px] px-3 py-1.5 rounded-lg hover:border-[var(--accent)]/40 hover:text-[var(--accent-2)] transition" data-testid={`replace-${it.position + 1}`}>
                     Replace
                   </button>
                   <button
-                    onClick={() => removeItem(it.rank)}
+                    onClick={() => removeItem(it.album.id)}
                     className="w-8 h-8 rounded-lg border border-[var(--border-2)] flex items-center justify-center hover:border-[#ef4444]/40 hover:text-[#ef4444] transition"
-                    data-testid={`delete-${it.rank}`}
+                    data-testid={`delete-${it.album.id}`}
                   >
                     <Trash2 size={13} />
                   </button>
@@ -281,7 +475,7 @@ export default function ListRemix() {
             Save as draft
           </button>
           <button
-            onClick={() => navigate(`/lists/${id || "saddest-albums-ever"}`)}
+            onClick={() => handleRemix()}
             data-testid="publish-btn"
             className="rounded-lg px-8 py-3 font-semibold text-[13px] text-white transition hover:-translate-y-0.5 flex flex-col items-center leading-tight"
             style={{ background: "linear-gradient(90deg, #8b5cf6, #6d28d9)", boxShadow: "0 8px 24px var(--accent-glow)" }}
@@ -293,76 +487,78 @@ export default function ListRemix() {
       </div>
 
       {/* Right sidebar */}
-      <aside className="hidden xl:block w-[290px] shrink-0 space-y-5">
-        {/* Original list */}
-        <div className="card-panel p-5" data-testid="original-list-card">
-          <div className="text-[13.5px] font-medium mb-3">Original list</div>
-          <div className="flex gap-3 mb-4">
-            <div className="w-14 h-14 rounded-md shrink-0 cover" style={{ background: original.cover }} />
-            <div className="min-w-0 flex-1">
-              <div className="text-[13.5px] font-medium truncate">{original.title}</div>
-              <div className="text-[11px] text-[var(--text-muted)]">by @{original.author.handle.toLowerCase().replace(/\s|\./g, "")}</div>
+
+      {draft && (
+        <aside className="hidden xl:block w-[290px] shrink-0 space-y-5">
+          {/* Original list */}
+          <div className="card-panel p-5" data-testid="original-list-card">
+            <div className="text-[13.5px] font-medium mb-3">Original list</div>
+            <div className="flex gap-3 mb-4">
+              <div className="w-14 h-14 rounded-md shrink-0 cover" style={{ background: "" }} />
+              <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-medium truncate">{draft.title}</div>
+                <div className="text-[11px] text-[var(--text-muted)]">by @{ }</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 mb-4 text-[11.5px] text-[var(--text-muted)]">
+              <span>♥ </span>
+              <span>💬 </span>
+              <span>⤴ </span>
+            </div>
+            <p className="text-[11.5px] text-[var(--text-muted)] leading-snug mb-4"></p>
+            {/* <Link
+              to={`/lists/${list.id}`}
+              className="w-full block text-center border border-[var(--accent)]/40 text-[var(--accent-2)] py-2 rounded-lg text-[12px] hover:bg-[var(--accent-soft)] transition"
+              data-testid="view-original-btn"
+            >
+              View original list
+            </Link> */}
+          </div>
+
+          {/* Remix tips */}
+          <div className="card-panel p-5" data-testid="tips-card">
+            <h3 className="font-serif text-[16px] mb-4">Remix tips</h3>
+            <div className="space-y-4">
+              <TipCard Icon={Sparkles} color="#8b5cf6" title="Make it yours" text={"Add your personal stories and reasons. That\u2019s what makes your list unique."} />
+              <TipCard Icon={Lightbulb} color="#f59e0b" title="Explain your picks" text="People love to know why an album means something to you." />
+              <TipCard Icon={Compass} color="#10b981" title="Discover more" text="Your remix might inspire others to create their own versions." />
             </div>
           </div>
-          <div className="flex items-center gap-4 mb-4 text-[11.5px] text-[var(--text-muted)]">
-            <span>♥ {original.likes}</span>
-            <span>💬 {original.comments}</span>
-            <span>⤴ {original.remixes}</span>
+
+          {/* How remixes work */}
+          <div className="card-panel p-5" data-testid="how-remixes-work">
+            <h3 className="font-serif text-[16px] mb-4">How remixes work</h3>
+            <svg viewBox="0 0 220 90" className="w-full h-[100px]">
+              <circle cx="110" cy="15" r="8" fill="var(--accent)" />
+              <line x1="110" y1="23" x2="40" y2="70" stroke="var(--border-2)" strokeWidth="1" />
+              <line x1="110" y1="23" x2="110" y2="70" stroke="var(--border-2)" strokeWidth="1" />
+              <line x1="110" y1="23" x2="180" y2="70" stroke="var(--border-2)" strokeWidth="1" />
+              <circle cx="40" cy="75" r="6" fill="var(--accent-2)" opacity="0.7" />
+              <circle cx="110" cy="75" r="6" fill="var(--accent-2)" opacity="0.7" />
+              <circle cx="180" cy="75" r="6" fill="var(--accent-2)" opacity="0.7" />
+            </svg>
+            <p className="text-[11.5px] text-[var(--text-muted)] leading-relaxed mt-2">
+              Your remix will be linked to the original list. People can discover all versions and see how everyone&apos;s taste is different.
+            </p>
           </div>
-          <p className="text-[11.5px] text-[var(--text-muted)] leading-snug mb-4">{original.aboutText.slice(0, 100)}...</p>
-          <Link
-            to={`/lists/${original.id}`}
-            className="w-full block text-center border border-[var(--accent)]/40 text-[var(--accent-2)] py-2 rounded-lg text-[12px] hover:bg-[var(--accent-soft)] transition"
-            data-testid="view-original-btn"
-          >
-            View original list
-          </Link>
-        </div>
 
-        {/* Remix tips */}
-        <div className="card-panel p-5" data-testid="tips-card">
-          <h3 className="font-serif text-[16px] mb-4">Remix tips</h3>
-          <div className="space-y-4">
-            <TipCard Icon={Sparkles} color="#8b5cf6" title="Make it yours" text={"Add your personal stories and reasons. That\u2019s what makes your list unique."} />
-            <TipCard Icon={Lightbulb} color="#f59e0b" title="Explain your picks" text="People love to know why an album means something to you." />
-            <TipCard Icon={Compass} color="#10b981" title="Discover more" text="Your remix might inspire others to create their own versions." />
-          </div>
-        </div>
-
-        {/* How remixes work */}
-        <div className="card-panel p-5" data-testid="how-remixes-work">
-          <h3 className="font-serif text-[16px] mb-4">How remixes work</h3>
-          <svg viewBox="0 0 220 90" className="w-full h-[100px]">
-            <circle cx="110" cy="15" r="8" fill="var(--accent)" />
-            <line x1="110" y1="23" x2="40" y2="70" stroke="var(--border-2)" strokeWidth="1"/>
-            <line x1="110" y1="23" x2="110" y2="70" stroke="var(--border-2)" strokeWidth="1"/>
-            <line x1="110" y1="23" x2="180" y2="70" stroke="var(--border-2)" strokeWidth="1"/>
-            <circle cx="40" cy="75" r="6" fill="var(--accent-2)" opacity="0.7" />
-            <circle cx="110" cy="75" r="6" fill="var(--accent-2)" opacity="0.7" />
-            <circle cx="180" cy="75" r="6" fill="var(--accent-2)" opacity="0.7" />
-          </svg>
-          <p className="text-[11.5px] text-[var(--text-muted)] leading-relaxed mt-2">
-            Your remix will be linked to the original list. People can discover all versions and see how everyone&apos;s taste is different.
-          </p>
-        </div>
-
-        {/* Community */}
-        <div className="card-panel p-5" data-testid="community-card">
-          <h3 className="font-serif text-[16px] mb-4">Community</h3>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex -space-x-2">
-              {["#c2a876", "#6b3fa0", "#e85a6f", "#4a8a5a"].map((c, i) => (
-                <div key={i} className="w-9 h-9 rounded-full border-2 border-[var(--panel)]" style={{ background: `linear-gradient(135deg, ${c}, #1a1612)` }} />
-              ))}
+          {/* Community */}
+          <div className="card-panel p-5" data-testid="community-card">
+            <h3 className="font-serif text-[16px] mb-4">Community</h3>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex -space-x-2">
+                {["#c2a876", "#6b3fa0", "#e85a6f", "#4a8a5a"].map((c, i) => (
+                  <div key={i} className="w-9 h-9 rounded-full border-2 border-[var(--panel)]" style={{ background: `linear-gradient(135deg, ${c}, #1a1612)` }} />
+                ))}
+              </div>
+              <span className="text-[11.5px] text-[var(--accent-2)] font-medium">+117</span>
             </div>
-            <span className="text-[11.5px] text-[var(--accent-2)] font-medium">+117</span>
+            <p className="text-[11.5px] text-[var(--text-muted)] mb-4">117 people have already remixed this list!</p>
+            <button className="w-full border border-[var(--border-2)] py-2 rounded-lg text-[12px] hover:border-[var(--accent)]/40 hover:text-[var(--accent-2)] transition flex items-center justify-center gap-1" data-testid="see-all-remixes">
+              See all remixes <ArrowRight size={11} />
+            </button>
           </div>
-          <p className="text-[11.5px] text-[var(--text-muted)] mb-4">117 people have already remixed this list!</p>
-          <button className="w-full border border-[var(--border-2)] py-2 rounded-lg text-[12px] hover:border-[var(--accent)]/40 hover:text-[var(--accent-2)] transition flex items-center justify-center gap-1" data-testid="see-all-remixes">
-            See all remixes <ArrowRight size={11} />
-          </button>
-        </div>
-      </aside>
+        </aside>)}
     </div>
   );
 }

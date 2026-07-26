@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Heart, MessageCircle, Users, Eye, Shuffle, Bookmark, Share2, MoreHorizontal,
   ChevronDown, Check, ArrowRight, ArrowLeft,
 } from "lucide-react";
+import { getCurrentUser } from "../services/authService";
 
 import {
   toggleLikeById,
   toggleSaveById,
   getListById,
   createComment,
-  getCommentsByListId
+  getCommentsByListId,
+  getListRemixes
 }
   from "../services/listService";
 
@@ -28,28 +30,36 @@ function StatBlock({ Icon, value, label }) {
 
 function RemixRow({ r }) {
   return (
-    <div className="card-panel p-5 flex items-start gap-5" data-testid={`remix-${r.id}`}>
-      <div className="font-serif text-[28px] text-[var(--accent)] w-8 shrink-0 text-center">{r.rank}</div>
-
-      {/* 2x2 mosaic placeholder */}
-      <div className="w-[100px] h-[100px] grid grid-cols-2 grid-rows-2 gap-[2px] shrink-0 rounded overflow-hidden">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="cover" style={{ background: `linear-gradient(135deg, hsl(${(r.id * 60 + i * 80) % 360}, 40%, 40%), hsl(${(r.id * 60 + i * 80 + 30) % 360}, 30%, 20%))` }} />
+    <div className="card-panel p-5 flex items-start gap-5">
+      <div className="w-[100px] h-[100px] grid grid-cols-2 grid-rows-2 gap-[2px] rounded overflow-hidden">
+        {r.covers.map((cover, i) => (
+          <img
+            key={i}
+            src={cover}
+            alt=""
+            className="w-full h-full object-cover"
+          />
         ))}
       </div>
 
-      <div className="flex-1 min-w-0">
-        <h3 className="font-serif text-[18px] leading-tight">{r.title}</h3>
-        <div className="text-[12px] text-[var(--text-muted)] mb-2">by <span className="text-[var(--accent-2)]">{r.author}</span></div>
-        <p className="text-[12.5px] text-[var(--text-muted)] leading-snug max-w-md">{r.desc}</p>
+      <div className="flex-1">
+        <h3>{r.title}</h3>
+
+        <div className="text-sm text-muted">
+          by {r.author}
+        </div>
+
+        {r.lastAlbum && (
+          <div className="text-xs text-muted mt-2">
+            <span className="font-medium">Last place:</span>{" "}
+            {r.lastAlbum.title} • {r.lastAlbum.artist}
+          </div>
+        )}
       </div>
 
-      <div className="shrink-0 flex flex-col items-end gap-2 min-w-[100px]">
-        <button className="text-[var(--text-dim)] hover:text-[var(--text)] self-end"><MoreHorizontal size={15} /></button>
-        <div className="flex items-center gap-1.5 text-[12px] text-[var(--text)]/85"><Heart size={12} /> {r.likes}</div>
-        <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]"><MessageCircle size={12} /> {r.comments}</div>
-        <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]"><Users size={12} /> +{r.additions} additions</div>
-        <div className="text-[11px] text-[var(--text-dim)]">{r.time}</div>
+      <div className="flex flex-col items-end gap-2">
+        <div><Heart size={12} /> {r.likes}</div>
+        <div><MessageCircle size={12} /> {r.comments}</div>
       </div>
     </div>
   );
@@ -138,6 +148,11 @@ export default function ListDetail() {
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
   const [likedComments, setLikedComments] = useState({});
+  const [listRemixes, setListRemixes] = useState([]);
+
+
+
+  const navigate = useNavigate();
 
   const tabs = [
     {
@@ -193,7 +208,6 @@ export default function ListDetail() {
   const handleSaveClick = () => {
     (async () => {
       try {
-
         const result = await toggleSaveById(id);
         console.log("result", result);
         setSaved(result.saved);
@@ -203,6 +217,22 @@ export default function ListDetail() {
       } finally {
       }
     })();
+  };
+
+  const user = getCurrentUser();
+
+  const handleListRemixClick = () => {
+    if (!user) {
+      navigate("/login", {
+        state: {
+          message: "Log in to remix this list.",
+          redirectTo: `/listsRemix/${id}`,
+        },
+      });
+      return;
+    }
+
+    navigate(`/listsRemix/${id}`);
   };
 
   /* ---------------------------
@@ -229,7 +259,7 @@ export default function ListDetail() {
           views: 0, // until your API provides this
 
           albums: data.items.map(item => ({
-            rank: item.position + 1,
+            rank: item.position,
             title: item.album.title,
             artist: item.album.artist,
             cover: item.album.cover_url,
@@ -286,8 +316,41 @@ export default function ListDetail() {
       }
     }
 
+    async function fetchListRemixes() {
+      try {
+        const data = await getListRemixes(id);
+
+        console.log("remixes",data);
+        setListRemixes(
+          data.map((remix) => ({
+            id: remix.id,
+            title: remix.title,
+            author: remix.owner.display_name,
+            likes: remix.likes_count,
+            comments: remix.comments_count,
+            remixes: remix.remix_count,
+            createdAt: remix.created_at,
+
+            // First 4 albums for the mosaic
+            covers: remix.items
+              .slice(0, 4)
+              .map((item) => item.album.cover_url),
+
+            // Album in last place
+            lastAlbum:
+              remix.items.length > 0
+                ? remix.items[remix.items.length - 1].album
+                : null,
+          }))
+        );
+      } catch (err) {
+        console.error("Failed to load remixes:", err);
+      }
+    };
+
     fetchComments();
     fetchList();
+    fetchListRemixes();
   }, [id]);
 
   if (loading || !list) {
@@ -327,6 +390,7 @@ export default function ListDetail() {
             <div className="flex flex-wrap items-center gap-2">
               {/* Primary */}
               <button
+                onClick={() => handleListRemixClick()}
                 className="btn-accent rounded-lg px-5 py-2.5 text-[13px] flex items-center gap-2"
                 data-testid="remix-list-btn"
               >
@@ -428,7 +492,7 @@ export default function ListDetail() {
               </div>
             </div>
             <div className="space-y-3">
-              {list.remixList.map((r) => <RemixRow key={r.id} r={r} />)}
+              {listRemixes.map((r) => <RemixRow key={r.id} r={r} />)}
             </div>
             <button className="w-full card-panel py-3 text-[12.5px] text-[var(--text-muted)] hover:text-[var(--accent-2)] flex items-center justify-center gap-1.5" data-testid="load-more-remixes">
               Load more remixes <ChevronDown size={13} />
