@@ -7,7 +7,7 @@ import { getCurrentUser}  from "../services/authService";
 const topLinks = [
   { to: "/", label: "Home", end: true },
   { to: "/debates", label: "Debates" },
-  { to: "/tops", label: "Tops" },
+  { to: "/topLists", label: "Tops" },
   { to: "/hunt", label: "Hunt" },
   { to: "/collection", label: "Collection" },
   { to: "/people", label: "People" },

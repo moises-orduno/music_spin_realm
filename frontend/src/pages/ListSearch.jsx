@@ -3,14 +3,23 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Search, X, Plus, Clock } from "lucide-react";
 import { getSearch } from "../services/albumService";
 
+import { useLocation } from "react-router-dom";
 const RECENT_KEY = "recentAlbumSearches";
 const FILTERS = ["All", "Albums", "Artists", "Songs", "Decade"];
 
 function loadRecent() {
-  try { return JSON.parse(sessionStorage.getItem(RECENT_KEY) || "[]"); } catch (_) { return []; }
+  try {
+    return JSON.parse(sessionStorage.getItem(RECENT_KEY) || "[]");
+  } catch (_) {
+    return [];
+  }
 }
 function saveRecent(list) {
-  try { sessionStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 6))); } catch (_) { /* noop */ }
+  try {
+    sessionStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 6)));
+  } catch (_) {
+    /* noop */
+  }
 }
 
 export default function ListSearch() {
@@ -22,6 +31,8 @@ export default function ListSearch() {
   const inputRef = useRef(null);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const location = useLocation();
+  const { returnTo, storageKey } = location.state || {};
 
   useEffect(() => {
     if (!query.trim()) {
@@ -47,17 +58,36 @@ export default function ListSearch() {
     return () => clearTimeout(timeout);
   }, [query, listId]);
 
+  const createEmptyDraft = () => ({
+    title: "",
+    description: "",
+    category: "",
+    items: [],
+  });
+  
   const handlePick = (album) => {
-    try {
-      sessionStorage.setItem("pendingAlbum", JSON.stringify(album));
-    } catch (_) { }
+    let draft = JSON.parse(sessionStorage.getItem(storageKey));
 
-    const next = [album, ...recent.filter(r => r.id !== album.id)].slice(0, 6);
+    if (!draft) {
+      draft = createEmptyDraft();
+    }
 
-    saveRecent(next);
-    setRecent(next);
+    draft.items.push({
+      id: crypto.randomUUID(),
+      position: draft.items.length + 1,
+      album,
+      why_this_album: "",
+      favorite_lyric: "",
+      owned: false,
+      hunting: false,
+    });
 
-    navigate(`/lists/${listId}/remix`);
+    sessionStorage.setItem(
+      storageKey,
+      JSON.stringify(draft)
+    );
+
+    navigate(returnTo);
   };
 
   const clearRecent = () => { saveRecent([]); setRecent([]); };

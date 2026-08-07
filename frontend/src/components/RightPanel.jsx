@@ -1,6 +1,7 @@
 import React from "react";
-import { ArrowRight, Crown, ArrowUpRight, Cake, BadgeCheck } from "lucide-react";
+import { ArrowRight, Crown, ArrowUpRight, Cake, BadgeCheck, Target } from "lucide-react";
 import { hunting, rareFinds } from "../data/mock";
+import { useNavigate } from "react-router-dom";
 
 function SectionHeader({ title, link = "View all" }) {
   return (
@@ -13,35 +14,94 @@ function SectionHeader({ title, link = "View all" }) {
   );
 }
 
-export default function RightPanel({ mobile = false }) {
+export default function RightPanel({ mobile = false, hunting = [] }) {
+
+  const navigate = useNavigate();
+  const handleHuntCreateClick = () => {
+    if (!user) {
+      navigate("/login", {
+        state: {
+          message: "Log in to create a list.",
+          redirectTo: `/createList`,
+        },
+      });
+      return;
+    }
+
+    navigate(`/createHunt`);
+  };
+
   const outerCls = mobile
     ? "w-full px-4 sm:px-6 py-8 space-y-8 grid md:grid-cols-2 xl:grid-cols-1 gap-x-8"
     : "w-[300px] shrink-0 px-6 py-6 space-y-7 border-l border-[var(--border)]";
 
   return (
-    <aside className={outerCls} data-testid={mobile ? "right-panel-mobile" : "right-panel"}>
+    <aside
+      className={outerCls}
+      data-testid={mobile ? "right-panel-mobile" : "right-panel"}
+    >
       {/* Currently Hunting */}
       <div data-testid="currently-hunting">
         <SectionHeader title="Currently Hunting" />
-        <div className="space-y-4">
-          {hunting.slice(0, 4).map((h) => (
-            <div key={h.id} className="flex gap-3 items-start group cursor-pointer" data-testid={`hunt-item-${h.id}`}>
-              <div className="cover cover-placeholder w-[54px] h-[54px] shrink-0" style={{ background: h.cover }}>
-                <span className="opacity-70">{h.title}</span>
+
+        {hunting.length === 0 ? (
+          <div className="space-y-2.5 ">
+            <p className="text-sm text-[var(--text-muted)]">
+              No hunts yet. Try adding one!
+            </p>
+            <button onClick={handleHuntCreateClick}
+              className="btn-accent w-full rounded-full py-2 text-[12px]" data-testid="join-circle-btn">
+              Create New Hunt
+            </button>
+
+          </div>
+
+        ) : (
+          <div className="space-y-4">
+            {hunting.slice(0, 4).map((h) => (
+              <div
+                key={h.id}
+                className="flex gap-3 items-start group cursor-pointer"
+                data-testid={`hunt-item-${h.id}`}
+              >
+                <div
+                  className="cover cover-placeholder w-[54px] h-[54px] shrink-0"
+                  style={{ background: h.cover }}
+                >
+                  <span className="opacity-70">{h.title}</span>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium truncate">
+                    {h.title}
+                  </div>
+
+                  <div className="text-[11px] text-[var(--text-muted)] truncate">
+                    {h.artist}
+                  </div>
+
+                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5 truncate">
+                    {h.detail}
+                  </div>
+
+                  <div className="text-[10.5px] text-[var(--accent)] mt-1">
+                    {h.price}
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <div className="text-[13px] font-medium">
+                    {h.collectors}
+                  </div>
+                  <div className="text-[9.5px] text-[var(--text-dim)]">
+                    collectors
+                  </div>
+                </div>
+
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium truncate">{h.title}</div>
-                <div className="text-[11px] text-[var(--text-muted)] truncate">{h.artist}</div>
-                <div className="text-[10px] text-[var(--text-dim)] mt-0.5 truncate">{h.detail}</div>
-                <div className="text-[10.5px] text-[var(--accent)] mt-1">{h.price}</div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="text-[13px] font-medium">{h.collectors}</div>
-                <div className="text-[9.5px] text-[var(--text-dim)]">collectors</div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Collector Circle */}
@@ -82,7 +142,7 @@ export default function RightPanel({ mobile = false }) {
           {rareFinds.map((r) => (
             <div key={r.id} className="flex gap-3 items-start cursor-pointer group" data-testid={`rare-find-${r.id}`}>
               <div className="cover cover-placeholder w-[54px] h-[54px] shrink-0" style={{ background: r.cover }}>
-                <span className="opacity-70">{r.title.split(" ").slice(0,2).join(" ")}</span>
+                <span className="opacity-70">{r.title.split(" ").slice(0, 2).join(" ")}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-medium truncate">{r.title}</div>
@@ -94,6 +154,6 @@ export default function RightPanel({ mobile = false }) {
           ))}
         </div>
       </div>
-    </aside>
+    </aside >
   );
 }

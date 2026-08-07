@@ -5,7 +5,7 @@ import { Home, MessageSquare, ThumbsUp, Search, Store, Users, FolderOpen, Star, 
 const mainNav = [
   { to: "/", label: "Home", icon: Home, end: true },
   { to: "/debates", label: "Debates", icon: MessageSquare },
-  { to: "/tops", label: "Top Lists", icon: ThumbsUp },
+  { to: "/topLists", label: "Top Lists", icon: ThumbsUp },
   { to: "/hunt", label: "Hunt", icon: Search },
   { to: "/marketplace", label: "Marketplace", icon: Store },
   { to: "/people", label: "People", icon: Users },
@@ -13,7 +13,7 @@ const mainNav = [
 ];
 
 const shortcuts = [
-  { to: "/tops", label: "My Top 10", icon: Star },
+  { to: "/topLists", label: "My Top 10", icon: Star },
   { to: "/collection", label: "My Collection", icon: Clock },
   { to: "/hunt", label: "My Hunt List", icon: Target },
   { to: "/people", label: "Following", icon: UserCheck },

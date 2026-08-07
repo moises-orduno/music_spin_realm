@@ -5,7 +5,7 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Debates from "./pages/Debates";
 import DebateDetail from "./pages/DebateDetail";
-import Tops from "./pages/Tops";
+import TopLists from "./pages/TopLists";
 import Hunt from "./pages/Hunt";
 import Collection from "./pages/Collection";
 import Profile from "./pages/Profile";
@@ -15,6 +15,8 @@ import ListDetail from "./pages/ListDetail";
 import ListRemix from "./pages/ListRemix";
 import ListAddAlbum from "./pages/ListAddAlbum";
 import ListSearch from "./pages/ListSearch";
+import CreateList from "./pages/CreateList";
+import CreateHunt from "./pages/CreateHunt";
 
 function App() {
   return (
@@ -24,7 +26,9 @@ function App() {
           <Route path="/" element={<Layout><Home /></Layout>} />
           <Route path="/debates" element={<Layout showRightPanel={false}><Debates /></Layout>} />
           <Route path="/debates/:id" element={<Layout showRightPanel={false}><DebateDetail /></Layout>} />
-          <Route path="/tops" element={<Layout><Tops /></Layout>} />
+          <Route path="/topLists" element={<Layout><TopLists /></Layout>} />
+          <Route path="/createList" element={<Layout showRightPanel={false}><CreateList /></Layout>} />
+          <Route path="/createHunt" element={<Layout showRightPanel={false}><CreateHunt /></Layout>} />
           <Route path="/hunt" element={<Layout><Hunt /></Layout>} />
           <Route path="/marketplace" element={<Layout><Hunt /></Layout>} />
           <Route path="/collection" element={<Layout><Collection /></Layout>} />
@@ -35,8 +39,10 @@ function App() {
           <Route path="/signup" element={<Login />} />
           <Route path="/profile" element={<Layout showRightPanel={false}><Profile /></Layout>} />
           <Route path="/profile/:username" element={<Layout showRightPanel={false}><Profile /></Layout>} />
-          <Route path="/listsRemixAdd/:id" element={<Layout showRightPanel={false}><ListAddAlbum /></Layout>} />
-          <Route path="/listsRemixSearch/:id" element={<Layout showRightPanel={false}><ListSearch /></Layout>}/>
+          <Route path="/listAddAlbum/:id" element={<Layout showRightPanel={false}><ListAddAlbum /></Layout>} />
+          <Route path="/listAddAlbum" element={<Layout showRightPanel={false}><ListAddAlbum /></Layout>} />
+          <Route path="/listsSearch/:id" element={<Layout showRightPanel={false}><ListSearch /></Layout>}/>
+          <Route path="/listsSearch" element={<Layout showRightPanel={false}><ListSearch /></Layout>}/>
         </Routes>
       </BrowserRouter>
     </div>

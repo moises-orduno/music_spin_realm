@@ -3,7 +3,7 @@ from typing import List, Optional, Literal
 import uuid
 from datetime import datetime, timezone
 
-from models.listItem import ListItem
+from models.listItem import ListItem, ListItemCreate
 from models.user import UserReference
 
 
@@ -37,4 +37,5 @@ class TopListCreate(BaseModel):
     title: str
     description: Optional[str] = None
     category: Optional[str] = None
-    items: List[ListItem]
+    is_public: bool = False
+    items: List[ListItemCreate]

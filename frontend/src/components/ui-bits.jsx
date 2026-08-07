@@ -21,9 +21,14 @@ export function AlbumCover({ title, artist, gradient, size = "full", className =
   );
 }
 
-export function Chip({ children, active = false }) {
+export function Chip({
+  children,
+  active = false,
+  onClick,
+}) {
   return (
     <button
+      onClick={onClick}
       className={`px-4 py-1.5 rounded-full text-[12px] border transition-all ${
         active
           ? "bg-[var(--accent)] text-[#17160f] border-[var(--accent)] font-medium"
@@ -34,6 +39,7 @@ export function Chip({ children, active = false }) {
     </button>
   );
 }
+
 
 export function SectionTitle({ children, action }) {
   return (

@@ -11,3 +11,11 @@ class ListItem(BaseModel):
     favorite_lyric: Optional[str] = None
     owned: bool = False
     hunting: bool = False
+
+class ListItemCreate(BaseModel):
+    album_id: str
+    position: int
+    why_this_album: str
+    favorite_lyric: Optional[str] = None
+    owned: bool = False
+    hunting: bool = False

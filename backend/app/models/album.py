@@ -37,10 +37,10 @@ class AlbumUpdate(BaseModel):
     genres: Optional[List[str]] = None
 
 class AlbumSuggestionRequest(BaseModel):
-    list_id: str
+    album_ids: list[str]
     limit: int = 10
     
 class AlbumSearchRequest(BaseModel):
     query: str
-    limit: int = 10
     list_id: Optional[str] = None
+    limit: int = 10

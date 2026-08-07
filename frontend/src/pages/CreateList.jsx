@@ -2,14 +2,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Shuffle, Plus, GripVertical, Trash2, Check, Sparkles,
-  Lightbulb, Compass, Users, ArrowRight, ChevronUp, ChevronDown,
+  Lightbulb, Compass, ChevronUp, ChevronDown
 } from "lucide-react";
-import { createRemixList } from "../services/listService";
-
-import {
-  getListById
-}
-  from "../services/listService";
+import { createList } from "../services/listService";
+import { Chip } from "../components/ui-bits";
 
 function Toggle({ on, onClick, testid }) {
   return (
@@ -51,7 +47,7 @@ function TipCard({ Icon, title, text, color }) {
   );
 }
 
-export default function ListRemix() {
+export default function CreateList() {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -60,18 +56,35 @@ export default function ListRemix() {
   const [dragIndex, setDragIndex] = useState(null);
   const [overIndex, setOverIndex] = useState(null);
 
-  const [loading, setLoading] = useState(false);
-
-  const [draft, setDraft] = useState(null);
+  const [draft, setDraft] = useState({
+    title: "",
+    description: "",
+    category: "",
+    image: null,
+    is_public: true,
+    items: [],
+  });
 
   const handleAddAlbumClick = () => {
-     navigate("/listAddAlbum", {
+    navigate("/listAddAlbum", {
       state: {
-        returnTo: `/listsRemix/${id}`,
-        storageKey: `remix-${id}`,
+        returnTo: `/createList`,
+        storageKey: `new-list-draft`,
       },
     });
   };
+
+  const categories = [
+    "Rock",
+    "Pop",
+    "Hip-Hop",
+    "Jazz",
+    "Indie",
+    "Electronic",
+    "Metal",
+    "Classical",
+    "Folk",
+  ];
 
   const updateReason = (albumId, reason) => {
     saveDraft({
@@ -91,14 +104,14 @@ export default function ListRemix() {
     setDraft(nextDraft);
 
     sessionStorage.setItem(
-      `remix-${id}`,
+      `"new-list-draft"`,
       JSON.stringify(nextDraft)
     );
   }, [id]);
 
   const initializeDraft = async () => {
 
-    const cached = sessionStorage.getItem(`remix-${id}`);
+    const cached = sessionStorage.getItem(`new-list-draft`);
 
     if (cached) {
       const parsed = JSON.parse(cached);
@@ -107,35 +120,6 @@ export default function ListRemix() {
       return;
     }
 
-    const data = await getListById(id);
-    
-    const remixDraft = {
-      id: data.id,
-      title: data.title,
-      description: data.description ?? "",
-      category: data.category,
-      image: data.image,
-      owner: data.owner,
-      likes_count: data.likes_count,
-      remix_count: data.remix_count,
-      comments_count: data.comments_count,
-      items: data.items.map(item => ({
-        id: item.id,
-        position: item.position,
-        album: item.album,
-        why_this_album: item.why_this_album ?? "",
-        favorite_lyric: item.favorite_lyric ?? "",
-        owned: item.owned,
-        hunting: item.hunting,
-      }))
-    };
-
-    sessionStorage.setItem(
-      `remix-${id}`,
-      JSON.stringify(remixDraft)
-    );
-
-    setDraft(remixDraft);
   };
 
   const toggleOwned = (albumId) => {
@@ -243,9 +227,9 @@ export default function ListRemix() {
     });
   };
 
-  const handleRemix = async () => {
+  const handleCreate = async () => {
     try {
-      const remixData = {
+      const payload = {
         title: draft.title,
         description: draft.description,
         category: draft.category,
@@ -259,15 +243,13 @@ export default function ListRemix() {
         })),
       };
 
-      const remix = await createRemixList(id, remixData);
+      const list = await createList(payload);
 
-      sessionStorage.removeItem(`remix-${id}`);
+      sessionStorage.removeItem("new-list-draft");
 
-      // Navigate to the new remix page
-      navigate(`/lists/${remix.id}`);
-
-    } catch (error) {
-      console.error("Failed to create remix:", error);
+      navigate(`/lists/${list.id}`);
+    } catch (err) {
+      console.error("Failed to create list:", err);
     }
   };
 
@@ -283,14 +265,22 @@ export default function ListRemix() {
 
   };
 
+  const handlePrivacyToggle = () => {
+    const updated = {
+      ...draft,
+      is_private: !draft.is_private,
+    };
+
+    setDraft(updated);
+    sessionStorage.setItem(`new-list-draft`, JSON.stringify(updated));
+  };
+
   /* ---------------------------
        Fetch list
     ----------------------------*/
   useEffect(() => {
 
     async function initialize() {
-
-      setLoading(true);
 
       try {
         await Promise.all([
@@ -301,12 +291,26 @@ export default function ListRemix() {
         console.error(err);
       }
       finally {
-        setLoading(false);
+
       }
     }
     initialize();
 
   }, [id]);
+
+  const handleCategoryChange = (category) => {
+    const updated = {
+      ...draft,
+      category,
+    };
+
+    setDraft(updated);
+
+    sessionStorage.setItem(
+      `new-list-draft`,
+      JSON.stringify(updated)
+    );
+  };
 
   return (
     <div className="flex gap-6 min-w-0 fade-in-up" data-testid="list-remix-page">
@@ -321,9 +325,9 @@ export default function ListRemix() {
             <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)" }}>
               <Shuffle size={20} className="text-white" />
             </div>
-            <h1 className="font-serif text-[34px] sm:text-[38px] leading-none">Remix this list</h1>
+            <h1 className="font-serif text-[34px] sm:text-[38px] leading-none">Create your list</h1>
           </div>
-          <p className="text-[13px] text-[var(--text-muted)] ml-14">You&apos;re creating your own version of a list.</p>
+          <p className="text-[13px] text-[var(--text-muted)] ml-14">You&apos;re creating your own list.</p>
         </div>
 
         {/* Original title */}
@@ -332,13 +336,19 @@ export default function ListRemix() {
             List title
           </label>
 
-          <div className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)]">
-            {draft?.title}
-          </div>
-
-          <p className="text-[11.5px] text-[var(--text-muted)] mt-2">
-            This remix will keep the original list title.
-          </p>
+          <input
+            type="text"
+            value={draft.title}
+            onChange={(e) =>
+              saveDraft({
+                ...draft,
+                title: e.target.value,
+              })
+            }
+            placeholder="Give your list a title"
+            maxLength={100}
+            className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          />
         </div>
 
         {/* Description */}
@@ -405,7 +415,7 @@ export default function ListRemix() {
                     <ChevronDown size={14} />
                   </button>
                 </div>
-                <div className="font-serif text-[22px] text-[var(--text-muted)] w-6 text-center shrink-0 mt-2">{it.position +1}</div>
+                <div className="font-serif text-[22px] text-[var(--text-muted)] w-6 text-center shrink-0 mt-2">{it.position}</div>
                 <div className="w-[70px] h-[70px] rounded shrink-0 cover" style={{ background: it.album.cover_url }} />
 
                 <div className="flex-1 min-w-0">
@@ -449,6 +459,24 @@ export default function ListRemix() {
           </button>
         </div>
 
+        <div className="card-panel p-5">
+          <label className="text-[12.5px] font-medium mb-3 block">
+            Category
+          </label>
+
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <Chip
+                key={category}
+                active={draft.category === category}
+                onClick={() => handleCategoryChange(category)}
+              >
+                {category}
+              </Chip>
+            ))}
+          </div>
+        </div>
+
         {/* Additional options */}
         <div className="card-panel p-5" data-testid="additional-options">
           <h3 className="font-serif text-[17px] mb-4">Additional options</h3>
@@ -458,31 +486,40 @@ export default function ListRemix() {
                 <div className="text-[13px] font-medium mb-0.5">Show in my collection</div>
                 <p className="text-[11.5px] text-[var(--text-muted)] leading-snug">Display ownership status for these albums in my profile and collection.</p>
               </div>
-              <Toggle on={showInCollection} onClick={() => setShowInCollection(!showInCollection)} testid="toggle-collection" />
+              <Toggle
+                on={showInCollection} onClick={() => setShowInCollection(!showInCollection)} testid="toggle-collection" />
             </div>
             <div className="flex items-start justify-between gap-3 p-4 rounded-lg border border-[var(--border)]">
               <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-medium mb-0.5">Make this list private</div>
                 <p className="text-[11.5px] text-[var(--text-muted)] leading-snug">Only you will be able to see this list.</p>
               </div>
-              <Toggle on={privateList} onClick={() => setPrivateList(!privateList)} testid="toggle-private" />
+              <Toggle
+                on={draft.is_private}
+                onClick={handlePrivacyToggle}
+              />
             </div>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2" data-testid="remix-actions">
-          <button className="border border-[var(--border-2)] rounded-lg px-6 py-3 text-[13px] hover:border-[var(--accent)]/40 hover:text-[var(--accent-2)] transition" data-testid="save-draft-btn">
-            Save as draft
-          </button>
+        <div
+          className="flex flex-wrap justify-end gap-3 pt-2"
+          data-testid="remix-actions"
+        >
           <button
-            onClick={() => handleRemix()}
+            onClick={handleCreate}
             data-testid="publish-btn"
             className="rounded-lg px-8 py-3 font-semibold text-[13px] text-white transition hover:-translate-y-0.5 flex flex-col items-center leading-tight"
-            style={{ background: "linear-gradient(90deg, #8b5cf6, #6d28d9)", boxShadow: "0 8px 24px var(--accent-glow)" }}
+            style={{
+              background: "linear-gradient(90deg, #8b5cf6, #6d28d9)",
+              boxShadow: "0 8px 24px var(--accent-glow)",
+            }}
           >
-            <span>Publish remix</span>
-            <span className="text-[10px] font-normal opacity-80 mt-0.5">Your remix will be visible to everyone</span>
+            <span>Publish list</span>
+            <span className="text-[10px] font-normal opacity-80 mt-0.5">
+              Your list will be visible to everyone
+            </span>
           </button>
         </div>
       </div>
@@ -492,38 +529,32 @@ export default function ListRemix() {
       {draft && (
         <aside className="hidden xl:block w-[290px] shrink-0 space-y-5">
           {/* Original list */}
-          <div className="card-panel p-5" data-testid="original-list-card">
-            <div className="text-[13.5px] font-medium mb-3">Original list</div>
-            <div className="flex gap-3 mb-4">
-              <div className="w-14 h-14 rounded-md shrink-0 cover" style={{ background: "" }} />
-              <div className="min-w-0 flex-1">
-                <div className="text-[13.5px] font-medium truncate">{draft.title}</div>
-                <div className="text-[11px] text-[var(--text-muted)]">by @{ }</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 mb-4 text-[11.5px] text-[var(--text-muted)]">
-              <span>♥ </span>
-              <span>💬 </span>
-              <span>⤴ </span>
-            </div>
-            <p className="text-[11.5px] text-[var(--text-muted)] leading-snug mb-4"></p>
-            {/* <Link
-              to={`/lists/${list.id}`}
-              className="w-full block text-center border border-[var(--accent)]/40 text-[var(--accent-2)] py-2 rounded-lg text-[12px] hover:bg-[var(--accent-soft)] transition"
-              data-testid="view-original-btn"
-            >
-              View original list
-            </Link> */}
-          </div>
 
-          {/* Remix tips */}
-          <div className="card-panel p-5" data-testid="tips-card">
-            <h3 className="font-serif text-[16px] mb-4">Remix tips</h3>
-            <div className="space-y-4">
-              <TipCard Icon={Sparkles} color="#8b5cf6" title="Make it yours" text={"Add your personal stories and reasons. That\u2019s what makes your list unique."} />
-              <TipCard Icon={Lightbulb} color="#f59e0b" title="Explain your picks" text="People love to know why an album means something to you." />
-              <TipCard Icon={Compass} color="#10b981" title="Discover more" text="Your remix might inspire others to create their own versions." />
-            </div>
+          <h3 className="font-serif text-[16px] mb-4">
+            Tips for a great list
+          </h3>
+
+          <div className="space-y-4">
+            <TipCard
+              Icon={Sparkles}
+              color="#8b5cf6"
+              title="Make it personal"
+              text="Share why these albums matter to you. Your perspective is what makes the list interesting."
+            />
+
+            <TipCard
+              Icon={Lightbulb}
+              color="#f59e0b"
+              title="Rank with intention"
+              text="Every position tells a story. Think about what makes #1 different from #2."
+            />
+
+            <TipCard
+              Icon={Compass}
+              color="#10b981"
+              title="Start conversations"
+              text="Great lists inspire debate. Don't be afraid to include a surprising choice."
+            />
           </div>
 
           {/* How remixes work */}
@@ -543,22 +574,6 @@ export default function ListRemix() {
             </p>
           </div>
 
-          {/* Community */}
-          <div className="card-panel p-5" data-testid="community-card">
-            <h3 className="font-serif text-[16px] mb-4">Community</h3>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex -space-x-2">
-                {["#c2a876", "#6b3fa0", "#e85a6f", "#4a8a5a"].map((c, i) => (
-                  <div key={i} className="w-9 h-9 rounded-full border-2 border-[var(--panel)]" style={{ background: `linear-gradient(135deg, ${c}, #1a1612)` }} />
-                ))}
-              </div>
-              <span className="text-[11.5px] text-[var(--accent-2)] font-medium">+117</span>
-            </div>
-            <p className="text-[11.5px] text-[var(--text-muted)] mb-4">117 people have already remixed this list!</p>
-            <button className="w-full border border-[var(--border-2)] py-2 rounded-lg text-[12px] hover:border-[var(--accent)]/40 hover:text-[var(--accent-2)] transition flex items-center justify-center gap-1" data-testid="see-all-remixes">
-              See all remixes <ArrowRight size={11} />
-            </button>
-          </div>
         </aside>)}
     </div>
   );

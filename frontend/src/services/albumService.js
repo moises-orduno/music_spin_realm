@@ -10,7 +10,7 @@ export async function getAlbumSuggestions(albumIds, limit = 10) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        list_id: albumIds,
+        album_ids: albumIds,
         limit,
       }),
     }

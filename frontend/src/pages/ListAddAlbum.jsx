@@ -4,6 +4,8 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Search, Plus, TrendingUp, ArrowRight } from "lucide-react";
 import { getAlbumSuggestions } from "../services/albumService";
 
+import { useLocation } from "react-router-dom";
+
 function AlbumTile({ a, onAdd }) {
     return (
         <div
@@ -52,6 +54,21 @@ export default function ListAddAlbum() {
     const listId = id || "saddest-albums-ever";
     const suggestionCategories = ["Similar Albums"];
     const [loading, setLoading] = useState(true);
+    const location = useLocation();
+    const { returnTo, storageKey } = location.state || {};
+
+    const handleSearchAlbumClick = () => {
+
+        navigate(
+            listId ? `/listsSearch/${listId}` : "/listsSearch",
+            {
+                state: {
+                    returnTo: returnTo,
+                    storageKey: storageKey,
+                },
+            }
+        );
+    };
 
     /* ---------------------------
           Fetch list
@@ -62,10 +79,12 @@ export default function ListAddAlbum() {
 
         async function fetchSuggestions() {
             setLoading(true);
-            console.log("id", id);
 
             try {
-                const data = await getAlbumSuggestions(id);
+
+                const draft = JSON.parse(sessionStorage.getItem(storageKey));
+                const albumIds = draft?.items?.map(item => item.album.id) ?? [];
+                const data = await getAlbumSuggestions(albumIds);
 
                 setAlbumSuggestions(data);
             } catch (err) {
@@ -78,31 +97,44 @@ export default function ListAddAlbum() {
         fetchSuggestions();
     }, [id]);
 
+    const createEmptyDraft = () => ({
+        title: "",
+        description: "",
+        category: "",
+        items: [],
+    });
 
     const handleAdd = (album) => {
-        const payload = {
-            listId,
-            albums: [album],
-        };
+        let draft = JSON.parse(sessionStorage.getItem(storageKey));
 
-        const draft = JSON.parse(sessionStorage.getItem(`remix-${id}`));
+        if (!draft) {
+            draft = createEmptyDraft();
+        }
 
-        draft.items.push({
+        const albumItem = {
             id: crypto.randomUUID(),
-            position: draft.items.length,
+            position: 1,
             album,
             why_this_album: "",
             favorite_lyric: "",
             owned: false,
             hunting: false,
-        });
+        };
 
-        sessionStorage.setItem(
-            `remix-${id}`,
-            JSON.stringify(draft)
-        );
+        if (storageKey === "new-hunt-draft") {
+            // Hunts only have one album
+            draft.items = [albumItem];
+        } else {
+            // Lists can have multiple albums
+            draft.items.push({
+                ...albumItem,
+                position: draft.items.length + 1,
+            });
+        }
 
-        navigate(`/listsRemix/${id}`); navigate(`/listsRemix/${id}`);
+        sessionStorage.setItem(storageKey, JSON.stringify(draft));
+
+        navigate(returnTo);
     };
 
     return (
@@ -116,19 +148,23 @@ export default function ListAddAlbum() {
                 <p className="text-[13px] text-[var(--text-muted)]">Pick from our suggestions, or search for anything.</p>
             </div>
 
-            <Link
-                to={`/listsRemixSearch/${listId}`}
-                className="w-full flex items-center gap-3 px-5 py-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] hover:border-[var(--accent)]/40 hover:bg-[var(--panel-2)] transition group"
+            <button
+                onClick={handleSearchAlbumClick}
+                className="w-full flex items-center gap-3 px-5 py-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] hover:border-[var(--accent)]/40 hover:bg-[var(--panel-2)] transition group text-left"
                 data-testid="open-search-link"
             >
-                <Search size={17} className="text-[var(--text-dim)] group-hover:text-[var(--accent-2)] transition" strokeWidth={1.8} />
+                <Search
+                    size={17}
+                    className="text-[var(--text-dim)] group-hover:text-[var(--accent-2)] transition"
+                    strokeWidth={1.8}
+                />
                 <span className="flex-1 text-[13.5px] text-[var(--text-dim)] group-hover:text-[var(--text)] transition">
                     Search any album or artist...
                 </span>
                 <span className="text-[11px] text-[var(--text-dim)] hidden sm:flex items-center gap-1">
                     Open search <ArrowRight size={11} />
                 </span>
-            </Link>
+            </button>
 
             {suggestionCategories.map((cat) => (
                 <section key={cat.id} data-testid={`category-${cat.id}`}>

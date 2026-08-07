@@ -7,6 +7,8 @@ from models.user import UserReference
 from datetime import datetime, timezone
 import copy
 from models.remixList import RemixCreate
+from models.listItem import ListItem
+from models.album import AlbumReference
 
 router = APIRouter(
     prefix="/lists",
@@ -125,13 +127,43 @@ async def create_list(
         avatar_url=current_user.get("avatar_url")
     )
 
+    items = []
+
+    for item in payload.items:
+        album = await db.albums.find_one({"id": item.album_id})
+
+        if not album:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Album {item.album_id} not found"
+            )
+
+        album_ref = AlbumReference(
+            id=album["id"],
+            title=album["title"],
+            artist=album["artist"]["name"],
+            cover_url=album.get("cover_url"),
+        )
+
+        items.append(
+            ListItem(
+                position=item.position,
+                album=album_ref,
+                why_this_album=item.why_this_album,
+                favorite_lyric=item.favorite_lyric,
+                owned=item.owned,
+                hunting=item.hunting,
+            )
+        )
+
     top_list = TopList(
         creator_id=current_user["id"],
         owner=owner,
         title=payload.title,
         description=payload.description,
         category=payload.category,
-        items=payload.items
+        is_public=payload.is_public,
+        items=items,
     )
 
     await db.lists.insert_one(

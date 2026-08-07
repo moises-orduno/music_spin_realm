@@ -1,4 +1,5 @@
 from typing import Optional
+import random
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -219,35 +220,25 @@ async def unfollow_album(
 @router.post("/suggestions")
 async def album_suggestions(request: AlbumSuggestionRequest):
 
-    # Find the list
-    top_list = await db.lists.find_one(
-        {"id": request.list_id},
-        {"_id": 0}
-    )
+    existing_album_ids = request.album_ids
 
-    if not top_list:
-        raise HTTPException(
-            status_code=404,
-            detail="List not found"
+    if not existing_album_ids:
+        return await db.albums.find(
+            {},
+            {"_id": 0}
+        ).sort(
+            "total_lists", -1
+        ).limit(
+            request.limit
+        ).to_list(
+            request.limit
         )
-
-    if not top_list.get("items"):
-        raise HTTPException(
-            status_code=404,
-            detail="List has no albums"
-        )
-
-    # Album IDs already in the list
-    existing_album_ids = [
-        item["album"]["id"]
-        for item in top_list["items"]
-    ]
 
     # Use the first album as the reference
-    album_id = existing_album_ids[0]
+    seed_album_id = random.choice(existing_album_ids)
 
     album = await db.albums.find_one(
-        {"id": album_id},
+        {"id": seed_album_id},
         {"_id": 0}
     )
 
@@ -263,34 +254,26 @@ async def album_suggestions(request: AlbumSuggestionRequest):
     same_artist = await db.albums.find(
         {
             "artist.artist_id": album["artist"]["artist_id"],
-            "id": {
-                "$nin": existing_album_ids
-            }
+            "id": {"$nin": existing_album_ids}
         },
         {"_id": 0}
     ).limit(request.limit // 2).to_list(request.limit // 2)
 
     suggestions.extend(same_artist)
 
-    # Albums we've already excluded
     excluded_ids = existing_album_ids + [
-        a["id"] for a in same_artist
+        item["id"] for item in same_artist
     ]
 
     # Same genre
     similar_genre = await db.albums.find(
         {
-            "genres": {
-                "$in": album["genres"]
-            },
-            "id": {
-                "$nin": excluded_ids
-            }
+            "genres": {"$in": album["genres"]},
+            "id": {"$nin": excluded_ids}
         },
         {"_id": 0}
     ).sort(
-        "total_lists",
-        -1
+        "total_lists", -1
     ).limit(
         request.limit - len(same_artist)
     ).to_list(
@@ -315,29 +298,23 @@ async def search_albums(request: AlbumSearchRequest):
 
     query = request.query.strip()
 
-    # Don't search if the query is empty
     if not query:
         return []
 
     excluded_ids = []
 
-    # Exclude albums already in the list (optional)
     if request.list_id:
         top_list = await db.lists.find_one(
             {"id": request.list_id},
             {"_id": 0}
         )
 
-        if not top_list:
-            raise HTTPException(
-                status_code=404,
-                detail="List not found"
-            )
-
-        excluded_ids = [
-            item["album"]["id"]
-            for item in top_list.get("items", [])
-        ]
+        # Only exclude albums if the list exists
+        if top_list:
+            excluded_ids = [
+                item["album"]["id"]
+                for item in top_list.get("items", [])
+            ]
 
     escaped = re.escape(query)
 

@@ -1,14 +1,33 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
 import RightPanel from "./RightPanel";
 import { X } from "lucide-react";
+import { getHunts } from "../services/huntService";
+
 
 export const DrawerContext = createContext({ open: false, setOpen: () => {} });
 export const useDrawer = () => useContext(DrawerContext);
 
 export default function Layout({ children, showRightPanel = true }) {
   const [open, setOpen] = useState(false);
+  const [hunt, setHunt] = useState([]);
+
+
+  useEffect(() => {
+      const loadHunts = async () => {
+        try {
+  
+          const data = await getHunts("hunting");
+  
+          setHunt(data);
+        } catch (err) {
+        } finally {
+        }
+      };
+  
+      loadHunts();
+    }, []);
 
   return (
     <DrawerContext.Provider value={{ open, setOpen }}>
@@ -58,7 +77,7 @@ export default function Layout({ children, showRightPanel = true }) {
           </div>
           {showRightPanel && (
             <div className="hidden xl:block">
-              <RightPanel />
+              <RightPanel hunting={hunt}/>
             </div>
           )}
         </div>
