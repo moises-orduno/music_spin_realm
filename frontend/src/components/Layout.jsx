@@ -4,30 +4,62 @@ import TopNav from "./TopNav";
 import RightPanel from "./RightPanel";
 import { X } from "lucide-react";
 import { getHunts } from "../services/huntService";
+import { getRecommended } from "../services/marketplaceService";
 
 
-export const DrawerContext = createContext({ open: false, setOpen: () => {} });
+export const DrawerContext = createContext({ open: false, setOpen: () => { } });
 export const useDrawer = () => useContext(DrawerContext);
 
 export default function Layout({ children, showRightPanel = true }) {
   const [open, setOpen] = useState(false);
   const [hunt, setHunt] = useState([]);
+  const [rareFinds, setRareFinds] = useState([]);
 
 
   useEffect(() => {
-      const loadHunts = async () => {
-        try {
-  
-          const data = await getHunts("hunting");
-  
-          setHunt(data);
-        } catch (err) {
-        } finally {
-        }
-      };
-  
-      loadHunts();
-    }, []);
+    const loadHunts = async () => {
+      try {
+
+        const data = await getHunts("hunting");
+
+        setHunt(data);
+      } catch (err) {
+      } finally {
+      }
+    };
+
+    async function loadRareFinds() {
+      try {
+        const data = await getRecommended();
+
+        setRareFinds(
+          data.map(item => ({
+            id: item.id,
+            title: item.album?.title || "Unknown Album",
+            artist: item.album?.artist?.name || "Unknown Artist",
+            cover: item.album?.cover_url,
+
+            detail: [
+              item.pressing_year,
+              item.pressing_country,
+              item.format,
+              item.media_condition
+            ]
+              .filter(Boolean)
+              .join(" · "),
+
+            price: `${item.currency || "USD"} $${item.price}`
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to load rare finds", error);
+      }
+    }
+
+    loadRareFinds();
+
+    loadHunts();
+  }, []);
 
   return (
     <DrawerContext.Provider value={{ open, setOpen }}>
@@ -46,9 +78,8 @@ export default function Layout({ children, showRightPanel = true }) {
           />
         )}
         <div
-          className={`fixed top-0 left-0 z-50 h-full lg:hidden transition-transform duration-300 ${
-            open ? "translate-x-0" : "-translate-x-full"
-          }`}
+          className={`fixed top-0 left-0 z-50 h-full lg:hidden transition-transform duration-300 ${open ? "translate-x-0" : "-translate-x-full"
+            }`}
           data-testid="mobile-drawer"
         >
           <div className="relative bg-[var(--bg)] h-full">
@@ -77,7 +108,7 @@ export default function Layout({ children, showRightPanel = true }) {
           </div>
           {showRightPanel && (
             <div className="hidden xl:block">
-              <RightPanel hunting={hunt}/>
+              <RightPanel hunting={hunt} rareFinds={rareFinds} />
             </div>
           )}
         </div>

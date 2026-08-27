@@ -118,10 +118,11 @@ export default function ListAddAlbum() {
             why_this_album: "",
             favorite_lyric: "",
             owned: false,
-            hunting: false,
+            hunting: true,
         };
 
-        if (storageKey === "new-hunt-draft") {
+        if (storageKey === "new-hunt-draft" || 
+            storageKey === "new-collection-album-draft"){
             // Hunts only have one album
             draft.items = [albumItem];
         } else {

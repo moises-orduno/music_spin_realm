@@ -56,7 +56,7 @@ class Hunt(BaseModel):
             default_factory=lambda: datetime.now(timezone.utc)
         )
 
-class CreateHuntRequest(BaseModel):
+class HuntFormRequest(BaseModel):
     album_id: str
     pressing: str
     country_pressing: Optional[str] = None
@@ -67,3 +67,13 @@ class CreateHuntRequest(BaseModel):
     price: HuntPrice
     details: Optional[str] = None
     status: HuntStatus = HuntStatus.HUNTING
+
+class UpdateHuntRequest(BaseModel):
+    pressing: Optional[str] = None
+    country_pressing: Optional[str] = None
+    year: Optional[int] = None
+    condition: Optional[str] = None
+    seller_location: Optional[str] = None
+    ship_to: Optional[str] = None
+    price: Optional[dict] = None
+    details: Optional[str] = None

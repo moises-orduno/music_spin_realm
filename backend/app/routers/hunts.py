@@ -3,7 +3,7 @@ import uuid
 from db.mongodb import db
 from helpers.token_helper import get_current_user, get_optional_user
 import copy
-from models.hunt import Hunt, CreateHuntRequest, HuntStatus
+from models.hunt import Hunt, HuntFormRequest, HuntStatus, UpdateHuntRequest
 from models.album import AlbumReference
 from datetime import datetime, timezone
 from models.user import UserReference
@@ -34,7 +34,7 @@ async def get_my_hunts(
 
 @router.post("", response_model=Hunt, status_code=201)
 async def create_hunt(
-    request: CreateHuntRequest,
+    request: HuntFormRequest,
     current_user=Depends(get_current_user),
 ):
     album = await db.albums.find_one(
@@ -88,3 +88,72 @@ async def create_hunt(
     await db.hunts.insert_one(hunt.model_dump())
 
     return hunt
+
+@router.patch("/{hunt_id}", response_model=Hunt)
+async def update_hunt(
+    hunt_id: str,
+    request: UpdateHuntRequest,
+    current_user=Depends(get_current_user),
+):
+    hunt = await db.hunts.find_one({
+        "id": hunt_id,
+        "owner.user_id": current_user["id"],
+    })
+
+    if hunt is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Hunt not found"
+        )
+
+    updates = {
+        key: value
+        for key, value in request.model_dump().items()
+        if value is not None
+    }
+
+    if not updates:
+        raise HTTPException(
+            status_code=400,
+            detail="No fields to update"
+        )
+
+    await db.hunts.update_one(
+        {
+            "id": hunt_id,
+            "owner.user_id": current_user["id"],
+        },
+        {
+            "$set": updates
+        }
+    )
+
+    updated_hunt = await db.hunts.find_one({
+        "id": hunt_id
+    })
+
+    return Hunt(**updated_hunt)
+
+
+@router.get("/{hunt_id}", response_model=Hunt)
+async def get_hunt_by_id(
+    hunt_id: str,
+    current_user=Depends(get_current_user),
+):
+    doc = await db.hunts.find_one(
+        {
+            "id": hunt_id,
+            "owner.user_id": current_user["id"],
+        },
+        {
+            "_id": 0,
+        },
+    )
+
+    if doc is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Hunt not found",
+        )
+
+    return Hunt.model_validate(doc)

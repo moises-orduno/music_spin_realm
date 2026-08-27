@@ -43,3 +43,50 @@ export async function createHunt(hunt) {
 
   return response.json();
 }
+
+export async function updateHunt(huntId, payload) {
+  const token = getToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/hunts/${huntId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : {}),
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to update hunt");
+  }
+
+  return response.json();
+}
+
+export async function getHuntById(huntId) {
+  const token = getToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/hunts/${huntId}`,
+    {
+      headers: token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {},
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch hunt");
+  }
+
+  return response.json();
+}

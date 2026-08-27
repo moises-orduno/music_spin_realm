@@ -2,12 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import {
-  Plus, MoreVertical, MessageSquare, Users, Disc, Music, Clock,
-  Gamepad2, Hash, Zap, Shield, ChevronDown, ArrowRight, Loader2,
+  Plus, MoreVertical, Users, Disc, Music, Clock,
+  Gamepad2, Hash, Zap, Shield, ChevronDown, Loader2,
 } from "lucide-react";
 import { debateOfTheDay, activeNow, popularCategories } from "../data/debates";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { getDebates } from "../services/debateService";
 
 const TABS = ["Trending", "New", "Hot", "My Debates", "Friends"];
 const CATS = ["All", "General", "Bands & Artists", "Albums", "Genres", "Era", "Fun & Games"];
@@ -144,9 +143,9 @@ function BinaryCard({ d, vote, onVote }) {
               className="flex-1 text-left"
             >
               <div className="text-[12px] text-[var(--text-muted)] mb-1">{o.label}</div>
-              <div className={`text-[28px] sm:text-[34px] font-serif transition ${vote === i ? "text-[var(--accent-2)]" : "text-[var(--text)]"}`}>{o.pct}%</div>
+              <div className={`text-[28px] sm:text-[34px] font-serif transition ${vote === i ? "text-[var(--accent-2)]" : "text-[var(--text)]"}`}>{(o.votes/d.total_votes)*100}%</div>
               <div className="h-1 rounded-full bg-[var(--border)] overflow-hidden mt-1.5">
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${o.pct}%`, background: "var(--accent)", boxShadow: vote === i ? "0 0 12px var(--accent-glow)" : "none" }} />
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${((o.votes/d.total_votes)*100)}%`, background: "var(--accent)", boxShadow: vote === i ? "0 0 12px var(--accent-glow)" : "none" }} />
               </div>
             </button>
           </React.Fragment>
@@ -156,7 +155,7 @@ function BinaryCard({ d, vote, onVote }) {
       <Footer testid={`debate-footer-${d.id}`}>
         <div className="flex items-center gap-3 text-[12px] text-[var(--text-muted)]">
           <VotersAvatars seed={d.id.charCodeAt(0)} />
-          <span>{d.votes} votes</span>
+          <span>{d.total_votes} votes</span>
           <span className="text-[var(--text-dim)]">·</span>
           <span>{d.comments} comments</span>
         </div>
@@ -189,7 +188,7 @@ function AlbumPickCard({ d, onVote }) {
       <Footer testid={`debate-footer-${d.id}`}>
         <div className="flex items-center gap-3 text-[12px] text-[var(--text-muted)]">
           <VotersAvatars seed={d.id.charCodeAt(0)} />
-          <span>{d.votes} votes</span>
+          <span>{d.total_votes} votes</span>
           <span className="text-[var(--text-dim)]">·</span>
           <span>{d.comments} comments</span>
         </div>
@@ -239,32 +238,27 @@ export default function Debates() {
   const [sort, setSort] = useState("Most Popular");
   const [showSort, setShowSort] = useState(false);
   const [debates, setDebates] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingDebates, setLoadingDebates] = useState(true);
   const [error, setError] = useState(null);
   const [myVotes, setMyVotes] = useState({}); // {debateId: optionIndex}
 
-  const fetchDebates = async () => {
-    try {
-      const res = await axios.get(`${API}/debates`);
-      if (res.data.length === 0) {
-        // Auto-seed on first visit
-        await axios.post(`${API}/debates/seed`);
-        const seeded = await axios.get(`${API}/debates`);
-        setDebates(seeded.data.map(withPct));
-      } else {
-        setDebates(res.data.map(withPct));
-      }
-      setError(null);
-    } catch (e) {
-      console.error("Failed to load debates", e);
-      setError("Failed to load debates");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchDebates();
+    const loadDebates = async () => {
+      try {
+        setLoadingDebates(true);
+        setError(null);
+
+        const data = await getDebates();
+        setDebates(data);
+
+      } catch (err) {
+        setError(err.message || "Failed to load debates");
+      } finally {
+        setLoadingDebates(false);
+      }
+    };
+
+    loadDebates();
   }, []);
 
   const handleVote = async (id, optionIndex) => {
@@ -278,6 +272,12 @@ export default function Debates() {
       console.error("Vote failed", e);
     }
   };
+
+    if (loadingDebates || !debates) {
+    return <div className="p-6">Loading Debates...</div>;
+  }
+
+
 
   return (
     <div className="flex gap-6 min-w-0" data-testid="debates-page">
@@ -316,11 +316,10 @@ export default function Debates() {
                 key={c}
                 onClick={() => setCat(c)}
                 data-testid={`cat-${c.toLowerCase().replace(/\s/g, "-")}`}
-                className={`px-3.5 py-1.5 rounded-full text-[11.5px] border transition ${
-                  cat === c
+                className={`px-3.5 py-1.5 rounded-full text-[11.5px] border transition ${cat === c
                     ? "bg-[var(--accent)] text-white border-[var(--accent)]"
                     : "border-[var(--border-2)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--accent)]/40"
-                }`}
+                  }`}
               >
                 {c}
               </button>
@@ -348,17 +347,7 @@ export default function Debates() {
         </div>
 
         {/* Loading / Error / List */}
-        {loading && (
-          <div className="card-panel p-12 flex items-center justify-center gap-3 text-[var(--text-muted)]" data-testid="debates-loading">
-            <Loader2 size={18} className="animate-spin" /> Loading debates from the server...
-          </div>
-        )}
-        {error && !loading && (
-          <div className="card-panel p-6 text-center text-[var(--text-muted)]" data-testid="debates-error">
-            {error}. <button onClick={fetchDebates} className="text-[var(--accent-2)] hover:underline ml-2">Try again</button>
-          </div>
-        )}
-        {!loading && !error && (
+        {!loadingDebates && !error && (
           <div className="space-y-5">
             {debates.map((d) => {
               if (d.type === "vs") return <VsCard key={d.id} d={d} onVote={handleVote} selectedOption={myVotes[d.id]} />;

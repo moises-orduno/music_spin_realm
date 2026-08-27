@@ -1,8 +1,18 @@
 # models/artist.py
 
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Literal
 import uuid
+
+
+ImageSource = Literal[
+    "spotify",
+    "wikipedia",
+    "wikimedia",
+    "discogs",
+    "user_upload",
+    "other"
+]
 
 
 class Artist(BaseModel):
@@ -11,19 +21,16 @@ class Artist(BaseModel):
     name: str
 
     image_url: Optional[str] = None
+    image_source: Optional[ImageSource] = None
 
     country: Optional[str] = None
-
     formed_year: Optional[int] = None
 
     genres: List[str] = []
 
     monthly_list_appearances: int = 0
-
     total_lists: int = 0
-
     total_debates: int = 0
-
     followers: int = 0
 
     created_by: str = "system"
@@ -33,14 +40,18 @@ class ArtistCreate(BaseModel):
     name: str
 
     image_url: Optional[str] = None
+    image_source: Optional[ImageSource] = None
 
     country: Optional[str] = None
-
     formed_year: Optional[int] = None
 
     genres: List[str] = []
 
+
 class ArtistReference(BaseModel):
     artist_id: str
+
     name: str
+
     image_url: Optional[str] = None
+    image_source: Optional[ImageSource] = None

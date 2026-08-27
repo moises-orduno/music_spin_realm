@@ -202,7 +202,7 @@ async def update_list(
         "description": payload.description,
         "category": payload.category,
         "items": payload.items,
-        "updated_at": datetime.utcnow()
+        "updated_at": datetime.now(timezone.utc)
     }
 
     await db.lists.update_one(

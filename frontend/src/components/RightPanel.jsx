@@ -1,6 +1,5 @@
 import React from "react";
 import { ArrowRight, Crown, ArrowUpRight, Cake, BadgeCheck, Target } from "lucide-react";
-import { hunting, rareFinds } from "../data/mock";
 import { useNavigate } from "react-router-dom";
 
 function SectionHeader({ title, link = "View all" }) {
@@ -14,8 +13,11 @@ function SectionHeader({ title, link = "View all" }) {
   );
 }
 
-export default function RightPanel({ mobile = false, hunting = [] }) {
-
+export default function RightPanel({
+  mobile = false,
+  hunting = [],
+  rareFinds = [],
+}) {
   const navigate = useNavigate();
   const handleHuntCreateClick = () => {
     if (!user) {
@@ -28,7 +30,29 @@ export default function RightPanel({ mobile = false, hunting = [] }) {
       return;
     }
 
-    navigate(`/createHunt`);
+    navigate(`/huntForm`);
+  };
+
+  const formatPrice = (price) => {
+    if (!price) return "";
+
+    // Handle price ranges
+    if (typeof price === "object") {
+      const symbol = price.currency === "USD" ? "$" : price.currency;
+
+      if (price.min === price.max) {
+        return `${symbol}${price.min}`;
+      }
+
+      return `${symbol}${price.min}–${symbol}${price.max}`;
+    }
+
+    // Handle regular numeric prices
+    if (typeof price === "number") {
+      return `$${price.toFixed(2)}`;
+    }
+
+    return "";
   };
 
   const outerCls = mobile
@@ -45,17 +69,19 @@ export default function RightPanel({ mobile = false, hunting = [] }) {
         <SectionHeader title="Currently Hunting" />
 
         {hunting.length === 0 ? (
-          <div className="space-y-2.5 ">
+          <div className="space-y-2.5">
             <p className="text-sm text-[var(--text-muted)]">
               No hunts yet. Try adding one!
             </p>
-            <button onClick={handleHuntCreateClick}
-              className="btn-accent w-full rounded-full py-2 text-[12px]" data-testid="join-circle-btn">
+
+            <button
+              onClick={handleHuntCreateClick}
+              className="btn-accent w-full rounded-full py-2 text-[12px]"
+              data-testid="join-circle-btn"
+            >
               Create New Hunt
             </button>
-
           </div>
-
         ) : (
           <div className="space-y-4">
             {hunting.slice(0, 4).map((h) => (
@@ -64,40 +90,56 @@ export default function RightPanel({ mobile = false, hunting = [] }) {
                 className="flex gap-3 items-start group cursor-pointer"
                 data-testid={`hunt-item-${h.id}`}
               >
+                {/* Cover */}
                 <div
                   className="cover cover-placeholder w-[54px] h-[54px] shrink-0"
-                  style={{ background: h.cover }}
+                  style={{
+                    backgroundImage: h.album?.cover_url
+                      ? `url(${h.album.cover_url})`
+                      : undefined,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
                 >
-                  <span className="opacity-70">{h.title}</span>
+                  {!h.album?.cover_url && (
+                    <span className="opacity-70 text-[9px] text-center px-1">
+                      {h.album?.title}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex-1 min-w-0">
+                  {/* Album title */}
                   <div className="text-[13px] font-medium truncate">
-                    {h.title}
+                    {h.album?.title}
                   </div>
 
+                  {/* Artist */}
                   <div className="text-[11px] text-[var(--text-muted)] truncate">
-                    {h.artist}
+                    {h.album?.artist}
                   </div>
 
+                  {/* Hunt details */}
                   <div className="text-[10px] text-[var(--text-dim)] mt-0.5 truncate">
-                    {h.detail}
+                    {h.pressing} · {h.condition}
                   </div>
 
+                  {/* Price */}
                   <div className="text-[10.5px] text-[var(--accent)] mt-1">
-                    {h.price}
+                    {formatPrice(h.price)}
                   </div>
                 </div>
 
+                {/* Hunters */}
                 <div className="text-right shrink-0">
                   <div className="text-[13px] font-medium">
-                    {h.collectors}
+                    {h.hunters_count ?? 1}
                   </div>
+
                   <div className="text-[9.5px] text-[var(--text-dim)]">
                     collectors
                   </div>
                 </div>
-
               </div>
             ))}
           </div>
@@ -136,24 +178,46 @@ export default function RightPanel({ mobile = false, hunting = [] }) {
       </div>
 
       {/* Rare Finds */}
-      <div data-testid="rare-finds">
-        <SectionHeader title="Rare Finds" />
-        <div className="space-y-4">
-          {rareFinds.map((r) => (
-            <div key={r.id} className="flex gap-3 items-start cursor-pointer group" data-testid={`rare-find-${r.id}`}>
-              <div className="cover cover-placeholder w-[54px] h-[54px] shrink-0" style={{ background: r.cover }}>
-                <span className="opacity-70">{r.title.split(" ").slice(0, 2).join(" ")}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium truncate">{r.title}</div>
-                <div className="text-[11px] text-[var(--text-muted)] truncate">{r.artist}</div>
-                <div className="text-[10px] text-[var(--text-dim)] mt-0.5 truncate">{r.detail}</div>
-              </div>
-              <div className="text-[13px] text-[var(--accent)] font-medium shrink-0">{r.price}</div>
+      {rareFinds.map((r) => (
+        <div
+          key={r.id}
+          className="flex gap-3 items-start cursor-pointer group"
+          data-testid={`rare-find-${r.id}`}
+        >
+          <div
+            className="cover cover-placeholder w-[54px] h-[54px] shrink-0"
+            style={{
+              backgroundImage: r.cover
+                ? `url(${r.cover})`
+                : undefined
+            }}
+          >
+            {!r.cover && (
+              <span className="opacity-70">
+                {r.title.split(" ").slice(0, 2).join(" ")}
+              </span>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-medium truncate">
+              {r.title}
             </div>
-          ))}
+
+            <div className="text-[11px] text-[var(--text-muted)] truncate">
+              {r.artist}
+            </div>
+
+            <div className="text-[10px] text-[var(--text-dim)] mt-0.5 truncate">
+              {r.detail}
+            </div>
+          </div>
+
+          <div className="text-[13px] text-[var(--accent)] font-medium shrink-0">
+            {r.price}
+          </div>
         </div>
-      </div>
+      ))}
     </aside >
   );
 }

@@ -52,7 +52,6 @@ export default function CreateList() {
   const navigate = useNavigate();
 
   const [showInCollection, setShowInCollection] = useState(true);
-  const [privateList, setPrivateList] = useState(false);
   const [dragIndex, setDragIndex] = useState(null);
   const [overIndex, setOverIndex] = useState(null);
 

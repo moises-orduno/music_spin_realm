@@ -10,6 +10,8 @@ from routers.artists import router as artists_router
 from routers.marketplace import router as marketplace_router
 from routers.users import router as users_router
 from routers.hunts import router as hunts_router
+from routers.tracks import router as tracks_router
+from routers.collections import router as collections_router
 
 
 app = FastAPI()
@@ -36,3 +38,5 @@ app.include_router(artists_router, prefix="/api")
 app.include_router(marketplace_router, prefix="/api")
 app.include_router(users_router, prefix="/api")
 app.include_router(hunts_router, prefix="/api")
+app.include_router(tracks_router, prefix="/api")
+app.include_router(collections_router, prefix="/api")

@@ -64,7 +64,7 @@ export default function ListSearch() {
     category: "",
     items: [],
   });
-  
+
   const handlePick = (album) => {
     let draft = JSON.parse(sessionStorage.getItem(storageKey));
 
@@ -81,6 +81,11 @@ export default function ListSearch() {
       owned: false,
       hunting: false,
     });
+
+    if (storageKey === `album-detail`) {
+      navigate(returnTo + album.id);
+      return;
+    }
 
     sessionStorage.setItem(
       storageKey,

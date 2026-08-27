@@ -451,3 +451,129 @@ async def search_albums(request: AlbumSearchRequest):
     albums = await db.albums.aggregate(pipeline).to_list(request.limit)
 
     return albums
+
+@router.get("/{album_id}/similar")
+async def get_similar_albums(album_id: str, limit: int = 5):
+
+    album = await db.albums.find_one(
+        {"id": album_id},
+        {"_id": 0}
+    )
+
+    if not album:
+        raise HTTPException(
+            status_code=404,
+            detail="Album not found"
+        )
+
+    artist_id = album.get("artist", {}).get("id")
+    genres = album.get("genres", [])
+    year = album.get("year")
+
+    pipeline = [
+        {
+            "$match": {
+                "id": {"$ne": album_id}
+            }
+        },
+        {
+            "$addFields": {
+                "similarity_score": {
+                    "$add": [
+                        # Same artist
+                        {
+                            "$cond": [
+                                {
+                                    "$eq": [
+                                        "$artist.id",
+                                        artist_id
+                                    ]
+                                },
+                                50,
+                                0
+                            ]
+                        },
+
+                        # Shared genres
+                        {
+                            "$multiply": [
+                                {
+                                    "$size": {
+                                        "$setIntersection": [
+                                            {"$ifNull": ["$genres", []]},
+                                            genres
+                                        ]
+                                    }
+                                },
+                                15
+                            ]
+                        },
+
+                        # Same decade
+                        {
+                            "$cond": [
+                                {
+                                    "$eq": [
+                                        {
+                                            "$floor": {
+                                                "$divide": ["$year", 10]
+                                            }
+                                        },
+                                        {
+                                            "$floor": {
+                                                "$divide": [year, 10]
+                                            }
+                                        }
+                                    ]
+                                },
+                                15,
+                                0
+                            ]
+                        },
+
+                        # Same label
+                        {
+                            "$cond": [
+                                {
+                                    "$eq": [
+                                        "$label",
+                                        album.get("label")
+                                    ]
+                                },
+                                5,
+                                0
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "$sort": {
+                "similarity_score": -1,
+                "total_lists": -1,
+                "total_debates": -1,
+                "year": -1
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "id": 1,
+                "title": 1,
+                "artist": 1,
+                "cover_url": 1,
+                "year": 1,
+                "genres": 1,
+                "label": 1,
+                "total_lists": 1,
+                "total_debates": 1,
+                "similarity_score": 1
+            }
+        },
+        {
+            "$limit": limit
+        }
+    ]
+
+    return await db.albums.aggregate(pipeline).to_list(limit)
