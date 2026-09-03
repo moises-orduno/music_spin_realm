@@ -1,8 +1,7 @@
-from jose import jwt
+from jose import jwt, JWTError, ExpiredSignatureError
 from datetime import datetime, timedelta,timezone
 
 from fastapi import Depends, HTTPException
-from jose import jwt, JWTError
 from db.mongodb import db
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional
@@ -14,8 +13,6 @@ optional_oauth2_scheme = OAuth2PasswordBearer(
     auto_error=False
 )
 
-
-
 SECRET_KEY = "CHANGE_ME"
 ALGORITHM = "HS256"
 
@@ -23,7 +20,7 @@ ALGORITHM = "HS256"
 def create_access_token(user_id: str):
     payload = {
         "sub": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(days=7)
+        "exp": datetime.now(timezone.utc) + timedelta(days=30)
     }
 
     return jwt.encode(
@@ -50,7 +47,13 @@ async def get_current_user(
                 detail="Invalid token"
             )
 
-    except JWTError:
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=401,
+            detail="Token expired"
+        )
+
+    except JWTError as e:
         raise HTTPException(
             status_code=401,
             detail="Invalid token"

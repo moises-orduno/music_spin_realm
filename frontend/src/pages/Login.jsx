@@ -24,16 +24,31 @@ function SocialButton({ children, testid }) {
   );
 }
 
+function Label({ children, hint }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <label className="text-[10.5px] tracking-[0.15em] uppercase text-[var(--text-muted)]">
+        {children}
+      </label>
+
+      {hint && (
+        <button
+          type="button"
+          className="text-[11px] text-[var(--accent-2)] hover:underline flex items-center gap-1"
+        >
+          <Info size={11} /> {hint}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const navigate = useNavigate();
-  const [errors, setErrors] = useState({
-    email: "",
-    password: "",
-  });
 
   const showLoginError = (message) => {
     setLoginError(message);
@@ -167,7 +182,7 @@ export default function Login() {
           </div>
         </div>
       </div>
-     
+
       <div className="flex-1 flex items-center justify-center p-6 sm:p-10 relative">
         <div className="w-full max-w-[420px]">
           {/* Mobile brand */}
@@ -177,46 +192,50 @@ export default function Login() {
             </div>
             <span className="font-serif text-[22px] leading-none">SpinRealm</span>
           </Link>
-  {message && (
+          {message && (
             <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3 text-sm">
               {message}
             </div>
           )}
           <h2 className="font-serif text-[34px] sm:text-[38px] leading-none mb-2 text-center" data-testid="login-title">Welcome back</h2>
           <p className="text-[13px] text-[var(--text-muted)] text-center mb-10">Log in to your SpinRealm account</p>
-        
+
           <form onSubmit={handleLogin} className="space-y-5" data-testid="login-form">
             {/* Email/Username */}
             <div>
-              <label className="block text-[12.5px] font-medium mb-2">Email or Username</label>
+              <Label>Email or Username</Label>
+
               <div className="relative">
-                <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" strokeWidth={1.8} />
+                <User
+                  size={16}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-dim)]"
+                  strokeWidth={1.8}
+                />
+
                 <input
                   type="text"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
 
-                    if (errors.email) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        email: "",
-                      }));
+                    if (emailError) {
+                      setEmailError("");
                     }
                   }}
                   placeholder="Enter your email or username"
                   data-testid="email-input"
-                  className={`w-full bg-[var(--panel)] rounded-xl pl-11 pr-4 py-3.5 text-[13.5px]
-                      placeholder:text-[var(--text-dim)]
-                      focus:outline-none transition
-                      ${errors.email
-                      ? "border border-red-500 focus:border-red-500"
-                      : "border border-[var(--border)] focus:border-[var(--accent)]/50"
+                  className={`w-full bg-[var(--panel)] border rounded-xl  pl-11 pr-4 py-3.5 text-[13.5px] 
+                    text-[var(--text)] placeholder:text-[var(--text-dim)] 
+                    focus:outline-none focus:ring-2 transition 
+                    ${emailError
+                    ? "border-red-500/60 focus:ring-red-500/20"
+                    : "border-[var(--border)] focus:ring-[var(--accent)]"
                     }`}
                 />
-                {errors.email && (
-                  <p className="mt-2 text-xs text-red-500">
-                    {errors.email}
+
+                {emailError && (
+                  <p className="mt-1.5 text-[11px] text-red-400">
+                    {emailError}
                   </p>
                 )}
               </div>
@@ -224,35 +243,37 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <label className="block text-[12.5px] font-medium mb-2">Password</label>
+              <Label>Password</Label>
+
               <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" strokeWidth={1.8} />
+                <Lock
+                  size={16}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-dim)]"
+                  strokeWidth={1.8} />
+
                 <input
                   type={showPw ? "text" : "password"}
                   value={pw}
                   onChange={(e) => {
                     setPw(e.target.value);
 
-                    if (errors.password) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        password: "",
-                      }));
+                    if (passwordError) {
+                      setPasswordError("");
                     }
                   }}
                   placeholder="Enter your password"
                   data-testid="password-input"
-                  className={`w-full bg-[var(--panel)] rounded-xl pl-11 pr-4 py-3.5 text-[13.5px]
-                      placeholder:text-[var(--text-dim)]
-                      focus:outline-none transition
-                      ${errors.password
-                      ? "border border-red-500 focus:border-red-500"
-                      : "border border-[var(--border)] focus:border-[var(--accent)]/50"
+                  className={`w-full bg-[var(--panel)] border rounded-xl pl-11 pr-4 py-3.5 text-[13.5px]
+                      text-[var(--text)] placeholder:text-[var(--text-dim)]
+                      focus:outline-none focus:ring-2 transition
+                      ${passwordError
+                      ? "border-red-500/60 focus:ring-red-500/20"
+                      : "border-[var(--border)] focus:ring-[var(--accent)]"
                     }`}
                 />
-                {errors.password && (
+                {passwordError && (
                   <p className="mt-2 text-xs text-red-500">
-                    {errors.password}
+                    {passwordError}
                   </p>
                 )}
                 <button

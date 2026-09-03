@@ -15,8 +15,8 @@ export default function Collection() {
 
   const [loadingCollection, setLoadingCollection] = useState(true);
 
-  const handleListClick = (list) => {
-    navigate(`/lists/${list.id}`);
+  const handleCollectionClick = (collection) => {
+    navigate(`/collection/${collection.id}`);
   };
 
   const handleAddAlbumClick = () => {
@@ -24,13 +24,13 @@ export default function Collection() {
       navigate("/login", {
         state: {
           message: "Log in to start your collection.",
-          redirectTo: `/createCollectionAlbum`,
+          redirectTo: `/collectionAlbumForm/new`,
         },
       });
       return;
     }
 
-    navigate(`/createCollectionAlbum`);
+    navigate(`/CollectionAlbumForm/new`);
   };
 
   useEffect(() => {
@@ -58,45 +58,14 @@ export default function Collection() {
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">
-            The Shelf
+            Your Shelf
           </div>
 
           <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">
             My Collection
           </h1>
+          <p className="text-[13px] text-[var(--text-muted)]">Share your collection with the world.</p>
 
-          <div className="flex items-center gap-6 text-[13px] text-[var(--text-muted)]">
-            <span>
-              <span className="text-[var(--text)] font-medium">
-                {collectionAlbums.length}
-              </span>{" "}
-              albums
-            </span>
-
-            <span>
-              <span className="text-[var(--text)] font-medium">
-                {new Set(
-                  collectionAlbums
-                    .map((item) => item.album?.artist?.name)
-                    .filter(Boolean)
-                ).size}
-              </span>{" "}
-              artists
-            </span>
-
-            <span>
-              <span className="text-[var(--text)] font-medium">
-                $
-                {collectionAlbums
-                  .reduce(
-                    (total, item) => total + (item.price_paid || 0),
-                    0
-                  )
-                  .toLocaleString()}
-              </span>{" "}
-              value
-            </span>
-          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -112,25 +81,60 @@ export default function Collection() {
             <List size={14} />
           </button>
 
-          <button
-            onClick={handleAddAlbumClick}
-            className="btn-accent px-4 py-2 rounded-full text-[12.5px] flex items-center gap-1.5 ml-2"
-            data-testid="add-album-btn"
-          >
-            <Plus size={14} />
-            Add album
-          </button>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Chip active>All</Chip>
-        <Chip>Recently added</Chip>
-        <Chip>Favorites</Chip>
-        <Chip>Original press</Chip>
-        <Chip>Reissue</Chip>
-        <Chip>By genre</Chip>
-        <Chip>By decade</Chip>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          <Chip active>All</Chip>
+          <Chip>Recently added</Chip>
+          <Chip>Favorites</Chip>
+          <Chip>Original press</Chip>
+          <Chip>Reissue</Chip>
+          <Chip>By genre</Chip>
+        </div>
+
+        <button
+          onClick={handleAddAlbumClick}
+          className="btn-accent inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
+          data-testid="add-album-btn"
+        >
+          <Plus size={14} />
+          Add album
+        </button>
+      </div>
+
+      <div className="flex items-center gap-6 text-[13px] text-[var(--text-muted)]">
+        <span>
+          <span className="text-[var(--text)] font-medium">
+            {collectionAlbums.length}
+          </span>{" "}
+          albums
+        </span>
+
+        <span>
+          <span className="text-[var(--text)] font-medium">
+            {new Set(
+              collectionAlbums
+                .map((item) => item.album?.artist?.name)
+                .filter(Boolean)
+            ).size}
+          </span>{" "}
+          artists
+        </span>
+
+        <span>
+          <span className="text-[var(--text)] font-medium">
+            $
+            {collectionAlbums
+              .reduce(
+                (total, item) => total + (item.price_paid || 0),
+                0
+              )
+              .toLocaleString()}
+          </span>{" "}
+          value
+        </span>
       </div>
 
       {loadingCollection ? (
@@ -166,6 +170,7 @@ export default function Collection() {
 
             return (
               <div
+                onClick={() => handleCollectionClick(item)}
                 key={item.id}
                 className="cursor-pointer group"
                 data-testid={`collection-item-${item.id}`}

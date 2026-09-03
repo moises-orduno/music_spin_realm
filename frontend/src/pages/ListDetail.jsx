@@ -259,7 +259,7 @@ export default function ListDetail() {
           views: 0, // until your API provides this
 
           albums: data.items.map(item => ({
-            rank: item.position,
+            position: item.position,
             title: item.album.title,
             artist: item.album.artist,
             cover: item.album.cover_url,
@@ -268,6 +268,7 @@ export default function ListDetail() {
             favoriteLyric: item.favorite_lyric,
             owned: item.owned,
             hunting: item.hunting,
+            id: item.album.id,
           })),
 
           discussion: [],
@@ -320,7 +321,6 @@ export default function ListDetail() {
       try {
         const data = await getListRemixes(id);
 
-        console.log("remixes",data);
         setListRemixes(
           data.map((remix) => ({
             id: remix.id,
@@ -386,12 +386,11 @@ export default function ListDetail() {
               <StatBlock Icon={Users} value={list.remix_count} label="Remixes" />
               <StatBlock Icon={Eye} value={list.views} label="Views" />
             </div>
-
             <div className="flex flex-wrap items-center gap-2">
               {/* Primary */}
               <button
                 onClick={() => handleListRemixClick()}
-                className="btn-accent rounded-lg px-5 py-2.5 text-[13px] flex items-center gap-2"
+                className="btn-accent inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-medium transition hover:-translate-y-0.5"
                 data-testid="remix-list-btn"
               >
                 <Shuffle size={14} />
@@ -402,9 +401,9 @@ export default function ListDetail() {
               <button
                 onClick={() => handleSaveClick()}
                 data-testid="save-list-btn"
-                className={`rounded-lg px-5 py-2.5 text-[13px] flex items-center gap-2 border transition ${saved
-                  ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
-                  : "border-[var(--border-2)] text-[var(--text-muted)] hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-400"
+                className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-[13px] font-medium transition ${saved
+                  ? "border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "border-[var(--border-2)] text-[var(--text-muted)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent-soft)] hover:text-[var(--text)]"
                   }`}
               >
                 <Bookmark
@@ -418,22 +417,31 @@ export default function ListDetail() {
               <button
                 onClick={() => handleLikeClick()}
                 data-testid="like-list-btn"
-                className={`rounded-lg px-5 py-2.5 text-[13px] flex items-center gap-2 border transition ${liked
+                className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-[13px] font-medium transition ${liked
                   ? "border-red-500/40 bg-red-500/10 text-red-400"
-                  : "border-[var(--border-2)] hover:border-red-500/40 hover:text-red-400"
+                  : "border-[var(--border-2)] text-[var(--text-muted)] hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
                   }`}
               >
-                <Heart size={14} className={liked ? "fill-current" : ""} />
+                <Heart
+                  size={14}
+                  className={liked ? "fill-current" : ""}
+                />
                 {liked ? "Liked" : "Like"}
               </button>
 
-              {/* Push utility actions to the right */}
+              {/* Utility actions */}
               <div className="ml-auto flex items-center gap-2">
-                <button className="w-10 h-10 rounded-lg border border-[var(--border-2)] flex items-center justify-center hover:border-[var(--accent)]/40 transition">
+                <button
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-2)] text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--text)]"
+                  data-testid="share-list-btn"
+                >
                   <Share2 size={14} />
                 </button>
 
-                <button className="w-10 h-10 rounded-lg border border-[var(--border-2)] flex items-center justify-center hover:border-[var(--accent)]/40 transition">
+                <button
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-2)] text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--text)]"
+                  data-testid="more-list-btn"
+                >
                   <MoreHorizontal size={14} />
                 </button>
               </div>
@@ -501,11 +509,20 @@ export default function ListDetail() {
         )}
 
         {tab === "list" && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4" data-testid="list-content">
+          <div
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4"
+            data-testid="list-content">
             {list.albums.map((a) => (
-              <div key={a.rank} className="card-panel overflow-hidden hover-lift cursor-pointer" data-testid={`album-${a.rank}`}>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/albums/${a?.id}`);
+                }}
+                key={a.position}
+                className="card-panel overflow-hidden hover-lift cursor-pointer"
+                data-testid={`album-${a.position}`}>
                 <div className="aspect-square relative cover" style={{ background: a.cover }}>
-                  <div className="absolute top-2 left-2 w-7 h-7 rounded bg-[rgba(0,0,0,0.7)] backdrop-blur flex items-center justify-center text-[13px] font-serif">{a.rank}</div>
+                  <div className="absolute top-2 left-2 w-7 h-7 rounded bg-[rgba(0,0,0,0.7)] backdrop-blur flex items-center justify-center text-[13px] font-serif">{(a.position + 1)}</div>
                 </div>
                 <div className="p-3">
                   <div className="text-[13px] font-medium truncate">{a.title}</div>

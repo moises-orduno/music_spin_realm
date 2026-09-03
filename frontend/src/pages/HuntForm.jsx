@@ -9,7 +9,7 @@ const CONDITIONS = [
 ];
 const SELLER_LOC = ["Worldwide", "My country only", "Specific country"];
 const CURRENCIES = ["USD", "EUR", "GBP", "MXN", "JPY"];
-const COUNTRIES = ["United Kingdom", "United States", "Japan", "Germany", "France", "Italy", "Mexico", "Spain"];
+const COUNTRIES = ["United Kingdom", "United States", "Japan", "Germany", "France", "Italy", "Mexico", "Spain","Any"];
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { createHunt, updateHunt, getHuntById } from "../services/huntService";
 import React, { useState, useEffect } from "react";
@@ -92,14 +92,13 @@ function DetailRow({ Icon, label, value, testid }) {
 
 export default function HuntForm() {
 
-  const { huntId } = useParams();
+  const { id } = useParams();
 
-  const isEditing = Boolean(huntId);
+  const isEditing = Boolean(id);
 
   const [loading, setLoading] = useState(isEditing);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const [step, setStep] = useState("form");
 
   const [album, setAlbum] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -120,7 +119,7 @@ export default function HuntForm() {
   const handleAddAlbumClick = () => {
     navigate("/listAddAlbum", {
       state: {
-        returnTo: `/huntForm`,
+        returnTo: `/huntForm/new`,
         storageKey: `new-hunt-draft`,
       },
     });
@@ -134,7 +133,7 @@ export default function HuntForm() {
 
         if (isEditing) {
           // EDIT MODE
-          const hunt = await getHuntById(huntId);
+          const hunt = await getHuntById(id);
 
           setAlbum(hunt.album);
 
@@ -185,7 +184,7 @@ export default function HuntForm() {
     };
 
     initializeForm();
-  }, [huntId, isEditing]);
+  }, [id, isEditing]);
 
   const handleSubmit = async () => {
 
@@ -210,7 +209,7 @@ export default function HuntForm() {
 
     try {
       if (isEditing) {
-        await updateHunt(huntId, payload);
+        await updateHunt(id, payload);
       } else {
         await createHunt({
           album_id: album.id,
@@ -240,98 +239,6 @@ export default function HuntForm() {
     "My country only": "You'll only see offers from sellers in your country.",
     "Specific country": "Choose the country you want to buy from.",
   }[sellerLoc];
-
-  if (step === "review") {
-    return (
-      <div className="max-w-[560px] mx-auto fade-in-up space-y-6" data-testid="review-hunt-page">
-        {/* Illustration */}
-        <div className="flex flex-col items-center text-center pt-4">
-          <div className="w-[130px] h-[130px] rounded-full flex items-center justify-center relative" style={{ background: "radial-gradient(circle at 30% 30%, rgba(139,92,246,0.35), rgba(139,92,246,0.05) 70%)" }}>
-            <div className="w-[86px] h-[86px] rounded-full bg-[var(--panel)] border-4 border-[var(--accent)] flex items-center justify-center relative">
-              <div className="w-3 h-3 rounded-full bg-[var(--accent)]" />
-              <SearchIcon size={30} className="absolute -bottom-3 -right-3 text-[var(--accent-2)]" strokeWidth={2} />
-            </div>
-            {/* Sparkles */}
-            <span className="absolute top-3 right-5 text-[var(--accent-2)] text-[14px]">✦</span>
-            <span className="absolute bottom-6 left-3 text-[var(--accent-2)] text-[10px]">✦</span>
-          </div>
-          <h1 className="font-serif text-[30px] leading-none mt-6 mb-2">Almost there!</h1>
-          <p className="text-[13px] text-[var(--text-muted)] max-w-xs">Review your hunt details before creating it.</p>
-        </div>
-
-        {album ? (
-          <div
-            className="card-panel p-4 flex items-center gap-4"
-            data-testid="review-album"
-          >
-            <div
-              className="w-[70px] h-[70px] rounded-md shrink-0 cover"
-              style={{
-                backgroundImage: album.cover_url
-                  ? `url(${album.cover_url})`
-                  : undefined,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            />
-
-            <div className="min-w-0 flex-1">
-              <div className="font-serif text-[19px] leading-tight">
-                {album.title}
-              </div>
-
-              <div className="text-[12.5px] text-[var(--text-muted)]">
-                {album.artist?.name}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="card-panel p-4 text-center text-[var(--text-muted)]">
-            No album selected.
-          </div>
-        )}
-
-        {/* Details */}
-        <div className="card-panel px-5 py-1" data-testid="review-details">
-          <DetailRow Icon={Package} label="Pressing type" value={pressing} testid="row-pressing" />
-          <DetailRow Icon={Globe} label="Country of pressing" value={countryPress} testid="row-country" />
-          <DetailRow Icon={Calendar} label="Year" value={year || "—"} testid="row-year" />
-          <DetailRow Icon={XCircle} label="Minimum condition" value={`${condition} or better`} testid="row-condition" />
-          <DetailRow Icon={DollarSign} label="Maximum price" value={`$${maxPrice} ${currency}`} testid="row-price" />
-          <DetailRow Icon={User} label="Seller location" value={sellerLoc} testid="row-seller" />
-          <DetailRow Icon={Truck} label="Ship to" value={shipTo} testid="row-ship" />
-          <DetailRow Icon={FileText} label="Notes" value={notes || "—"} testid="row-notes" />
-        </div>
-
-        {/* Notification banner */}
-        <div className="card-panel p-4 flex items-center gap-3" data-testid="review-notification">
-          <Bell size={16} className="text-[var(--accent-2)] shrink-0" />
-          <p className="text-[12.5px] text-[var(--text-muted)]">
-            You&apos;ll be notified when matches are found that fit your hunt.
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-3 pt-2">
-          <button
-            onClick={() => navigate("/hunt")}
-            data-testid="confirm-create-btn"
-            className="w-full py-3.5 rounded-xl font-semibold text-[13.5px] text-white transition hover:-translate-y-0.5"
-            style={{ background: "linear-gradient(90deg, #8b5cf6, #6d28d9)", boxShadow: "0 10px 30px var(--accent-glow)" }}
-          >
-            {(isEditing ? "Edit Hunt" : "Create Hunt")}
-          </button>
-          <button
-            onClick={() => setStep("form")}
-            data-testid="review-goback-btn"
-            className="w-full py-3 rounded-xl text-[13px] text-[var(--text-muted)] hover:text-[var(--accent-2)] transition"
-          >
-            Go back
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex gap-6 min-w-0 fade-in-up" data-testid="list-remix-page">

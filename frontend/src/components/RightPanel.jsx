@@ -19,6 +19,11 @@ export default function RightPanel({
   rareFinds = [],
 }) {
   const navigate = useNavigate();
+
+  const handleDetailsClick = (id) => {
+    navigate(`/huntDetail/${id}`);
+  };
+
   const handleHuntCreateClick = () => {
     if (!user) {
       navigate("/login", {
@@ -86,10 +91,10 @@ export default function RightPanel({
           <div className="space-y-4">
             {hunting.slice(0, 4).map((h) => (
               <div
+                onClick={() => handleDetailsClick(h.id)}
                 key={h.id}
                 className="flex gap-3 items-start group cursor-pointer"
-                data-testid={`hunt-item-${h.id}`}
-              >
+                data-testid={`hunt-item-${h.id}`}>
                 {/* Cover */}
                 <div
                   className="cover cover-placeholder w-[54px] h-[54px] shrink-0"
@@ -176,48 +181,52 @@ export default function RightPanel({
           Learn more →
         </div>
       </div>
+      <div data-testid="Findings">
+        <SectionHeader title="New in Findings" />
+        {/* Rare Finds */}
+        <div className="space-y-4">
+          {rareFinds.map((r) => (
+            <div
+              key={r.id}
+              className="flex gap-3 items-start cursor-pointer group"
+              data-testid={`rare-find-${r.id}`}
+            >
+              <div
+                className="cover cover-placeholder w-[54px] h-[54px] shrink-0"
+                style={{
+                  backgroundImage: r.cover
+                    ? `url(${r.cover})`
+                    : undefined
+                }}
+              >
+                {!r.cover && (
+                  <span className="opacity-70">
+                    {r.title.split(" ").slice(0, 2).join(" ")}
+                  </span>
+                )}
+              </div>
 
-      {/* Rare Finds */}
-      {rareFinds.map((r) => (
-        <div
-          key={r.id}
-          className="flex gap-3 items-start cursor-pointer group"
-          data-testid={`rare-find-${r.id}`}
-        >
-          <div
-            className="cover cover-placeholder w-[54px] h-[54px] shrink-0"
-            style={{
-              backgroundImage: r.cover
-                ? `url(${r.cover})`
-                : undefined
-            }}
-          >
-            {!r.cover && (
-              <span className="opacity-70">
-                {r.title.split(" ").slice(0, 2).join(" ")}
-              </span>
-            )}
-          </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-medium truncate">
+                  {r.title}
+                </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-medium truncate">
-              {r.title}
+                <div className="text-[11px] text-[var(--text-muted)] truncate">
+                  {r.artist}
+                </div>
+
+                <div className="text-[10px] text-[var(--text-dim)] mt-0.5 truncate">
+                  {r.detail}
+                </div>
+              </div>
+
+              <div className="text-[13px] text-[var(--accent)] font-medium shrink-0">
+                {r.price}
+              </div>
             </div>
-
-            <div className="text-[11px] text-[var(--text-muted)] truncate">
-              {r.artist}
-            </div>
-
-            <div className="text-[10px] text-[var(--text-dim)] mt-0.5 truncate">
-              {r.detail}
-            </div>
-          </div>
-
-          <div className="text-[13px] text-[var(--accent)] font-medium shrink-0">
-            {r.price}
-          </div>
+          ))}
         </div>
-      ))}
+      </div>
     </aside >
   );
 }

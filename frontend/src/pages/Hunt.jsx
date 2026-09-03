@@ -26,7 +26,7 @@ export default function Hunt() {
       return;
     }
 
-    navigate(`/huntForm`);
+    navigate(`/huntForm/new`);
   };
 
   const handleDetailsClick = (id) => {
@@ -73,7 +73,6 @@ export default function Hunt() {
 
     return "";
   };
-
 
   return (
     <div className="space-y-8 fade-in-up" data-testid="hunt-page">
@@ -167,7 +166,8 @@ export default function Hunt() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-start justify-between gap-3 mb-2"
+                  onClick={() => handleDetailsClick(h.id)}>
                   <div className="min-w-0">
                     <h3 className="font-serif text-[20px] leading-tight truncate">
                       {h.album.title}
@@ -211,7 +211,7 @@ export default function Hunt() {
                 <div className="mt-4 flex gap-2">
                   <button
 
-                    onClick={()=>handleDetailsClick(h.id)}
+                    onClick={() => handleDetailsClick(h.id)}
                     className="border border-[var(--border-2)] text-[12px] px-3 py-1.5 rounded-full btn-ghost">
                     Details
                   </button>

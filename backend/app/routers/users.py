@@ -9,7 +9,7 @@ from helpers.password_checker import verify_password, hash_password
 
 from models.user import (
     User,
-    UserCreate,
+    RegisterRequest,
     UserUpdate,
     LoginRequest
 )
@@ -22,11 +22,14 @@ router = APIRouter(
 )
 
 @router.post("/register")
-async def register(payload: UserCreate):
+async def register(payload: RegisterRequest):
 
-    existing_email = await db.users.find_one(
-        {"email": payload.email}
-    )
+    email = payload.email.strip().lower()
+    username = payload.username.strip().lower()
+
+    existing_email = await db.users.find_one({
+        "email": email
+    })
 
     if existing_email:
         raise HTTPException(
@@ -34,41 +37,28 @@ async def register(payload: UserCreate):
             detail="Email already exists"
         )
 
-    base_username = payload.email.split("@")[0]
+    existing_username = await db.users.find_one({
+        "username": username
+    })
 
-    base_username = re.sub(
-        r"[^a-zA-Z0-9_]",
-        "",
-        base_username.lower()
-    )
-
-    username = base_username
-    counter = 1
-
-    while await db.users.find_one(
-        {"username": username}
-    ):
-        username = f"{base_username}{counter}"
-        counter += 1
+    if existing_username:
+        raise HTTPException(
+            status_code=400,
+            detail="Username already exists"
+        )
 
     user = User(
         username=username,
-        display_name=payload.display_name,
-        avatar_url=payload.avatar_url,
-        bio=payload.bio,
-        email=payload.email,
-        password_hash=hash_password(
-            payload.password
-        )
+        display_name=username,
+        email=email,
+        password_hash=hash_password(payload.password),
     )
 
     await db.users.insert_one(
-        user.model_dump()
+        user.model_dump(mode="json")
     )
 
-    token = create_access_token(
-        user.id
-    )
+    token = create_access_token(user.id)
 
     return {
         "access_token": token,
@@ -79,7 +69,9 @@ async def register(payload: UserCreate):
             "display_name": user.display_name,
             "avatar_url": user.avatar_url,
             "bio": user.bio,
-            "email": user.email
+            "email": user.email,
+            "role": user.role,
+            "onboarding_completed": user.onboarding_completed,
         }
     }
 

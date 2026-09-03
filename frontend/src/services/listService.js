@@ -1,5 +1,4 @@
-import { API_BASE_URL } from "./api";
-import { getToken } from "./authService";
+import { authenticatedFetch } from "./authService";
 
 export async function getLists({ category, limit = 50, sort } = {}) {
   const params = new URLSearchParams();
@@ -8,167 +7,161 @@ export async function getLists({ category, limit = 50, sort } = {}) {
   if (limit) params.append("limit", limit);
   if (sort) params.append("sort", sort);
 
-  const response = await fetch(
-    `${API_BASE_URL}/lists?${params.toString()}`
+  const response = await authenticatedFetch(
+    `/lists?${params.toString()}`,
+    {
+      method: "GET",
+    }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch lists");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch lists");
   }
 
   return response.json();
 }
 
 export async function getListById(id) {
-  const token = localStorage.getItem("token");
-
-  const response = await fetch(
-    `${API_BASE_URL}/lists/${id}`,
-    {
-      headers: token
-        ? {
-          Authorization: `Bearer ${token}`,
-        }
-        : {},
-    }
-  );
+  const response = await authenticatedFetch(`/lists/${id}`, {
+    method: "GET",
+  });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch list");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch list");
   }
 
   return response.json();
 }
 
 export async function getListRemixes(id) {
-
-  const response = await fetch(
-    `${API_BASE_URL}/lists/${id}/remixes`,
+  const response = await authenticatedFetch(
+    `/lists/${id}/remixes`,
+    {
+      method: "GET",
+    }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch list remixes");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch list remixes");
   }
 
   return response.json();
 }
 
 export async function toggleLikeById(id) {
-  const token = localStorage.getItem("token");
-
-  const response = await fetch(
-    `${API_BASE_URL}/lists/${id}/like`,
+  const response = await authenticatedFetch(
+    `/lists/${id}/like`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to toggle like");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to toggle like");
   }
 
   return response.json();
 }
 
 export async function toggleSaveById(id) {
-  const token = localStorage.getItem("token");
-
-  const response = await fetch(
-    `${API_BASE_URL}/lists/${id}/save`,
+  const response = await authenticatedFetch(
+    `/lists/${id}/save`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to toggle save");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to toggle save");
   }
 
   return response.json();
 }
 
 export async function createComment(listId, comment) {
-  const token = getToken();
-
-  const response = await fetch(
-    `${API_BASE_URL}/comments/lists/${listId}`,
+  const response = await authenticatedFetch(
+    `/comments/lists/${listId}`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(comment),
     }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to create comment");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to create comment");
   }
 
   return response.json();
 }
 
 export async function getCommentsByListId(listId) {
-  const response = await fetch(
-    `${API_BASE_URL}/comments/lists/${listId}`
+  const response = await authenticatedFetch(
+    `/comments/lists/${listId}`,
+    {
+      method: "GET",
+    }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch debate");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch comments");
   }
 
   return response.json();
 }
 
 export async function createRemixList(listId, remixData) {
-  const token = getToken();
-
-  const response = await fetch(
-    `${API_BASE_URL}/lists/${listId}/remix`,
+  const response = await authenticatedFetch(
+    `/lists/${listId}/remix`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(remixData),
     }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to create remix");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to create remix");
   }
 
   return response.json();
 }
 
 export async function createList(listData) {
-  const token = getToken();
-console.log(JSON.stringify(listData, null, 2));
+  console.log(JSON.stringify(listData, null, 2));
 
-  const response = await fetch(
-    `${API_BASE_URL}/lists`,
+  const response = await authenticatedFetch(
+    "/lists",
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(listData),
     }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to create list");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to create list");
   }
 
   return response.json();

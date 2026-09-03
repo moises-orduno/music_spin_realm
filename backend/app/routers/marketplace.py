@@ -5,7 +5,10 @@ from fastapi import APIRouter
 from datetime import datetime, timezone
 from typing import Optional
 from bson import ObjectId
+from models.user import User, UserRole
 
+from fastapi.encoders import jsonable_encoder
+import uuid
 from helpers.token_helper import get_current_user
 from db.mongodb import db
 
@@ -14,6 +17,21 @@ router = APIRouter(
     tags=["Marketplace"]
 )
 from typing import Optional
+
+from fastapi import Depends, HTTPException, status
+
+
+async def require_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+    return current_user
 
 @router.get("/recommended-listings")
 async def get_recommended_listings(
@@ -29,35 +47,55 @@ async def get_recommended_listings(
         .to_list(limit)
     )
 
-    return listings
+    # Only get album IDs from listings that have them
+    album_ids = [
+        listing["album_id"]
+        for listing in listings
+        if listing.get("album_id")
+    ]
+
+    albums = await (
+        db.albums
+        .find(
+            {"id": {"$in": album_ids}},
+            {"_id": 0}
+        )
+        .to_list(None)
+    )
+
+    albums_by_id = {
+        album["id"]: album
+        for album in albums
+    }
+
+    result = []
+
+    for listing in listings:
+        album = None
+
+        if listing.get("album_id"):
+            album = albums_by_id.get(listing["album_id"])
+
+        result.append({
+            **listing,
+
+            "album": {
+                "id": album["id"],
+                "title": album["title"],
+                "cover_url": album.get("cover_url"),
+                "artist": album.get("artist"),
+            } if album else None,
+        })
+
+    return result
 
 @router.get("/albums/{album_id}/listings")
 async def get_album_listings(
     album_id: str,
     limit: int = 10
 ):
-    listings = await (
-        db.recommended_listings
-        .find(
-            {
-                "album.id": album_id,
-                "status": "available"
-            },
-            {"_id": 0}
-        )
-        .sort("created_at", -1)
-        .to_list(limit)
-    )
-
-    return listings
-
-@router.post("/recommended-listings")
-async def create_recommended_listing(
-    listing: RecommendedListingCreate
-):
-    # Find album
     album = await db.albums.find_one(
-        {"id": listing.album_id},
+        {"id": album_id},
         {"_id": 0}
     )
 
@@ -67,9 +105,54 @@ async def create_recommended_listing(
             detail="Album not found"
         )
 
-    # Create recommendation/listing
+    listings = await (
+        db.recommended_listings
+        .find(
+            {
+                "album_id": album_id,
+                "status": "available"
+            },
+            {"_id": 0}
+        )
+        .sort("created_at", -1)
+        .to_list(limit)
+    )
+
+    return {
+        "album": {
+            "id": album["id"],
+            "title": album["title"],
+            "cover_url": album.get("cover_url"),
+            "artist": album.get("artist"),
+        },
+        "listings": listings,
+    }
+
+@router.post("/recommended-listings")
+async def create_recommended_listing(
+    listing: RecommendedListingCreate
+    # ,
+    # current_user: User = Depends(require_admin),
+):
+    # Find album
+    album = await db.albums.find_one(
+        {"id": listing.album_id},
+        {"_id": 0},
+    )
+
+    if not album:
+        raise HTTPException(
+            status_code=404,
+            detail="Album not found",
+        )
+
+    listing_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+
     recommended_listing = {
-        "album": album,
+        # Identity
+        "id": listing_id,
+        "album_id": listing.album_id,
 
         # Sale
         "price": listing.price,
@@ -100,30 +183,52 @@ async def create_recommended_listing(
         # Images
         "images": listing.images,
 
+        # Marketplace
         "status": "available",
-        "created_at": datetime.now(timezone.utc)
+
+        # Admin / ownership
+        "created_by": "System",
+        "created_at": now,
+        "updated_at": now,
     }
 
     await db.recommended_listings.insert_one(
         recommended_listing
     )
 
-    # MongoDB adds _id, which shouldn't be returned
-    recommended_listing.pop("_id", None)
+    # Return the album together with the listing
+    response = {
+        **recommended_listing,
+        "album": album,
+    }
 
-    return recommended_listing
+    # Protect against any ObjectId nested inside the album
+    return jsonable_encoder(
+        response,
+        custom_encoder={ObjectId: str},
+    )
 
-@router.get("/marketplace/hunt-matches")
+@router.get("/hunt-matches")
 async def get_marketplace_hunt_matches(
     current_user=Depends(get_current_user),
 ):
-    user_id = str(current_user.id)
+    user_id = str(current_user["id"])
 
+    # ---------------------------------------------------------
     # Get user's active hunts
-    hunts = await db.hunts.find({
-        "user_id": user_id,
-        "status": "active"
-    }).to_list(length=None)
+    # ---------------------------------------------------------
+
+    hunts = await db.hunts.find(
+        {
+            "user_id": user_id,
+            "status": "active"
+        },
+        {
+            "_id": 1,
+            "album_id": 1,
+            "name": 1,
+        }
+    ).to_list(length=None)
 
     if not hunts:
         return {
@@ -131,7 +236,10 @@ async def get_marketplace_hunt_matches(
             "total": 0
         }
 
+    # ---------------------------------------------------------
     # Build album -> hunts mapping
+    # ---------------------------------------------------------
+
     album_hunts = {}
 
     for hunt in hunts:
@@ -142,47 +250,118 @@ async def get_marketplace_hunt_matches(
 
         album_hunts[album_id].append({
             "hunt_id": str(hunt["_id"]),
-            "hunt_name": hunt.get("name")
+            "hunt_name": hunt.get("name"),
         })
 
     album_ids = list(album_hunts.keys())
 
-    # Find marketplace listings matching hunted albums
-    listings = await db.marketplace_listings.find({
-        "album_id": {
-            "$in": album_ids
+    # ---------------------------------------------------------
+    # Get marketplace listings
+    # ---------------------------------------------------------
+
+    listings = await db.recommended_listings.find(
+        {
+            "album_id": {
+                "$in": album_ids
+            },
+            "status": "available"
         },
-        "status": "active"
-    }).to_list(length=None)
+        {
+            "_id": 0
+        }
+    ).to_list(length=None)
+
+    if not listings:
+        return {
+            "items": [],
+            "total": 0
+        }
+
+    # ---------------------------------------------------------
+    # Get albums
+    # ---------------------------------------------------------
+
+    albums = await db.albums.find(
+        {
+            "id": {
+                "$in": album_ids
+            }
+        },
+        {
+            "_id": 0
+        }
+    ).to_list(length=None)
+
+    albums_by_id = {
+        album["id"]: album
+        for album in albums
+    }
+
+    # ---------------------------------------------------------
+    # Build response
+    # ---------------------------------------------------------
 
     items = []
 
     for listing in listings:
+
         album_id = str(listing["album_id"])
+        album = albums_by_id.get(album_id)
 
         items.append({
-            "listing_id": str(listing["_id"]),
+            "listing_id": listing["id"],
             "album_id": album_id,
-            "album": listing.get("album"),
+
+            "album": {
+                "id": album["id"],
+                "title": album["title"],
+                "cover_url": album.get("cover_url"),
+                "artist": album.get("artist"),
+            } if album else None,
+
             "price": listing.get("price"),
             "currency": listing.get("currency"),
-            "pressing_country": listing.get("pressing_country"),
-            "pressing_year": listing.get("pressing_year"),
+
+            "pressing_country": listing.get(
+                "pressing_country"
+            ),
+            "pressing_year": listing.get(
+                "pressing_year"
+            ),
+
             "label": listing.get("label"),
-            "catalog_number": listing.get("catalog_number"),
-            "pressing_description": listing.get("pressing_description"),
+            "catalog_number": listing.get(
+                "catalog_number"
+            ),
+            "pressing_description": listing.get(
+                "pressing_description"
+            ),
+
             "format": listing.get("format"),
             "speed": listing.get("speed"),
             "channels": listing.get("channels"),
-            "media_condition": listing.get("media_condition"),
-            "sleeve_condition": listing.get("sleeve_condition"),
-            "matrix_runout": listing.get("matrix_runout"),
+
+            "media_condition": listing.get(
+                "media_condition"
+            ),
+            "sleeve_condition": listing.get(
+                "sleeve_condition"
+            ),
+
+            "matrix_runout": listing.get(
+                "matrix_runout"
+            ),
+
             "edition": listing.get("edition"),
             "mastering": listing.get("mastering"),
             "notes": listing.get("notes"),
-            "images": listing.get("images"),
-            "seller": listing.get("seller"),
-            "matched_hunts": album_hunts.get(album_id, [])
+
+            "images": listing.get("images", []),
+
+            "matched_hunts": album_hunts.get(
+                album_id,
+                []
+            ),
         })
 
     return {
@@ -192,23 +371,18 @@ async def get_marketplace_hunt_matches(
 
 @router.get("/recommended-listings/{listing_id}")
 async def get_recommended_listing(
-    listing_id: str,
-    current_user=Depends(get_current_user),
+    listing_id: str
 ):
-    # Validate ObjectId
-    try:
-        listing_object_id = ObjectId(listing_id)
-    except Exception:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid listing ID"
-        )
-
     # Get listing
-    listing = await db.marketplace_recommended_listings.find_one({
-        "_id": listing_object_id,
-        "status": "active"
-    })
+    listing = await db.recommended_listings.find_one(
+        {
+            "id": listing_id,
+            "status": "available"
+        },
+        {
+            "_id": 0
+        }
+    )
 
     if not listing:
         raise HTTPException(
@@ -223,62 +397,31 @@ async def get_recommended_listing(
     album = None
 
     if listing.get("album_id"):
-        try:
-            album = await db.albums.find_one({
-                "_id": ObjectId(str(listing["album_id"]))
-            })
-        except Exception:
-            album = None
-
-    # ---------------------------------------------------------
-    # Artist
-    # ---------------------------------------------------------
-
-    artist = None
-
-    if album and album.get("artist_id"):
-        try:
-            artist = await db.artists.find_one({
-                "_id": ObjectId(str(album["artist_id"]))
-            })
-        except Exception:
-            artist = None
-
-    # ---------------------------------------------------------
-    # Seller
-    # ---------------------------------------------------------
-
-    seller = None
-
-    if listing.get("seller_id"):
-        try:
-            seller = await db.users.find_one({
-                "_id": ObjectId(str(listing["seller_id"]))
-            })
-        except Exception:
-            seller = None
+        album = await db.albums.find_one(
+            {
+                "id": listing["album_id"]
+            },
+            {
+                "_id": 0
+            }
+        )
 
     # ---------------------------------------------------------
     # Return response
     # ---------------------------------------------------------
 
     return {
-        "id": str(listing["_id"]),
+        "id": listing["id"],
 
         "album": {
-            "id": str(album["_id"]) if album else None,
-            "name": album.get("name") if album else None,
+            "id": album.get("id") if album else None,
+            "name": album.get("title") if album else None,
 
-            "artist_id": (
-                str(album["artist_id"])
-                if album and album.get("artist_id")
+            "artist": (
+                album.get("artist")
+                if album
                 else None
             ),
-
-            "artist": {
-                "id": str(artist["_id"]),
-                "name": artist.get("name")
-            } if artist else None,
 
             "cover_url": (
                 album.get("cover_url")
@@ -319,16 +462,6 @@ async def get_recommended_listing(
         "notes": listing.get("notes"),
 
         "images": listing.get("images", []),
-
-        "seller": {
-            "id": str(seller["_id"]),
-            "display_name": seller.get(
-                "display_name"
-            ),
-            "avatar_url": seller.get(
-                "avatar_url"
-            ),
-        } if seller else None,
 
         "status": listing.get("status"),
     }

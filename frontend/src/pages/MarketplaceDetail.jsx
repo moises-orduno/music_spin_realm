@@ -54,7 +54,7 @@ function ConditionBadge({ children }) {
 }
 
 export default function MarketplaceDetail() {
-  const { listingId } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [listing, setListing] = useState(null);
@@ -69,7 +69,7 @@ export default function MarketplaceDetail() {
       try {
         setLoading(true);
 
-        const data = await getMarketplaceListing(listingId);
+        const data = await getMarketplaceListing(id);
 
         setListing(data);
       } catch (err) {
@@ -80,10 +80,9 @@ export default function MarketplaceDetail() {
       }
     }
 
-    if (listingId) {
       loadListing();
-    }
-  }, [listingId]);
+    
+  }, [id]);
 
   const handleAddToCart = async () => {
     try {

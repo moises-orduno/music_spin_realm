@@ -1,91 +1,85 @@
-import { API_BASE_URL } from "./api";
-import { getToken } from "./authService";
+import { authenticatedFetch } from "./authService";
 
 export async function getHunts(status = "hunting") {
-  const token = getToken();
-
-  const response = await fetch(
-    `${API_BASE_URL}/hunts/me?status=${status}`,
+  const response = await authenticatedFetch(
+    `/hunts/me?status=${encodeURIComponent(status)}`,
     {
-      headers: token
-        ? {
-            Authorization: `Bearer ${token}`,
-          }
-        : {},
+      method: "GET",
     }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch hunts");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch hunts");
   }
 
   return response.json();
 }
 
 export async function createHunt(hunt) {
-  const token = getToken();
-
-  const response = await fetch(`${API_BASE_URL}/hunts`, {
+  const response = await authenticatedFetch("/hunts", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token && {
-        Authorization: `Bearer ${token}`,
-      }),
     },
     body: JSON.stringify(hunt),
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => null);
-    throw new Error(error?.detail || "Failed to create hunt");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to create hunt");
   }
 
   return response.json();
 }
 
 export async function updateHunt(huntId, payload) {
-  const token = getToken();
-
-  const response = await fetch(
-    `${API_BASE_URL}/hunts/${huntId}`,
+  const response = await authenticatedFetch(
+    `/hunts/${huntId}`,
     {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        ...(token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : {}),
       },
       body: JSON.stringify(payload),
     }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to update hunt");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to update hunt");
+  }
+
+  return response.json();
+}
+
+export async function deleteHunt(huntId) {
+  const response = await authenticatedFetch(
+    `/hunts/${huntId}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to delete hunt");
   }
 
   return response.json();
 }
 
 export async function getHuntById(huntId) {
-  const token = getToken();
-
-  const response = await fetch(
-    `${API_BASE_URL}/hunts/${huntId}`,
+  const response = await authenticatedFetch(
+    `/hunts/${huntId}`,
     {
-      headers: token
-        ? {
-            Authorization: `Bearer ${token}`,
-          }
-        : {},
+      method: "GET",
     }
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch hunt");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch hunt");
   }
 
   return response.json();

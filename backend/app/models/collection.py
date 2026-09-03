@@ -30,12 +30,14 @@ class CollectionItemCreate(BaseModel):
     purchased_from: Optional[str] = None
     notes: Optional[str] = None
 
+    images: Optional[list[str]] = []
+
     # Source
     source: Optional[str] = "manual"
     source_release_id: Optional[str] = None
 
-
 class CollectionItemUpdate(BaseModel):
+    # Release / pressing information
     pressing: Optional[str] = None
     pressing_country: Optional[str] = None
     pressing_year: Optional[int] = None
@@ -46,9 +48,11 @@ class CollectionItemUpdate(BaseModel):
     matrix_runout: Optional[str] = None
     edition: Optional[str] = None
 
+    # Condition
     media_condition: Optional[str] = None
     sleeve_condition: Optional[str] = None
 
+    # Personal information
     price_paid: Optional[float] = None
     currency: Optional[str] = None
     purchase_date: Optional[datetime] = None

@@ -134,6 +134,27 @@ async def update_hunt(
 
     return Hunt(**updated_hunt)
 
+@router.delete("/{hunt_id}")
+async def delete_hunt(
+    hunt_id: str,
+    current_user=Depends(get_current_user),
+):
+    result = await db.hunts.delete_one({
+        "id": hunt_id,
+        "owner.user_id": current_user["id"],
+    })
+
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="Hunt not found"
+        )
+
+    return {
+        "message": "Hunt deleted successfully",
+        "id": hunt_id,
+    }
+
 
 @router.get("/{hunt_id}", response_model=Hunt)
 async def get_hunt_by_id(

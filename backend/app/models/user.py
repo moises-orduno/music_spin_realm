@@ -3,16 +3,17 @@ from datetime import datetime, timezone
 import uuid
 from typing import Optional, List
 
-class RegisterRequest(BaseModel):
-    email: EmailStr
-    username: str
-    display_name: str
-    password: str
+from enum import Enum
+from typing import List, Optional
+from datetime import datetime, timezone
+from pydantic import BaseModel, EmailStr, Field
+import uuid
 
 
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
+class UserRole(str, Enum):
+    USER = "user"
+    ADMIN = "admin"
+
 
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -22,11 +23,13 @@ class User(BaseModel):
     display_name: str
     password_hash: str
 
+    role: UserRole = UserRole.USER
+
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
 
-    followed_artists: List[str] = []
-    followed_albums: List[str] = []
+    followed_artists: List[str] = Field(default_factory=list)
+    followed_albums: List[str] = Field(default_factory=list)
 
     followers_count: int = 0
     following_count: int = 0
@@ -37,6 +40,17 @@ class User(BaseModel):
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    username: str
+    display_name: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -64,14 +78,3 @@ class UserFollow(BaseModel):
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
-
-class RegisterRequest(BaseModel):
-    email: EmailStr
-    username: str
-    display_name: str
-    password: str
-
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str

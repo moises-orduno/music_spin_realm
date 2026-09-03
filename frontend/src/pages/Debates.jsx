@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Chip } from "../components/ui-bits";
 import axios from "axios";
 import {
   Plus, MoreVertical, Users, Disc, Music, Clock,
@@ -143,9 +144,9 @@ function BinaryCard({ d, vote, onVote }) {
               className="flex-1 text-left"
             >
               <div className="text-[12px] text-[var(--text-muted)] mb-1">{o.label}</div>
-              <div className={`text-[28px] sm:text-[34px] font-serif transition ${vote === i ? "text-[var(--accent-2)]" : "text-[var(--text)]"}`}>{(o.votes/d.total_votes)*100}%</div>
+              <div className={`text-[28px] sm:text-[34px] font-serif transition ${vote === i ? "text-[var(--accent-2)]" : "text-[var(--text)]"}`}>{(o.votes / d.total_votes) * 100}%</div>
               <div className="h-1 rounded-full bg-[var(--border)] overflow-hidden mt-1.5">
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${((o.votes/d.total_votes)*100)}%`, background: "var(--accent)", boxShadow: vote === i ? "0 0 12px var(--accent-glow)" : "none" }} />
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${((o.votes / d.total_votes) * 100)}%`, background: "var(--accent)", boxShadow: vote === i ? "0 0 12px var(--accent-glow)" : "none" }} />
               </div>
             </button>
           </React.Fragment>
@@ -236,7 +237,6 @@ export default function Debates() {
   const [tab, setTab] = useState("Trending");
   const [cat, setCat] = useState("All");
   const [sort, setSort] = useState("Most Popular");
-  const [showSort, setShowSort] = useState(false);
   const [debates, setDebates] = useState([]);
   const [loadingDebates, setLoadingDebates] = useState(true);
   const [error, setError] = useState(null);
@@ -261,6 +261,10 @@ export default function Debates() {
     loadDebates();
   }, []);
 
+  const handleCreateDebate = ()=>{
+
+  }
+
   const handleVote = async (id, optionIndex) => {
     // Optimistic UI: track my vote
     setMyVotes((v) => ({ ...v, [id]: optionIndex }));
@@ -273,11 +277,9 @@ export default function Debates() {
     }
   };
 
-    if (loadingDebates || !debates) {
+  if (loadingDebates || !debates) {
     return <div className="p-6">Loading Debates...</div>;
   }
-
-
 
   return (
     <div className="flex gap-6 min-w-0" data-testid="debates-page">
@@ -285,12 +287,14 @@ export default function Debates() {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
+            <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">
+              Your Shelf
+            </div>
+
             <h1 className="font-serif text-[34px] sm:text-[44px] leading-none mb-2">Debates</h1>
             <p className="text-[13px] text-[var(--text-muted)]">Where music lovers argue (respectfully).</p>
           </div>
-          <button className="btn-accent rounded-lg px-5 py-2.5 text-[13px] flex items-center gap-2" data-testid="create-debate-btn">
-            <Plus size={15} /> Create Debate
-          </button>
+          
         </div>
 
         {/* Tabs */}
@@ -310,39 +314,36 @@ export default function Debates() {
 
         {/* Category chips + sort */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2" data-testid="category-chips">
-            {CATS.map((c) => (
-              <button
-                key={c}
-                onClick={() => setCat(c)}
-                data-testid={`cat-${c.toLowerCase().replace(/\s/g, "-")}`}
-                className={`px-3.5 py-1.5 rounded-full text-[11.5px] border transition ${cat === c
-                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                    : "border-[var(--border-2)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--accent)]/40"
-                  }`}
+
+          {/* Categories */}
+          <div
+            className="flex flex-wrap gap-2"
+            data-testid="category-chips"
+          >
+            {CATS.map((category) => (
+              <Chip
+                key={category}
+                active={cat === category}
+                onClick={() => setCat(category)}
               >
-                {c}
-              </button>
+                {category}
+              </Chip>
             ))}
           </div>
 
-          <div className="relative">
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+
+            {/* Create Debate */}
             <button
-              onClick={() => setShowSort(!showSort)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] text-[12.5px] hover:border-[var(--border-2)]"
-              data-testid="sort-dropdown"
+              onClick={handleCreateDebate}
+              className="btn-accent inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
+              data-testid="create-debate-btn"
             >
-              {sort} <ChevronDown size={13} className={showSort ? "rotate-180 transition" : "transition"} />
+              <Plus size={14} />
+              Create Debate
             </button>
-            {showSort && (
-              <div className="absolute right-0 top-full mt-1 w-[180px] card-panel py-1.5 z-30">
-                {["Most Popular", "Newest", "Most Voted", "Most Commented"].map((s) => (
-                  <button key={s} onClick={() => { setSort(s); setShowSort(false); }} className={`w-full text-left px-4 py-2 text-[12.5px] hover:bg-[var(--accent-soft)] ${s === sort ? "text-[var(--accent-2)]" : "text-[var(--text-muted)]"}`}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
+
           </div>
         </div>
 

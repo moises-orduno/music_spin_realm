@@ -1,17 +1,23 @@
 import { Chip } from "../components/ui-bits";
-import { Tag, Search,ArrowRight, SlidersHorizontal } from "lucide-react";
+import { Tag, Search, ArrowRight, SlidersHorizontal } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { getRecommended } from "../services/marketplaceService";
+import { getRecommended, getMarketplaceHuntMatches } from "../services/marketplaceService";
 import { useNavigate } from "react-router-dom";
 
 export default function Marketplace() {
-    const [listings, setListings] = useState([]);
     const [loadingListings, setLoadingListings] = useState(true);
     const [error, setError] = useState(null);
 
-    const [filter, setFilter] = useState("all");
+    const [view, setView] = useState("all");
+    const [recommendedListings, setRecommendedListings] = useState([]);
+    const [huntMatches, setHuntMatches] = useState([]);
 
     const navigate = useNavigate();
+
+    const displayedListings =
+        view === "all"
+            ? recommendedListings
+            : huntMatches;
 
     useEffect(() => {
         const loadListings = async () => {
@@ -19,9 +25,23 @@ export default function Marketplace() {
                 setLoadingListings(true);
                 setError(null);
 
-                const data = await getRecommended();
-                console.log("data", data);
-                setListings(data);
+                const [recommended, huntMatches] = await Promise.all([
+                    getRecommended(),
+                    getMarketplaceHuntMatches(),
+                ]);
+
+                setRecommendedListings(
+                    Array.isArray(recommended)
+                        ? recommended
+                        : recommended.items || []
+                );
+
+                setHuntMatches(
+                    Array.isArray(huntMatches)
+                        ? huntMatches
+                        : huntMatches.items || []
+                );
+
             } catch (err) {
                 console.error("Failed to load marketplace", err);
                 setError(err.message || "Failed to load marketplace");
@@ -46,12 +66,6 @@ export default function Marketplace() {
         );
     };
 
-    const filteredListings = listings.filter((listing) => {
-        if (filter === "all") return true;
-
-        return listing.status === filter;
-    });
-
     const formatPrice = (price, currency = "USD") => {
         return new Intl.NumberFormat("en-US", {
             style: "currency",
@@ -74,7 +88,7 @@ export default function Marketplace() {
                     </h1>
 
                     <p className="text-[14px] text-[var(--text-muted)] max-w-[560px]">
-                        Discover records available from collectors and sellers.
+                        Discover records available from collectors and add them to your collection.
                     </p>
                 </div>
             </div>
@@ -83,17 +97,17 @@ export default function Marketplace() {
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-2">
                     <Chip
-                        active={filter === "all"}
-                        onClick={() => setFilter("all")}
+                        active={view === "all"}
+                        onClick={() => setView("all")}
                     >
-                        All ({listings.length})
+                        All ({recommendedListings.length})
                     </Chip>
 
                     <Chip
-                        active={filter === "available"}
-                        onClick={() => setFilter("available")}
+                        active={view === "matches"}
+                        onClick={() => setView("matches")}
                     >
-                        🟢 Available
+                        🎯 Matches ({huntMatches.length})
                     </Chip>
                 </div>
 
@@ -134,23 +148,27 @@ export default function Marketplace() {
                         </p>
                     </div>
 
-                ) : filteredListings.length === 0 ? (
+                ) : displayedListings.length === 0 ? (
                     <div className="col-span-full text-center py-16">
                         <div className="text-5xl mb-4">💿</div>
 
                         <h2 className="font-serif text-2xl mb-2">
-                            No records for sale
+                            {view === "matches"
+                                ? "No matching records"
+                                : "No records for sale"}
                         </h2>
 
                         <p className="text-[var(--text-muted)]">
-                            Check back soon for new listings.
+                            {view === "matches"
+                                ? "None of your hunts currently match marketplace listings."
+                                : "Check back soon for new listings."}
                         </p>
                     </div>
 
                 ) : (
-                    filteredListings.map((listing) => (
+                    displayedListings.map((listing) => (
                         <div
-                            key={listing.album?.id}
+                            key={listing.id}
                             onClick={() =>
                                 navigate(`/albums/${listing.album?.id}`)
                             }
@@ -238,10 +256,13 @@ export default function Marketplace() {
 
                                 {/* Actions */}
                                 <div className="mt-4 flex gap-2">
+
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            navigate(`/albums/${listing.album?.id}`);
+                                            navigate(
+                                                `/albums/${listing.album?.id}`
+                                            );
                                         }}
                                         className="border border-[var(--border-2)] text-[12px] px-3 py-1.5 rounded-full btn-ghost"
                                     >
@@ -249,13 +270,17 @@ export default function Marketplace() {
                                     </button>
 
                                     <button
-                                        onClick={() =>
-                                            navigate(`/albums/${listing.album?.id}`)
-                                        }
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(
+                                                `/albums/${listing.album?.id}`
+                                            );
+                                        }}
                                         className="bg-[var(--accent-soft)] border border-[var(--accent)]/30 text-[var(--accent)] text-[12px] px-3 py-1.5 rounded-full hover:bg-[var(--accent)]/20 transition"
                                     >
                                         View Listing
                                     </button>
+
                                 </div>
 
                             </div>

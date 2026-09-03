@@ -47,13 +47,31 @@ function TipCard({ Icon, title, text, color }) {
   );
 }
 
-export default function CreateList() {
+function Label({ children, hint }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <label className="text-[10.5px] tracking-[0.15em] uppercase text-[var(--text-muted)]">{children}</label>
+      {hint && (
+        <button type="button" className="text-[11px] text-[var(--accent-2)] hover:underline flex items-center gap-1">
+          <Info size={11} /> {hint}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function ListForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const isEditing = Boolean(id);
+  const [submitting, setSubmitting] = useState(false);
 
   const [showInCollection, setShowInCollection] = useState(true);
   const [dragIndex, setDragIndex] = useState(null);
   const [overIndex, setOverIndex] = useState(null);
+  const [titleError, setTitleError] = useState(null);
+  const [itemsError, setItemsError] = useState(null);
 
   const [draft, setDraft] = useState({
     title: "",
@@ -65,9 +83,10 @@ export default function CreateList() {
   });
 
   const handleAddAlbumClick = () => {
+    setItemsError(null);
     navigate("/listAddAlbum", {
       state: {
-        returnTo: `/createList`,
+        returnTo: `/listForm/new`,
         storageKey: `new-list-draft`,
       },
     });
@@ -227,6 +246,18 @@ export default function CreateList() {
   };
 
   const handleCreate = async () => {
+
+    if (!draft.title?.trim()) {
+      setTitleError("Please enter a list title.");
+      return;
+    }
+
+    // Albums validation
+    if (!draft.items || draft.items.length === 0) {
+      setItemsError("Please add at least one album to your list.");
+      return;
+    }
+
     try {
       const payload = {
         title: draft.title,
@@ -254,11 +285,32 @@ export default function CreateList() {
 
   const updateDescription = (value) => {
 
+    console.log("description", value);
     saveDraft({
 
       ...draft,
 
       description: value.slice(0, 250)
+
+    });
+
+  };
+
+  const handleTitleChange = (value) => {
+    if (titleError) {
+      setTitleError("");
+    }
+
+    updateTitle(value);
+  };
+
+  const updateTitle = (value) => {
+    console.log("title", value);
+    saveDraft({
+
+      ...draft,
+
+      title: value.slice(0, 250)
 
     });
 
@@ -312,7 +364,7 @@ export default function CreateList() {
   };
 
   return (
-    <div className="flex gap-6 min-w-0 fade-in-up" data-testid="list-remix-page">
+    <div className="flex gap-6 min-w-0 fade-in-up" data-testid="create-list-page">
       <div className="flex-1 min-w-0 space-y-6">
         <Link to={`/lists/${id || "saddest-albums-ever"}`} className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] inline-flex items-center gap-1.5" data-testid="back-link">
           <ArrowLeft size={13} /> Back to list
@@ -329,55 +381,82 @@ export default function CreateList() {
           <p className="text-[13px] text-[var(--text-muted)] ml-14">You&apos;re creating your own list.</p>
         </div>
 
-        {/* Original title */}
-        <div className="card-panel p-5" data-testid="title-field">
-          <label className="text-[12.5px] font-medium mb-2 block">
-            List title
-          </label>
+
+        {/* List title */}
+        <div data-testid="title-field">
+          <Label>List title</Label>
 
           <input
             type="text"
             value={draft.title}
-            onChange={(e) =>
-              saveDraft({
-                ...draft,
-                title: e.target.value,
-              })
-            }
+            onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="Give your list a title"
             maxLength={100}
-            className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            data-testid="title-input"
+            className={`w-full bg-[var(--panel-2)] border rounded-lg px-4 py-3 text-[14px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 transition ${titleError
+              ? "border-red-500/60 focus:ring-red-500/20"
+              : "border-[var(--border)] focus:ring-[var(--accent)]"
+              }`}
           />
+
+          {titleError && (
+            <p className="mt-1.5 text-[11px] text-red-400">
+              {titleError}
+            </p>
+          )}
         </div>
 
         {/* Description */}
-        <div className="card-panel p-5" data-testid="description-field">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-[12.5px] font-medium">Your description <span className="text-[var(--text-muted)]">(optional)</span></label>
-            <span className="text-[11px] text-[var(--text-dim)]">{draft?.description.length}/250</span>
+        <div data-testid="description-field">
+          <Label>
+            Your description <span className="text-[var(--text-muted)]">(optional)</span>
+          </Label>
+
+          <div className="relative">
+            <textarea
+              value={draft?.description ?? ""}
+              onChange={(e) => updateDescription(e.target.value)}
+              placeholder="Describe what makes this list special"
+              rows={3}
+              maxLength={250}
+              data-testid="description-input"
+              className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition resize-none"
+            />
+
+            <span className="absolute bottom-2.5 right-3 text-[11px] text-[var(--text-dim)]">
+              {draft?.description?.length ?? 0}/250
+            </span>
           </div>
-          <textarea
-            value={draft?.description ?? ""}
-            onChange={(e) => updateDescription(e.target.value)}
-            rows={3}
-            data-testid="description-input"
-            className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[13.5px] focus:outline-none focus:border-[var(--accent)]/50 transition resize-none"
-          />
         </div>
 
         {/* Your Ranking */}
-        <div className="card-panel p-5" data-testid="ranking-section">
+        <div data-testid="ranking-section">
           <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
             <div>
-              <h2 className="font-serif text-[22px] leading-tight">Your ranking</h2>
-              <p className="text-[12px] text-[var(--text-muted)] mt-1">Add, remove or reorder albums to make it your own.</p>
+              <Label>
+                Your ranking
+              </Label>
+
+              <p className="text-[12px] text-[var(--text-muted)] mt-1">
+                Add, remove or reorder albums to make it your own.
+              </p>
+
+              {itemsError && (
+                <p className="text-[11px] text-red-400 mt-2">
+                  {itemsError}
+                </p>
+              )}
             </div>
-            <button className="btn-accent rounded-lg px-4 py-2 text-[12.5px] flex items-center gap-2" data-testid="add-album-btn"
-              onClick={handleAddAlbumClick}>
-              <Plus size={13} /> Add album
+
+            <button
+              onClick={handleAddAlbumClick}
+              className="btn-accent inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
+              data-testid="add-album-btn"
+            >
+              <Plus size={14} />
+              Add album
             </button>
           </div>
-
           {/* Items */}
           <div className="space-y-4 mt-5">
             {draft?.items?.map((it, idx) => (
@@ -415,7 +494,11 @@ export default function CreateList() {
                   </button>
                 </div>
                 <div className="font-serif text-[22px] text-[var(--text-muted)] w-6 text-center shrink-0 mt-2">{it.position}</div>
-                <div className="w-[70px] h-[70px] rounded shrink-0 cover" style={{ background: it.album.cover_url }} />
+                <img
+                  src={it.album?.cover_url || "/placeholder-album.jpg"}
+                  alt={it.album?.title || "Album cover"}
+                  className="w-[70px] h-[70px] rounded shrink-0 object-cover"
+                />
 
                 <div className="flex-1 min-w-0">
                   <div className="text-[14px] font-medium">{it.album.title}</div>
@@ -458,10 +541,9 @@ export default function CreateList() {
           </button>
         </div>
 
-        <div className="card-panel p-5">
-          <label className="text-[12.5px] font-medium mb-3 block">
-            Category
-          </label>
+        {/* Category */}
+        <div data-testid="category-field">
+          <Label>Category</Label>
 
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => (
@@ -502,23 +584,20 @@ export default function CreateList() {
         </div>
 
         {/* Actions */}
-        <div
-          className="flex flex-wrap justify-end gap-3 pt-2"
-          data-testid="remix-actions"
-        >
+        <div className="pt-2">
           <button
             onClick={handleCreate}
-            data-testid="publish-btn"
-            className="rounded-lg px-8 py-3 font-semibold text-[13px] text-white transition hover:-translate-y-0.5 flex flex-col items-center leading-tight"
+            disabled={submitting}
+            data-testid="continue-btn"
+            className="w-full rounded-xl py-3 font-semibold text-[13px] text-white transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               background: "linear-gradient(90deg, #8b5cf6, #6d28d9)",
-              boxShadow: "0 8px 24px var(--accent-glow)",
+              boxShadow: "0 6px 20px var(--accent-glow)",
             }}
           >
-            <span>Publish list</span>
-            <span className="text-[10px] font-normal opacity-80 mt-0.5">
-              Your list will be visible to everyone
-            </span>
+            {submitting
+              ? (isEditing ? "Saving..." : "Creating...")
+              : (isEditing ? "Save Changes" : "Publish List")}
           </button>
         </div>
       </div>

@@ -27,7 +27,7 @@ export default function TopLists() {
 
 
   const user = getCurrentUser();
-  
+
   const handleListClick = (list) => {
     navigate(`/lists/${list.id}`);
   };
@@ -37,13 +37,13 @@ export default function TopLists() {
       navigate("/login", {
         state: {
           message: "Log in to create a list.",
-          redirectTo: `/createList`,
+          redirectTo: `/listForm/new`,
         },
       });
       return;
     }
 
-    navigate(`/createList`);
+    navigate(`/listForm/new`);
   };
 
   useEffect(() => {
@@ -96,6 +96,8 @@ export default function TopLists() {
         <button
           onClick={() => handleListCreatelick()}
           className="btn-accent inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
+          data-testid="add-list-btn"
+
 
         >
           <Plus size={14} />
@@ -168,11 +170,11 @@ export default function TopLists() {
                   list.recent_albums.length > 0 ? (
                   list.recent_albums.map((it) => (
                     <div
-                      key={it.position}
+                      key={(it.position+1)}
                       className="flex items-center gap-4"
                     >
                       <span className="font-serif text-[22px] text-[var(--text-dim)] w-6">
-                        {it.position}
+                        {(it.position+1)}
                       </span>
 
                       <div className="min-w-0 flex-1">

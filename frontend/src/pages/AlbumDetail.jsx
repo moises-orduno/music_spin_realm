@@ -38,9 +38,10 @@ function ConditionBadge({ code }) {
   );
 }
 
-function CopyRow({ c }) {
+function CopyRow({ c, handleAlbumCopyClick }) {
   return (
     <div
+      onClick={() => handleAlbumCopyClick(c)}
       className="card-panel p-3 flex items-center gap-4"
       data-testid={`copy-${c.album?.id}-${c.catalog_number}`}
     >
@@ -145,6 +146,11 @@ export default function AlbumDetail() {
     items: [],
   });
 
+
+  const handleAlbumCopyClick = (c) => {
+    navigate(`/marketplace/${c.id}`);
+  }
+
   const handleHuntCreateClick = () => {
 
     let draft = createEmptyDraft();
@@ -198,7 +204,7 @@ export default function AlbumDetail() {
 
       try {
         const data = await getAlbumListings(id);
-        setCopies(data);
+        setCopies(data.listings);
       } catch (err) {
         console.error("Failed to load debate:", err);
       } finally {
@@ -396,7 +402,7 @@ export default function AlbumDetail() {
           <>
             <div className="space-y-2.5">
               {copies.slice(0, 5).map((c) => (
-                <CopyRow key={c.id} c={c} />
+                <CopyRow key={c.id} c={c} handleAlbumCopyClick={handleAlbumCopyClick}/>
               ))}
             </div>
 

@@ -235,7 +235,7 @@ export default function Home() {
               <div
                 key={list.id}
                 className="card-panel hover-lift overflow-hidden cursor-pointer"
-                 onClick={() => handleListClick(list)}
+                onClick={() => handleListClick(list)}
               >
                 <div
                   className="h-[120px] relative bg-cover bg-center"
@@ -259,7 +259,7 @@ export default function Home() {
                   {list.recent_albums.slice(0, 3).map((album, index) => (
                     <div key={album.id} className="flex items-center gap-3">
                       <span className="text-[13px] text-[var(--text-dim)] w-3">
-                        {album.position}
+                        {(album.position+1)}
                       </span>
 
                       <div className="min-w-0">
