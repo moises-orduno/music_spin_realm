@@ -9,7 +9,7 @@ const CONDITIONS = [
 ];
 const SELLER_LOC = ["Worldwide", "My country only", "Specific country"];
 const CURRENCIES = ["USD", "EUR", "GBP", "MXN", "JPY"];
-const COUNTRIES = ["United Kingdom", "United States", "Japan", "Germany", "France", "Italy", "Mexico", "Spain","Any"];
+const COUNTRIES = ["United Kingdom", "United States", "Japan", "Germany", "France", "Italy", "Mexico", "Spain", "Any"];
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { createHunt, updateHunt, getHuntById } from "../services/huntService";
 import React, { useState, useEffect } from "react";
@@ -54,7 +54,7 @@ function Dropdown({ value, onChange, options, icon: Icon, testid }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2.5 bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[13px] hover:border-[var(--border-2)] transition"
+        className="w-full flex items-center gap-2.5 bg-[var(--panel-2)] border border-[var(--border)] rounded-xl px-4 py-3 text-[13px] hover:border-[var(--border-2)] transition"
       >
         {Icon && <Icon size={14} className="text-[var(--text-muted)]" />}
         <span className="flex-1 text-left">{value}</span>
@@ -78,25 +78,12 @@ function Dropdown({ value, onChange, options, icon: Icon, testid }) {
   );
 }
 
-function DetailRow({ Icon, label, value, testid }) {
-  return (
-    <div className="flex items-start justify-between gap-4 py-3.5 border-b border-[var(--border)] last:border-b-0" data-testid={testid}>
-      <div className="flex items-center gap-3 shrink-0">
-        <Icon size={16} className="text-[var(--text-muted)]" strokeWidth={1.7} />
-        <span className="text-[13px] text-[var(--text-muted)]">{label}</span>
-      </div>
-      <span className="text-[13px] text-right text-[var(--text)] whitespace-pre-line">{value}</span>
-    </div>
-  );
-}
-
 export default function HuntForm() {
 
   const { id } = useParams();
 
   const isEditing = Boolean(id);
 
-  const [loading, setLoading] = useState(isEditing);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
@@ -106,17 +93,21 @@ export default function HuntForm() {
 
   const [pressing, setPressing] = useState("First Press");
   const [countryPress, setCountryPress] = useState("United Kingdom");
-  const [year, setYear] = useState("1966");
+  const [year, setYear] = useState("");
   const [condition, setCondition] = useState("VG+");
   const [minPrice, setMinPrice] = useState("0");
-  const [maxPrice, setMaxPrice] = useState("250");
+  const [maxPrice, setMaxPrice] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [sellerLoc, setSellerLoc] = useState("Worldwide");
   const [shipTo, setShipTo] = useState("Mexico");
   const [notes, setNotes] = useState("Stereo preferred.\nNo writing on sleeve.\nNo seam splits.");
+  const [albumError, setAlbumError] = useState(null);
+  const [maxPriceError, setMaxPriceError] = useState(null);
 
 
   const handleAddAlbumClick = () => {
+
+    setAlbumError(null);
     navigate("/listAddAlbum", {
       state: {
         returnTo: `/huntForm/new`,
@@ -128,7 +119,6 @@ export default function HuntForm() {
   useEffect(() => {
     const initializeForm = async () => {
       try {
-        setLoading(true);
         setError(null);
 
         if (isEditing) {
@@ -179,7 +169,7 @@ export default function HuntForm() {
           `Failed to ${isEditing ? "load hunt" : "initialize hunt"}`
         );
       } finally {
-        setLoading(false);
+
       }
     };
 
@@ -188,7 +178,21 @@ export default function HuntForm() {
 
   const handleSubmit = async () => {
 
-    if (!album) return;
+    var isError = false;
+
+    if (!album) {
+      setAlbumError("Please add the album to hunt");
+      isError = true;
+    }
+
+    if (!maxPrice?.trim()) {
+      setMaxPriceError("Please enter a maximum price");
+      isError = true;
+    }
+
+    if (isError) {
+      return;
+    }
 
     setSubmitting(true);
 
@@ -302,14 +306,17 @@ export default function HuntForm() {
               No album selected.
             </p>
 
-
             <button
-
               className="btn-accent px-5 py-2.5 rounded-full"
               onClick={handleAddAlbumClick}
             >
               Select Album
             </button>
+            {albumError && (
+              <p className="text-[11px] text-red-400 mt-2">
+                {albumError}
+              </p>
+            )}
           </div>
         )}
 
@@ -328,7 +335,13 @@ export default function HuntForm() {
         {/* Country of pressing */}
         <div data-testid="country-press-section">
           <Label>Country of pressing</Label>
-          <Dropdown value={countryPress} onChange={setCountryPress} options={COUNTRIES} icon={Globe} testid="country-press-dropdown" />
+          <Dropdown
+            value={countryPress}
+            onChange={setCountryPress}
+            options={COUNTRIES}
+            icon={Globe}
+            testid="country-press-dropdown"
+          />
         </div>
 
         {/* Year */}
@@ -341,9 +354,13 @@ export default function HuntForm() {
               onChange={(e) => setYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
               placeholder="e.g. 1966"
               data-testid="year-input"
-              className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 pr-11 text-[13px] focus:outline-none focus:border-[var(--accent)]/50 transition"
+              className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
+              placeholder:text-[var(--text-dim)] 
+              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
             />
-            <Calendar size={15} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+            <Calendar 
+            size={15} 
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           </div>
         </div>
 
@@ -368,11 +385,29 @@ export default function HuntForm() {
               <input
                 type="text"
                 value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => {
+                  setMaxPrice(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  if (maxPriceError) {
+                    setMaxPriceError("");
+                  }
+                }}
                 placeholder="0"
                 data-testid="price-input"
-                className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg pl-11 pr-4 py-3 text-[13px] focus:outline-none focus:border-[var(--accent)]/50 transition"
+                className={`w-full bg-[var(--panel-2)] border rounded-xl pl-11 pr-4 py-3.5 text-[13.5px] 
+                placeholder:text-[var(--text-dim)] 
+                focus:outline-none focus:ring-2 transition 
+                ${maxPriceError
+                    ? "border-red-500/60 focus:ring-red-500/20"
+                    : "border-[var(--border)] focus:ring-[var(--accent)]"
+                  }`}
               />
+
+              {maxPriceError && (
+                <p className="mt-1.5 text-[11px] text-red-400">
+                  {maxPriceError}
+                </p>
+              )}
+
             </div>
             <div className="w-[110px]">
               <Dropdown value={currency} onChange={setCurrency} options={CURRENCIES} testid="currency-dropdown" />
@@ -418,8 +453,10 @@ export default function HuntForm() {
             rows={4}
             placeholder="Any specific details, condition preferences, etc."
             data-testid="notes-input"
-            className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[13px] focus:outline-none focus:border-[var(--accent)]/50 transition resize-none"
-          />
+            className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
+            placeholder:text-[var(--text-dim)] 
+            focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
+           />
         </div>
 
         {/* Actions */}

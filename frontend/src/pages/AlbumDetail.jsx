@@ -4,7 +4,7 @@ import {
   FolderOpen, MessageSquare, Users, ShoppingCart, ArrowRight,
 } from "lucide-react";
 import {
-  getAlbumById, getSimilarAlbumsById
+  getAlbumById, getSimilarAlbumsById, getAlbumStatus
 }
   from "../services/albumService";
 
@@ -137,6 +137,8 @@ export default function AlbumDetail() {
   const [albumsRelated, setAlbumsRelated] = useState({});
   const [loading, setLoading] = useState();
   const [copies, setCopies] = useState([]);
+
+  const [statuses, setStatuses] = useState({});
   const navigate = useNavigate();
 
   const createEmptyDraft = () => ({
@@ -172,8 +174,37 @@ export default function AlbumDetail() {
     navigate(`/huntForm/new`);
   };
 
+  const handleViewCollectionClick = () => {
+    navigate(`/collectionDetail/${statuses.collection_id}`);
+  }
+
+  const handleViewHuntClick = () => {
+    navigate(`/huntDetail/${statuses.hunt_id}`);
+  }
+
+  const handleCollectionCreateClick = () => {
+
+    let draft = createEmptyDraft();
+
+    const albumItem = {
+      id: crypto.randomUUID(),
+      position: 1,
+      album,
+      why_this_album: "",
+      favorite_lyric: "",
+      owned: false,
+      hunting: true,
+    };
+
+    draft.items = [albumItem];
+
+    sessionStorage.setItem("new-collection-album-draft", JSON.stringify(draft));
+
+    navigate(`/collectionAlbumForm/new`);
+  };
+
   useEffect(() => {
-    
+
     async function fetchAlbum() {
       setLoading(true);
 
@@ -181,7 +212,7 @@ export default function AlbumDetail() {
         const data = await getAlbumById(id);
         setAlbum(data);
       } catch (err) {
-        console.error("Failed to load album by id:", err);
+        console.error("Failed to load album by id", err);
       } finally {
         setLoading(false);
       }
@@ -201,10 +232,21 @@ export default function AlbumDetail() {
     }
 
     async function fetchCopies() {
-
       try {
         const data = await getAlbumListings(id);
         setCopies(data.listings);
+      } catch (err) {
+        console.error("Failed to load copies:", err);
+      } finally {
+      }
+    }
+
+    async function fetchStatus() {
+      console.log("fetchStatus id", id);
+      try {
+        const data = await getAlbumStatus(id);
+        console.log("data", data);
+        setStatuses(data);
       } catch (err) {
         console.error("Failed to load debate:", err);
       } finally {
@@ -216,6 +258,8 @@ export default function AlbumDetail() {
     fetchSimilarAlbums();
 
     fetchAlbum();
+
+    fetchStatus();
   }, [id]);
 
   /* ---------------------------
@@ -257,7 +301,7 @@ export default function AlbumDetail() {
                 </span>
               </div>
             )}
-          </div>          
+          </div>
           {/* Info */}
           <div className="min-w-0">
             <span className="text-[10.5px] tracking-[0.2em] uppercase text-[var(--accent-2)] font-semibold">ALBUM</span>
@@ -286,19 +330,29 @@ export default function AlbumDetail() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => setFavorited(!favorited)}
-                data-testid="favorite-btn"
-                className={`border border-[var(--border-2)] rounded-lg px-4 py-2 text-[12.5px] flex items-center gap-1.5 hover:border-[var(--accent)]/40 transition ${favorited ? "text-[var(--accent-2)] border-[var(--accent)]/40" : ""}`}
+                onClick={
+                  statuses.owned
+                    ? handleViewCollectionClick
+                    : handleCollectionCreateClick
+                }
+                className="border border-[var(--border-2)] text-[12.5px] px-3 py-1.5 rounded-full hover:border-[var(--accent)]/40 hover:text-[var(--accent-2)] transition flex items-center gap-1.5"
+                data-testid="add-collection-btn"
               >
-                <Heart size={13} className={favorited ? "fill-current" : ""} /> {favorited ? "Favorited" : "Favorite"}
+                <Plus size={13} />
+                {statuses.owned ? "View in my Collection" : "Add to Collection"}
               </button>
-              <button className="border border-[var(--border-2)] rounded-lg px-4 py-2 text-[12.5px] flex items-center gap-1.5 hover:border-[var(--accent)]/40 transition" data-testid="add-collection-btn">
-                <Plus size={13} /> Add to Collection
-              </button>
+
               <button
-                onClick={handleHuntCreateClick}
-                className="btn-accent rounded-lg px-4 py-2 text-[12.5px] flex items-center gap-1.5" data-testid="hunt-btn">
-                <Target size={13} /> Hunt this album
+                onClick={
+                  statuses.hunting
+                    ? handleViewHuntClick
+                    : handleHuntCreateClick
+                }
+                className="btn-accent inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
+                data-testid="hunt-btn"
+              >
+                <Target size={13} />
+                {statuses.hunting ? "View in my Hunts" : "Hunt this album"}
               </button>
             </div>
           </div>
@@ -402,7 +456,7 @@ export default function AlbumDetail() {
           <>
             <div className="space-y-2.5">
               {copies.slice(0, 5).map((c) => (
-                <CopyRow key={c.id} c={c} handleAlbumCopyClick={handleAlbumCopyClick}/>
+                <CopyRow key={c.id} c={c} handleAlbumCopyClick={handleAlbumCopyClick} />
               ))}
             </div>
 

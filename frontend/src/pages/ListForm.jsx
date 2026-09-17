@@ -4,7 +4,7 @@ import {
   ArrowLeft, Shuffle, Plus, GripVertical, Trash2, Check, Sparkles,
   Lightbulb, Compass, ChevronUp, ChevronDown
 } from "lucide-react";
-import { createList } from "../services/listService";
+import { createList, updateList, getListById } from "../services/listService";
 import { Chip } from "../components/ui-bits";
 
 function Toggle({ on, onClick, testid }) {
@@ -40,7 +40,7 @@ function TipCard({ Icon, title, text, color }) {
         <Icon size={16} style={{ color }} strokeWidth={1.7} />
       </div>
       <div className="min-w-0">
-        <div className="text-[13px] font-medium mb-0.5">draft?.title</div>
+        <div className="text-[13px] font-medium mb-0.5">{title}</div>
         <p className="text-[11.5px] text-[var(--text-muted)] leading-snug">{text}</p>
       </div>
     </div>
@@ -67,7 +67,6 @@ export default function ListForm() {
   const isEditing = Boolean(id);
   const [submitting, setSubmitting] = useState(false);
 
-  const [showInCollection, setShowInCollection] = useState(true);
   const [dragIndex, setDragIndex] = useState(null);
   const [overIndex, setOverIndex] = useState(null);
   const [titleError, setTitleError] = useState(null);
@@ -82,11 +81,25 @@ export default function ListForm() {
     items: [],
   });
 
+
+  const handleReplaceAlbumClick = (position) => {
+
+    navigate("/listAddAlbum", {
+      state: {
+        returnTo: isEditing ? `/listForm/${id}/edit` : `/listForm/new`,
+        storageKey: `new-list-draft`,
+        position: position,
+      },
+    }
+    );
+  };
+
   const handleAddAlbumClick = () => {
+
     setItemsError(null);
     navigate("/listAddAlbum", {
       state: {
-        returnTo: `/listForm/new`,
+        returnTo: isEditing ? `/listForm/${id}/edit` : `/listForm/new`,
         storageKey: `new-list-draft`,
       },
     });
@@ -102,6 +115,7 @@ export default function ListForm() {
     "Metal",
     "Classical",
     "Folk",
+    "Punk"
   ];
 
   const updateReason = (albumId, reason) => {
@@ -122,22 +136,54 @@ export default function ListForm() {
     setDraft(nextDraft);
 
     sessionStorage.setItem(
-      `"new-list-draft"`,
+      `new-list-draft`,
       JSON.stringify(nextDraft)
     );
   }, [id]);
 
+  const findCategoryFromGenres = (genres = []) => {
+    // First: exact match
+    const exactMatch = categories.find((category) =>
+      genres.some(
+        (genre) =>
+          genre.toLowerCase() === category.toLowerCase()
+      )
+    );
+
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    // Second: partial match
+    const partialMatch = categories.find((category) =>
+      genres.some((genre) =>
+        genre.toLowerCase().includes(category.toLowerCase())
+      )
+    );
+
+    return partialMatch || "";
+  };
+
   const initializeDraft = async () => {
+    const cached = sessionStorage.getItem("new-list-draft");
 
-    const cached = sessionStorage.getItem(`new-list-draft`);
-
-    if (cached) {
-      const parsed = JSON.parse(cached);
-
-      setDraft(parsed);
+    if (!cached) {
       return;
     }
 
+    const parsed = JSON.parse(cached);
+
+    const firstAlbum = parsed.items?.[0]?.album;
+
+    if (firstAlbum?.genres?.length) {
+      const category = findCategoryFromGenres(firstAlbum.genres);
+
+      if (category) {
+        parsed.category = category;
+      }
+    }
+
+    setDraft(parsed);
   };
 
   const toggleOwned = (albumId) => {
@@ -199,6 +245,7 @@ export default function ListForm() {
   };
 
   const handleDragLeave = () => setOverIndex(null);
+
   const handleDrop = (idx) => (e) => {
     e.preventDefault();
     if (dragIndex === null || dragIndex === idx) {
@@ -230,6 +277,7 @@ export default function ListForm() {
       }))
     });
   };
+
   const moveDown = (idx) => {
 
     if (idx === draft.items.length - 1) return;
@@ -245,53 +293,68 @@ export default function ListForm() {
     });
   };
 
-  const handleCreate = async () => {
+  const handleSubmit = async () => {
+
+    var isError = false;
 
     if (!draft.title?.trim()) {
       setTitleError("Please enter a list title.");
-      return;
+      isError = true;
     }
 
     // Albums validation
     if (!draft.items || draft.items.length === 0) {
       setItemsError("Please add at least one album to your list.");
+      isError = true;
+    }
+
+    if (isError) {
       return;
     }
+
+    setSubmitting(true);
 
     try {
       const payload = {
         title: draft.title,
         description: draft.description,
         category: draft.category,
+        is_public: !draft.is_private,
         items: draft.items.map((item, index) => ({
           album_id: item.album.id,
           position: index,
           why_this_album: item.why_this_album,
           favorite_lyric: item.favorite_lyric,
-          owned: item.owned,
-          hunting: item.hunting,
+          owned: false,
+          hunting: false,
         })),
       };
 
-      const list = await createList(payload);
+      var goToId = 0;
+      if (isEditing) {
+        await updateList(id, payload);
+        goToId = id;
+      } else {
+        var list = await createList(payload);
+        goToId = list.id;
+      }
 
+      console.log("after",goToId);
+      // Only clear the draft after successful creation
       sessionStorage.removeItem("new-list-draft");
 
-      navigate(`/lists/${list.id}`);
+      navigate(`/lists/${goToId}`);
     } catch (err) {
-      console.error("Failed to create list:", err);
+      console.error(err);
     }
+    setSubmitting(false);
   };
 
   const updateDescription = (value) => {
 
-    console.log("description", value);
     saveDraft({
-
       ...draft,
-
       description: value.slice(0, 250)
-
     });
 
   };
@@ -305,15 +368,10 @@ export default function ListForm() {
   };
 
   const updateTitle = (value) => {
-    console.log("title", value);
     saveDraft({
-
       ...draft,
-
       title: value.slice(0, 250)
-
     });
-
   };
 
   const handlePrivacyToggle = () => {
@@ -330,24 +388,65 @@ export default function ListForm() {
        Fetch list
     ----------------------------*/
   useEffect(() => {
-
-    async function initialize() {
-
+    const initializeList = async () => {
       try {
-        await Promise.all([
-          initializeDraft()
-        ]);
-      }
-      catch (err) {
+        if (isEditing) {
+
+          const cached = sessionStorage.getItem("new-list-draft");
+
+          if (cached) {
+            await initializeDraft();
+            return;
+          }
+
+          const data = await getListById(id);
+
+          const nextDraft = {
+            title: data.title ?? "",
+            description: data.description ?? "",
+            category: data.category ?? "",
+            image: null,
+            is_public: data.is_public ?? true,
+            is_private: !(data.is_public ?? true),
+
+            items: data.items.map((item) => {
+              const newItem = {
+                album: {
+                  id: item.album.id,
+                  title: item.album.title,
+                  artist: {
+                    name: item.album.artist
+                  },
+                  cover_url: item.album.cover_url,
+                },
+
+                why_this_album: item.why_this_album,
+                position: item.position,
+
+              }
+
+              return newItem;
+            }),
+
+            id: data.id,
+          };
+
+          setDraft(nextDraft);
+
+          sessionStorage.setItem(
+            "new-list-draft",
+            JSON.stringify(nextDraft)
+          );
+        } else {
+          await initializeDraft();
+        }
+      } catch (err) {
         console.error(err);
       }
-      finally {
+    };
 
-      }
-    }
-    initialize();
-
-  }, [id]);
+    initializeList();
+  }, [id, isEditing]);
 
   const handleCategoryChange = (category) => {
     const updated = {
@@ -376,9 +475,9 @@ export default function ListForm() {
             <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)" }}>
               <Shuffle size={20} className="text-white" />
             </div>
-            <h1 className="font-serif text-[34px] sm:text-[38px] leading-none">Create your list</h1>
+            <h1 className="font-serif text-[34px] sm:text-[38px] leading-none"> {(isEditing ? "Edit your List" : "Create your List")}</h1>
           </div>
-          <p className="text-[13px] text-[var(--text-muted)] ml-14">You&apos;re creating your own list.</p>
+          <p className="text-[13px] text-[var(--text-muted)] ml-14">{(isEditing ? "You're editing your list." : "You're creating your own list.")}</p>
         </div>
 
 
@@ -393,9 +492,12 @@ export default function ListForm() {
             placeholder="Give your list a title"
             maxLength={100}
             data-testid="title-input"
-            className={`w-full bg-[var(--panel-2)] border rounded-lg px-4 py-3 text-[14px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 transition ${titleError
-              ? "border-red-500/60 focus:ring-red-500/20"
-              : "border-[var(--border)] focus:ring-[var(--accent)]"
+            className={`w-full bg-[var(--panel-2)] border rounded-xl px-4 pr-4 py-3.5 text-[13.5px] 
+                placeholder:text-[var(--text-dim)] 
+                focus:outline-none focus:ring-2 transition 
+                ${titleError
+                ? "border-red-500/60 focus:ring-red-500/20"
+                : "border-[var(--border)] focus:ring-[var(--accent)]"
               }`}
           />
 
@@ -420,7 +522,9 @@ export default function ListForm() {
               rows={3}
               maxLength={250}
               data-testid="description-input"
-              className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition resize-none"
+              className="w-full bg-[var(--panel-2)] border border-[var(--border)] border rounded-xl px-4 pr-4 py-3.5 text-[13.5px] 
+              text-[var(--text)] placeholder:text-[var(--text-dim)] 
+              focus:outline-none focus:ring-2 transition resize-none border-[var(--border)] focus:ring-[var(--accent)]"
             />
 
             <span className="absolute bottom-2.5 right-3 text-[11px] text-[var(--text-dim)]">
@@ -470,13 +574,13 @@ export default function ListForm() {
                 onDragEnd={handleDragEnd}
                 className={`flex items-start gap-3 pt-4 border-t border-[var(--border)] first:border-t-0 first:pt-0 transition-all ${dragIndex === idx ? "opacity-40" : ""
                   } ${overIndex === idx && dragIndex !== idx ? "bg-[var(--accent-soft)] rounded-lg -mx-2 px-2 pb-2 border-t-[var(--accent)]" : ""}`}
-                data-testid={`item-${it.position + 1}`}
+                data-testid={`item-${it.position}`}
               >
                 <div className="flex flex-col items-center gap-1 mt-3 shrink-0">
                   <button
                     onClick={() => moveUp(idx)}
                     disabled={idx === 0}
-                    data-testid={`up-${it.position + 1}`}
+                    data-testid={`up-${it.position}`}
                     className="text-[var(--text-dim)] hover:text-[var(--accent-2)] disabled:opacity-30 disabled:cursor-not-allowed transition"
                   >
                     <ChevronUp size={14} />
@@ -487,13 +591,13 @@ export default function ListForm() {
                   <button
                     onClick={() => moveDown(idx)}
                     disabled={!draft || idx === draft.items.length - 1}
-                    data-testid={`down-${it.position + 1}`}
+                    data-testid={`down-${it.position}`}
                     className="text-[var(--text-dim)] hover:text-[var(--accent-2)] disabled:opacity-30 disabled:cursor-not-allowed transition"
                   >
                     <ChevronDown size={14} />
                   </button>
                 </div>
-                <div className="font-serif text-[22px] text-[var(--text-muted)] w-6 text-center shrink-0 mt-2">{it.position}</div>
+                <div className="font-serif text-[22px] text-[var(--text-muted)] w-6 text-center shrink-0 mt-2">{it.position + 1}</div>
                 <img
                   src={it.album?.cover_url || "/placeholder-album.jpg"}
                   alt={it.album?.title || "Album cover"}
@@ -509,19 +613,22 @@ export default function ListForm() {
                       onChange={(e) => updateReason(it.album.id, e.target.value)}
                       rows={2}
                       placeholder="Why this album?"
-                      data-testid={`reason-${it.position + 1}`}
+                      data-testid={`reason-${it.position}`}
                       className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-3 py-2 pr-14 text-[12.5px] focus:outline-none focus:border-[var(--accent)]/50 transition resize-none"
                     />
                     <span className="absolute right-3 bottom-2 text-[10.5px] text-[var(--text-dim)]">{it.why_this_album.length}/150</span>
                   </div>
                   <div className="flex items-center gap-5 mt-2.5">
-                    <Checkbox checked={it.owned} onChange={() => toggleOwned(it.album.id)} label="Owned" testid={`owned-${it.position + 1}`} />
-                    <Checkbox checked={it.hunting} onChange={() => toggleHunting(it.album.id)} label="Hunting" testid={`hunting-${it.position + 1}`} />
+                    <Checkbox checked={it.owned} onChange={() => toggleOwned(it.album.id)} label="Owned" testid={`owned-${it.position}`} />
+                    <Checkbox checked={it.hunting} onChange={() => toggleHunting(it.album.id)} label="Hunting" testid={`hunting-${it.position}`} />
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 mt-2">
-                  <button className="border border-[var(--border-2)] text-[12px] px-3 py-1.5 rounded-lg hover:border-[var(--accent)]/40 hover:text-[var(--accent-2)] transition" data-testid={`replace-${it.position + 1}`}>
+                  <button
+                    onClick={() => handleReplaceAlbumClick(it.position)}
+                    className="border border-[var(--border-2)] text-[12px] px-3 py-1.5 rounded-lg hover:border-[var(--accent)]/40 hover:text-[var(--accent-2)] transition"
+                    data-testid={`replace-${it.position}`}>
                     Replace
                   </button>
                   <button
@@ -536,7 +643,10 @@ export default function ListForm() {
             ))}
           </div>
 
-          <button className="mt-5 w-full py-3 rounded-lg border border-dashed border-[var(--border-2)] text-[13px] text-[var(--text-muted)] hover:text-[var(--accent-2)] hover:border-[var(--accent)]/40 transition flex items-center justify-center gap-2" data-testid="add-another-btn">
+          <button
+            className="mt-5 w-full py-3 rounded-lg border border-dashed border-[var(--border-2)] text-[13px] text-[var(--text-muted)] hover:text-[var(--accent-2)] hover:border-[var(--accent)]/40 transition flex items-center justify-center gap-2"
+            data-testid="add-another-btn"
+            onClick={handleAddAlbumClick}>
             <Plus size={14} /> Add another album
           </button>
         </div>
@@ -564,14 +674,6 @@ export default function ListForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-start justify-between gap-3 p-4 rounded-lg border border-[var(--border)]">
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium mb-0.5">Show in my collection</div>
-                <p className="text-[11.5px] text-[var(--text-muted)] leading-snug">Display ownership status for these albums in my profile and collection.</p>
-              </div>
-              <Toggle
-                on={showInCollection} onClick={() => setShowInCollection(!showInCollection)} testid="toggle-collection" />
-            </div>
-            <div className="flex items-start justify-between gap-3 p-4 rounded-lg border border-[var(--border)]">
-              <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-medium mb-0.5">Make this list private</div>
                 <p className="text-[11.5px] text-[var(--text-muted)] leading-snug">Only you will be able to see this list.</p>
               </div>
@@ -586,7 +688,7 @@ export default function ListForm() {
         {/* Actions */}
         <div className="pt-2">
           <button
-            onClick={handleCreate}
+            onClick={handleSubmit}
             disabled={submitting}
             data-testid="continue-btn"
             className="w-full rounded-xl py-3 font-semibold text-[13px] text-white transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -603,7 +705,6 @@ export default function ListForm() {
       </div>
 
       {/* Right sidebar */}
-
       {draft && (
         <aside className="hidden xl:block w-[290px] shrink-0 space-y-5">
           {/* Original list */}

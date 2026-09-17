@@ -13,6 +13,18 @@ export async function getDebates() {
   return response.json();
 }
 
+export async function getRandomDebate() {
+  const response = await fetch(
+    `${API_BASE_URL}/debates/random`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch debates");
+  }
+
+  return response.json();
+}
+
 export async function getDebateById(id) {
   const response = await fetch(
     `${API_BASE_URL}/debates/${id}`

@@ -15,7 +15,7 @@ import { addToMyCollection, getCollectionById, updateCollection } from "../servi
 import React, { useState, useEffect } from "react";
 
 import {
-    ArrowLeft, ChevronDown, Globe, Calendar, Info, Disc3, DollarSign
+    ArrowLeft, ChevronDown, Globe, Calendar, Info, Disc3, DollarSign, Heart
 } from "lucide-react";
 
 function Chip({ children, active, onClick, testid }) {
@@ -54,7 +54,7 @@ function Dropdown({ value, onChange, options, icon: Icon, testid }) {
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className="w-full flex items-center gap-2.5 bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[13px] hover:border-[var(--border-2)] transition"
+                className="w-full flex items-center gap-2.5 bg-[var(--panel-2)] border border-[var(--border)] rounded-xl px-4 py-3 text-[13px] hover:border-[var(--border-2)] transition"
             >
                 {Icon && <Icon size={14} className="text-[var(--text-muted)]" />}
                 <span className="flex-1 text-left">{value}</span>
@@ -92,6 +92,7 @@ export default function CollectionAlbumForm() {
     const [year, setYear] = useState("");
     const [barcode, setBarcode] = useState("");
     const [edition, setEdition] = useState("");
+    const [favorite, setFavorite] = useState(false);
     const [currency, setCurrency] = useState("USD");
     const [pricePaid, setPricePaid] = useState("");
     const [catalogNumber, setCatalogNumber] = useState("");
@@ -102,11 +103,13 @@ export default function CollectionAlbumForm() {
     const [submitting, setSubmitting] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
+    const [albumError, setAlbumError] = useState(null);
 
     const handleAddAlbumClick = () => {
+        setAlbumError(null);
         navigate("/listAddAlbum", {
             state: {
-                returnTo: `/CollectionAlbumForm/new`,
+                returnTo: `/collectionAlbumForm/new`,
                 storageKey: `new-collection-album-draft`,
             },
         });
@@ -149,6 +152,7 @@ export default function CollectionAlbumForm() {
                     setEdition(item.edition || "");
 
                     setNotes(item.notes || "");
+                    setFavorite(item.favorite || false);
                 } else {
                     // CREATE MODE
                     const cached = sessionStorage.getItem("new-collection-album-draft");
@@ -179,7 +183,16 @@ export default function CollectionAlbumForm() {
 
     const handleSubmit = async () => {
 
-        if (!album) return;
+        var isError = false;
+
+        if (!album) {
+            setAlbumError("Please add the album to add to your collection");
+            isError = true;
+        }
+
+        if (isError) {
+            return;
+        }
 
         setSubmitting(true);
 
@@ -199,6 +212,8 @@ export default function CollectionAlbumForm() {
             // Condition
             media_condition: mediaCondition || null,
             sleeve_condition: sleeveCondition || null,
+
+            favorite: favorite || false,
 
             // Purchase information
             price_paid: pricePaid
@@ -300,12 +315,18 @@ export default function CollectionAlbumForm() {
                         <p className="text-[var(--text-muted)] mb-4">
                             No album selected.
                         </p>
+
                         <button
                             className="btn-accent px-5 py-2.5 rounded-full"
                             onClick={handleAddAlbumClick}
                         >
                             Select Album
                         </button>
+                        {albumError && (
+                            <p className="text-[11px] text-red-400 mt-2">
+                                {albumError}
+                            </p>
+                        )}
                     </div>
                 )}
 
@@ -321,6 +342,27 @@ export default function CollectionAlbumForm() {
                     </div>
                 </div>
 
+                {/* favorite */}
+                <div data-testid="year-section">
+                    <Label>Is this one of your favorites?</Label>
+
+                    <button
+                        onClick={(e) => setFavorite(!favorite)}
+                        data-testid="like-list-btn"
+                        className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-[13px] font-medium transition ${favorite
+  ? "border-[#F04BA8DD] bg-[#F04BA81A] text-[#F04BA8]"
+  : "border-[var(--border-2)] text-[var(--text-muted)] hover:border-[#F04BA8DD] hover:bg-[#F04BA81A] hover:text-[#F04BA8]"
+                            }`}
+                    >
+                        <Heart
+                            size={14}
+                            className={favorite ? "fill-current" : ""}
+                        />
+
+                        {favorite ? "Favorite" : "Not Favorite"}
+                    </button>
+                </div>
+
                 {/* Country of pressing */}
                 <div data-testid="country-press-section">
                     <Label>Country of pressing</Label>
@@ -330,29 +372,20 @@ export default function CollectionAlbumForm() {
                 {/* Year */}
                 <div data-testid="year-section">
                     <Label>Year (optional)</Label>
-
                     <div className="relative">
                         <input
                             type="text"
                             value={year}
-                            onChange={(e) =>
-                                setYear(
-                                    e.target.value
-                                        .replace(/\D/g, "")
-                                        .slice(0, 4)
-                                )
-                            }
+                            onChange={(e) => setYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
                             placeholder="e.g. 1966"
-                            maxLength={4}
-                            inputMode="numeric"
                             data-testid="year-input"
-                            className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 pr-11 text-[13px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"
+                            className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
+                              placeholder:text-[var(--text-dim)] 
+                              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                         />
-
                         <Calendar
                             size={15}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-                        />
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                     </div>
                 </div>
 
@@ -395,7 +428,9 @@ export default function CollectionAlbumForm() {
                         placeholder="e.g. Warner Bros."
                         maxLength={100}
                         data-testid="label-input"
-                        className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"
+                        className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
+              placeholder:text-[var(--text-dim)] 
+              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                     />
                 </div>
 
@@ -412,11 +447,13 @@ export default function CollectionAlbumForm() {
                         placeholder="Give your album a catalog number"
                         maxLength={100}
                         data-testid="label-input"
-                        className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"
+                        className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
+              placeholder:text-[var(--text-dim)] 
+              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                     />
                 </div>
 
-                {/*Barcode*/}
+                {/* Barcode */}
                 <div data-testid="label-field">
                     <Label>Barcode (optional)</Label>
                     <input
@@ -425,7 +462,9 @@ export default function CollectionAlbumForm() {
                         onChange={(e) => setBarcode(e.target.value.slice(0, 50))}
                         placeholder="e.g. 602547123456"
                         maxLength={50}
-                        className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"
+                        className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
+              placeholder:text-[var(--text-dim)] 
+              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
 
                     />
                 </div>
@@ -443,7 +482,9 @@ export default function CollectionAlbumForm() {
                         placeholder="e.g. First pressing, Limited edition"
                         maxLength={100}
                         data-testid="edition-input"
-                        className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"
+                        className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
+              placeholder:text-[var(--text-dim)] 
+              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                     />
                 </div>
 
@@ -474,7 +515,9 @@ export default function CollectionAlbumForm() {
                                 inputMode="decimal"
                                 maxLength={10}
                                 data-testid="price-input"
-                                className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg pl-11 pr-4 py-3 text-[13px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"
+                                className="w-full bg-[var(--panel-2)] border rounded-xl pl-11 pr-4 py-3.5 text-[13.5px] 
+                placeholder:text-[var(--text-dim)] 
+                focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                             />
                         </div>
 
@@ -508,7 +551,9 @@ export default function CollectionAlbumForm() {
                         rows={4}
                         placeholder="Any specific details, condition preferences, etc."
                         data-testid="notes-input"
-                        className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[13px] focus:outline-none focus:border-[var(--accent)]/50 transition resize-none"
+                        className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
+            placeholder:text-[var(--text-dim)] 
+            focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                     />
                 </div>
 

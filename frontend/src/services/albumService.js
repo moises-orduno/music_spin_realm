@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./api";
+import { authenticatedFetch } from "./authService";
 
 export async function getAlbumSuggestions(albumIds, limit = 10) {
 
@@ -65,6 +66,22 @@ export async function getSimilarAlbumsById(id) {
 
   if (!response.ok) {
     throw new Error("Failed to fetch similar albums");
+  }
+
+  return response.json();
+}
+
+export async function getAlbumStatus(id) {
+  const response = await authenticatedFetch(
+     `/albums/${id}/status`
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+
+    throw new Error(
+      error.detail || "Failed to get album status"
+    );
   }
 
   return response.json();

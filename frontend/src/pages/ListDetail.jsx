@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
-  Heart, MessageCircle, Users, Eye, Shuffle, Bookmark, Share2, MoreHorizontal,
-  ChevronDown, Check, ArrowRight, ArrowLeft,
+  Heart, MessageCircle, Users, Eye, Shuffle, Bookmark,
+  ChevronDown, Check, ArrowRight, ArrowLeft, Trash2, Pencil,
 } from "lucide-react";
-import { getCurrentUser } from "../services/authService";
+import { getCurrentUser, isSameUser } from "../services/authService";
 
 import {
   toggleLikeById,
@@ -12,7 +12,8 @@ import {
   getListById,
   createComment,
   getCommentsByListId,
-  getListRemixes
+  getListRemixes,
+  deleteList
 }
   from "../services/listService";
 
@@ -139,7 +140,7 @@ export default function ListDetail() {
   const [list, setList] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const [tab, setTab] = useState("remixes");
+  const [tab, setTab] = useState("list");
   const [sort, setSort] = useState("Most Popular");
   const [showSort, setShowSort] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -149,7 +150,7 @@ export default function ListDetail() {
   const [commentText, setCommentText] = useState("");
   const [likedComments, setLikedComments] = useState({});
   const [listRemixes, setListRemixes] = useState([]);
-
+  const [isOwner, setOwner] = useState(false);
 
 
   const navigate = useNavigate();
@@ -195,7 +196,6 @@ export default function ListDetail() {
       try {
 
         const result = await toggleLikeById(id);
-        console.log("result", result);
         setLiked(result.liked);
 
       } catch (err) {
@@ -235,6 +235,13 @@ export default function ListDetail() {
     navigate(`/listsRemix/${id}`);
   };
 
+  const handleEditListClick = (id) => {
+
+    // Only clear the draft after successful creation
+    sessionStorage.removeItem("new-list-draft");
+    navigate(`/listForm/${id}/edit`)
+  }
+
   /* ---------------------------
       Fetch list
    ----------------------------*/
@@ -256,7 +263,7 @@ export default function ListDetail() {
           likes: data.likes_count,
           comments_count: data.comments_count,
           remix_count: data.remix_count,
-          views: 0, // until your API provides this
+          views: 0,
 
           albums: data.items.map(item => ({
             position: item.position,
@@ -294,6 +301,7 @@ export default function ListDetail() {
           ]
         });
 
+        setOwner(isSameUser(data.owner));
         setSaved(data.saved);
         setLiked(data.liked);
 
@@ -361,7 +369,7 @@ export default function ListDetail() {
   return (
     <div className="flex gap-6 min-w-0" data-testid="list-detail-page">
       <div className="flex-1 min-w-0 space-y-6 fade-in-up">
-        <Link to="/tops" className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] inline-flex items-center gap-1.5" data-testid="back-to-tops">
+        <Link to="/topLists" className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] inline-flex items-center gap-1.5" data-testid="back-to-tops">
           <ArrowLeft size={13} /> Back to list
         </Link>
 
@@ -372,20 +380,80 @@ export default function ListDetail() {
             style={{ background: list.cover }}
             data-testid="list-cover"
           />
-          <div className="flex-1 min-w-0">
-            <span className="inline-block px-2.5 py-1 rounded text-[10.5px] tracking-[0.15em] uppercase font-semibold bg-[var(--accent-soft)] text-[var(--accent-2)] border border-[var(--accent)]/30 mb-3" data-testid="list-badge">
-              {list.badge}
-            </span>
-            <h1 className="font-serif text-[34px] sm:text-[44px] leading-none mb-1">{list.title}</h1>
-            <div className="text-[12.5px] text-[var(--text-muted)] mb-4">by <span className="text-[var(--accent-2)]">{list.author}</span></div>
-            <p className="text-[13.5px] text-[var(--text-muted)] mb-5 whitespace-pre-line max-w-xl">{list.description}</p>
+          <div className="flex-1 min-w-0 relative">
+            {/* Top row */}
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <span
+                className="inline-block px-2.5 py-1 rounded text-[10.5px] tracking-[0.15em] uppercase font-semibold bg-[var(--accent-soft)] text-[var(--accent-2)] border border-[var(--accent)]/30"
+                data-testid="list-badge"
+              >
+                {list.badge}
+              </span>
 
+              {/* Owner actions */}
+              {isOwner ? (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleEditListClick(id)}
+                    className="btn-ghost border border-[var(--border)] px-3 py-2 rounded-lg text-[12px] flex items-center gap-2"
+                  >
+                    <Pencil size={13} />
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      const confirmed = window.confirm(
+                        "Are you sure you want to delete this list?"
+                      );
+
+                      if (!confirmed) return;
+
+                      try {
+                        await deleteList(id);
+                        navigate("/topLists");
+                      } catch (err) {
+                        console.error("Failed to delete list", err);
+
+                        alert(
+                          err.message || "Failed to delete list"
+                        );
+                      }
+                    }}
+                    className="btn-ghost border border-[var(--border)] px-3 py-2 rounded-lg text-[12px] flex items-center gap-2 text-red-500 hover:text-red-600"
+                  >
+                    <Trash2 size={13} />
+                    Delete
+                  </button>
+                </div>
+
+              ) : (<div></div>)}
+            </div>
+
+            <h1 className="font-serif text-[34px] sm:text-[44px] leading-none mb-1">
+              {list.title}
+            </h1>
+
+            <div className="text-[12.5px] text-[var(--text-muted)] mb-4">
+              by{" "}
+              <span className="text-[var(--accent-2)]">
+                {list.author}
+              </span>
+            </div>
+
+            <p className="text-[13.5px] text-[var(--text-muted)] mb-5 whitespace-pre-line max-w-xl">
+              {list.description}
+            </p>
+
+            {/* Stats */}
             <div className="flex flex-wrap items-center gap-6 mb-5">
               <StatBlock Icon={Heart} value={list.likes} label="Likes" />
               <StatBlock Icon={MessageCircle} value={list.comments_count} label="Comments" />
               <StatBlock Icon={Users} value={list.remix_count} label="Remixes" />
               <StatBlock Icon={Eye} value={list.views} label="Views" />
             </div>
+
+            {/* Social actions */}
             <div className="flex flex-wrap items-center gap-2">
               {/* Primary */}
               <button
@@ -428,23 +496,6 @@ export default function ListDetail() {
                 />
                 {liked ? "Liked" : "Like"}
               </button>
-
-              {/* Utility actions */}
-              <div className="ml-auto flex items-center gap-2">
-                <button
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-2)] text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--text)]"
-                  data-testid="share-list-btn"
-                >
-                  <Share2 size={14} />
-                </button>
-
-                <button
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-2)] text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--text)]"
-                  data-testid="more-list-btn"
-                >
-                  <MoreHorizontal size={14} />
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -521,9 +572,21 @@ export default function ListDetail() {
                 key={a.position}
                 className="card-panel overflow-hidden hover-lift cursor-pointer"
                 data-testid={`album-${a.position}`}>
-                <div className="aspect-square relative cover" style={{ background: a.cover }}>
-                  <div className="absolute top-2 left-2 w-7 h-7 rounded bg-[rgba(0,0,0,0.7)] backdrop-blur flex items-center justify-center text-[13px] font-serif">{(a.position + 1)}</div>
+
+                <div
+                  className="aspect-square relative cover"
+                  style={{
+                    backgroundImage: a.cover ? `url(${a.cover})` : undefined,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  <div className="absolute top-2 left-2 w-7 h-7 rounded bg-[rgba(0,0,0,0.7)] backdrop-blur flex items-center justify-center text-[13px] font-serif">
+                    {a.position + 1}
+                  </div>
                 </div>
+
+
                 <div className="p-3">
                   <div className="text-[13px] font-medium truncate">{a.title}</div>
                   <div className="text-[11px] text-[var(--text-muted)] truncate">{a.artist} · {a.year}</div>
@@ -593,9 +656,6 @@ export default function ListDetail() {
             <div className="w-8 h-8 rounded-full" style={{ background: "linear-gradient(135deg, #c2a876, #3a2a1a)" }} />
             <span className="text-[12.5px]">{list.author}</span>
           </div>
-          <button className="w-full border border-[var(--border-2)] py-2 rounded-lg text-[12px] text-[var(--text-muted)] hover:text-[var(--accent-2)] hover:border-[var(--accent)]/40" data-testid="view-original-list">
-            View original list
-          </button>
         </div>
 
         {/* Remix Stats */}

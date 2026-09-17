@@ -54,6 +54,7 @@ export default function Home() {
 
       } catch (err) {
         setError(err.message || "Failed to load debates");
+        console.log(err);
       } finally {
         setLoadingLists(false);
       }
@@ -217,7 +218,7 @@ export default function Home() {
         <SectionTitle
           action={
             <Link
-              to="/lists"
+              to="/topLists"
               className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 hover:text-[var(--accent)]"
             >
               View all tops <ArrowRight size={12} />

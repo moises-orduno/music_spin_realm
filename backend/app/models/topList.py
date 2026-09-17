@@ -14,7 +14,6 @@ import uuid
 
 from models.user import UserReference
 
-
 class TopList(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     creator_id: str
@@ -39,3 +38,11 @@ class TopListCreate(BaseModel):
     category: Optional[str] = None
     is_public: bool = False
     items: List[ListItemCreate]
+
+class TopListUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    items: Optional[List[ListItemCreate]] = None
+    parent_list_id: Optional[str] = None
+    is_public: Optional[bool] = None

@@ -28,11 +28,17 @@ class User(BaseModel):
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
 
+    onboarding_completed: bool = False
+
     followed_artists: List[str] = Field(default_factory=list)
     followed_albums: List[str] = Field(default_factory=list)
 
     followers_count: int = 0
     following_count: int = 0
+
+    favorite_genres: List[str] = Field(default_factory=list)
+    favorite_artists: List[str] = Field(default_factory=list)
+    favorite_song_id: Optional[str] = None
 
     lists_count: int = 0
     debates_count: int = 0
@@ -44,7 +50,6 @@ class User(BaseModel):
 class RegisterRequest(BaseModel):
     email: EmailStr
     username: str
-    display_name: str
     password: str
 
 
@@ -78,3 +83,20 @@ class UserFollow(BaseModel):
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
+
+class ProfileResponse(BaseModel):
+    id: str
+    username: str
+    display_name: str
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+
+    albums_count: int = 0
+    lists_count: int = 0
+    debates_count: int = 0
+    following_count: int = 0
+    followers_count: int = 0
+
+    favorite_genres: List[str] = []
+    favorite_artists: List[dict] = []
+    favorite_song: Optional[dict] = None

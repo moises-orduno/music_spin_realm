@@ -10,7 +10,9 @@ import {
   CircleCheck,
   Trash2,
   DollarSign,
-  Store
+  Store,
+  Heart,
+  PencilIcon
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -144,12 +146,30 @@ export default function CollectionAlbumDetail() {
           <button
             type="button"
             onClick={() => navigate(`/collectionAlbumForm/${item.id}/edit`)}
-            className="btn-ghost px-4 py-2 rounded-lg border border-[var(--border)] text-[12px]"
+            className="
+              btn-ghost
+              inline-flex
+              items-center
+              justify-center
+              gap-1.5
+              rounded-full
+              border
+              border-[var(--border)]
+              px-4
+              py-2
+              text-[12px]
+              whitespace-nowrap
+              transition
+              hover:border-[#3d85c6]
+              hover:text-[#3d85c6]
+            "
           >
+            <PencilIcon size={13} />
             Edit
           </button>
 
           <button
+            type="button"
             onClick={async () => {
               const confirmed = window.confirm(
                 "Are you sure you want to delete this item of your collection?"
@@ -160,9 +180,7 @@ export default function CollectionAlbumDetail() {
               try {
                 await deleteCollection(item.id);
 
-                // Go back to hunts list
                 navigate("/collection");
-
               } catch (err) {
                 console.error(
                   "Failed to delete item",
@@ -175,7 +193,25 @@ export default function CollectionAlbumDetail() {
                 );
               }
             }}
-            className="btn-ghost border border-[var(--border)] px-3 py-2 rounded-lg text-[12px] flex items-center gap-2 text-red-500 hover:text-red-600"
+            className="
+              btn-ghost
+              inline-flex
+              items-center
+              justify-center
+              gap-1.5
+              rounded-full
+              border
+              border-[var(--border)]
+              px-4
+              py-2
+              text-[12px]
+              whitespace-nowrap
+              text-red-500
+              transition
+              hover:border-red-500/50
+              hover:bg-red-500/10
+              hover:text-red-500
+            "
           >
             <Trash2 size={13} />
             Delete
@@ -228,8 +264,6 @@ export default function CollectionAlbumDetail() {
           </div>
         )}
 
-
-
         {/* Collection information */}
         <div className="min-w-0">
 
@@ -238,7 +272,12 @@ export default function CollectionAlbumDetail() {
               <Disc3 size={12} />
               In your collection
             </div>
-
+            {item.favorite ?
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F04BA81A] text-[#F04BA8] text-[10px] font-medium uppercase tracking-wide mb-3">
+                <Disc3 size={12} />
+                In your favorites
+              </div> : <div></div>
+            }
             <h1 className="text-[28px] md:text-[34px] font-serif leading-tight">
               {album.title}
             </h1>

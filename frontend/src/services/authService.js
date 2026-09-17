@@ -66,39 +66,47 @@ export function getToken() {
   return localStorage.getItem("token");
 }
 
-export function getCurrentUser() {
-  const user = localStorage.getItem("user");
-  return user ? JSON.parse(user) : null;
+export function isSameUser(owner) {
+  return owner.user_id === getCurrentUser().id
 }
 
-export function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-}
-
-export async function authenticatedFetch(url, options = {}) {
-  const token = getToken();
-
-  const response = await fetch(
-    `${API_BASE_URL}${url}`,
-    {
-      ...options,
-      headers: {
-        ...options.headers,
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  // Token expired or invalid
-  if (response.status === 401) {
-    logout();
-
-    window.location.href = "/login";
-
-    throw new Error("Session expired");
+  export function getCurrentUser() {
+    const user = localStorage.getItem("user");
+    return user ? JSON.parse(user) : null;
   }
 
-  return response;
-}
+  export function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  }
+
+  export async function authenticatedFetch(url, options = {}, isTokenNecessary= true) {
+    const token = getToken();
+    
+    if(!token && isTokenNecessary){
+      return;
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}${url}`,
+      {
+        ...options,
+        headers: {
+          ...options.headers,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // Token expired or invalid
+    if (response.status === 401) {
+      logout();
+
+      window.location.href = "/login";
+
+      throw new Error("Session expired");
+    }
+
+    return response;
+  }

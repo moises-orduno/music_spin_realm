@@ -1,7 +1,6 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getHuntById, deleteHunt } from "../services/huntService";
 import React, { useState, useEffect } from "react";
-import { FileText, ShoppingCart, Heart, ListFilter } from "lucide-react";
 
 import {
     getAlbumListings
@@ -16,8 +15,8 @@ const CONDITION_COLORS = {
     "G": "#ef4444",
 };
 
-import {
-    ArrowLeft, Trash2, Globe, Calendar, Target, MapPin, Info, Pencil, Disc3, BadgeCheck, Wallet
+import {FileText, ShoppingCart, Heart, ListFilter, Pencil,
+    ArrowLeft, Trash2, Globe, Calendar, Target, MapPin, Disc3, BadgeCheck, Wallet
 } from "lucide-react";
 
 function ConditionBadge({ code }) {

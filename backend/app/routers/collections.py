@@ -185,6 +185,8 @@ async def add_to_my_collection(
         "media_condition": payload.media_condition,
         "sleeve_condition": payload.sleeve_condition,
 
+        "favorite":payload.favorite,
+
         "price_paid": payload.price_paid,
         "currency": payload.currency,
         "purchase_date": payload.purchase_date,

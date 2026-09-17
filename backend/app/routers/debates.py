@@ -19,12 +19,32 @@ router = APIRouter(
 # ============ Debates CRUD ============
 
 @router.get("", response_model=List[Debate])
-async def list_debates(badge: Optional[str] = None, limit: int = 100):
+async def list_debates(badge: Optional[str] = None, limit: int = 10):
     query = {}
     if badge:
         query["badge"] = badge.upper()
     docs = await db.debates.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return [_serialize(d) for d in docs]
+
+@router.get("/random", response_model=Debate)
+async def get_random_debate():
+    pipeline = [
+        {
+            "$sample": {
+                "size": 1
+            }
+        }
+    ]
+
+    docs = await db.debates.aggregate(pipeline).to_list(1)
+
+    if not docs:
+        raise HTTPException(
+            status_code=404,
+            detail="No debates found"
+        )
+
+    return _serialize(docs[0])
 
 
 @router.get("/{debate_id}", response_model=Debate)

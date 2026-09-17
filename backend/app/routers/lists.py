@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException, Depends
 import uuid
 from db.mongodb import db
-from models.topList import TopList,TopListCreate
+from models.topList import TopList,TopListCreate, TopListUpdate
 from helpers.token_helper import get_current_user, get_optional_user
 from models.user import UserReference
 from datetime import datetime, timezone
 import copy
 from models.remixList import RemixCreate
-from models.listItem import ListItem
+from models.listItem import ListItem, ListItemCreate
 from models.album import AlbumReference
 
 router = APIRouter(
@@ -19,13 +19,61 @@ router = APIRouter(
 async def list_lists(limit: int = 50):
 
     docs = (
-    await db.lists
-    .find(
-        {"parent_list_id": None},
-        {"_id": 0}
+        await db.lists
+        .find(
+            {"parent_list_id": None},
+            {"_id": 0}
+        )
+        .sort("likes_count", -1)
+        .to_list(limit)
     )
-    .sort("likes_count", -1)
-    .to_list(limit)
+
+    result = []
+
+    for doc in docs:
+        recent_albums = []
+
+        for item in doc.get("items", [])[-3:]:
+            album = item.get("album")
+
+            if not album:
+                continue
+
+            recent_albums.append({
+                "position": item.get("position"),
+                "album": album
+            })
+
+        result.append({
+            "id": doc["id"],
+            "title": doc["title"],
+            "image": doc.get("thumbnail_url"),
+            "likes_count": doc.get("likes_count", 0),
+            "comments_count": doc.get("comments_count", 0),
+            "remix_count": doc.get("remix_count", 0),
+            "items_count": len(doc.get("items", [])),
+            "recent_albums": recent_albums
+        })
+
+    return result
+
+@router.get("/me")
+async def list_my_lists(
+    current_user=Depends(get_current_user),
+    limit: int = 50,
+):
+
+    docs = (
+        await db.lists
+        .find(
+            {
+                "creator_id": current_user["id"],
+                "parent_list_id": None,
+            },
+            {"_id": 0}
+        )
+        .sort("created_at", -1)
+        .to_list(limit)
     )
 
     result = []
@@ -49,6 +97,185 @@ async def list_lists(limit: int = 50):
         })
 
     return result
+
+
+@router.get("/saved")
+async def get_saved_lists(
+    limit: int = 50,
+    current_user=Depends(get_current_user)
+):
+    saved_docs = (
+        await db.saved_lists
+        .find(
+            {"user_id": current_user["id"]},
+            {"_id": 0}
+        )
+        .sort("saved_at", -1)
+        .to_list(limit)
+    )
+
+    list_ids = [doc["list_id"] for doc in saved_docs]
+
+    if not list_ids:
+        return []
+
+    docs = await db.lists.find(
+        {
+            "id": {"$in": list_ids},
+            "parent_list_id": None
+        },
+        {"_id": 0}
+    ).to_list(None)
+
+    docs_by_id = {doc["id"]: doc for doc in docs}
+
+    result = []
+
+    for list_id in list_ids:
+        doc = docs_by_id.get(list_id)
+
+        if not doc:
+            continue
+
+        recent_albums = [
+            {
+                "position": item.get("position"),
+                "album": item.get("album")
+            }
+            for item in doc.get("items", [])[-3:]
+            if item.get("album")
+        ]
+
+        result.append({
+            "id": doc["id"],
+            "title": doc["title"],
+            "image": doc.get("thumbnail_url"),
+            "likes_count": doc.get("likes_count", 0),
+            "comments_count": doc.get("comments_count", 0),
+            "remix_count": doc.get("remix_count", 0),
+            "items_count": len(doc.get("items", [])),
+            "recent_albums": recent_albums,
+            "saved": True
+        })
+
+    return result
+
+@router.get("/liked")
+async def get_liked_lists(
+    limit: int = 50,
+    current_user=Depends(get_current_user)
+):
+    like_docs = (
+        await db.likes
+        .find(
+            {"user_id": current_user["id"]},
+            {"_id": 0}
+        )
+        .sort("created_at", -1)
+        .to_list(limit)
+    )
+
+    list_ids = [doc["list_id"] for doc in like_docs]
+
+    if not list_ids:
+        return []
+
+    docs = await db.lists.find(
+        {
+            "id": {"$in": list_ids},
+            "parent_list_id": None
+        },
+        {"_id": 0}
+    ).to_list(None)
+
+    docs_by_id = {doc["id"]: doc for doc in docs}
+
+    result = []
+
+    for list_id in list_ids:
+        doc = docs_by_id.get(list_id)
+
+        if not doc:
+            continue
+
+        result.append({
+            "id": doc["id"],
+            "title": doc["title"],
+            "image": doc.get("thumbnail_url"),
+            "likes_count": doc.get("likes_count", 0),
+            "comments_count": doc.get("comments_count", 0),
+            "remix_count": doc.get("remix_count", 0),
+            "items_count": len(doc.get("items", [])),
+            "recent_albums": [
+                {
+                    "position": item["position"],
+                    "album": item["album"]
+                }
+                for item in doc.get("items", [])[-3:]
+            ],
+            "liked": True
+        })
+
+    return result
+
+
+@router.post("", response_model=TopList, status_code=201)
+async def create_list(
+    payload: TopListCreate,
+    current_user=Depends(get_current_user)
+):
+
+    owner = UserReference(
+        user_id=current_user["id"],
+        username=current_user["username"],
+        display_name=current_user["display_name"],
+        avatar_url=current_user.get("avatar_url")
+    )
+
+    items = []
+
+    for item in payload.items:
+        album = await db.albums.find_one({"id": item.album_id})
+
+        if not album:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Album {item.album_id} not found"
+            )
+
+        album_ref = AlbumReference(
+            id=album["id"],
+            title=album["title"],
+            artist=album["artist"]["name"],
+            cover_url=album.get("cover_url"),
+        )
+
+        items.append(
+            ListItem(
+                position=item.position,
+                album=album_ref,
+                why_this_album=item.why_this_album,
+                favorite_lyric=item.favorite_lyric,
+                owned=item.owned,
+                hunting=item.hunting,
+            )
+        )
+
+    top_list = TopList(
+        creator_id=current_user["id"],
+        owner=owner,
+        title=payload.title,
+        description=payload.description,
+        category=payload.category,
+        is_public=payload.is_public,
+        items=items,
+    )
+
+    await db.lists.insert_one(
+        top_list.model_dump()
+    )
+
+    return top_list
 
 @router.get("/{list_id}")
 async def get_list(
@@ -114,109 +341,113 @@ async def get_list(
     }
 
 
-@router.post("", response_model=TopList, status_code=201)
-async def create_list(
-    payload: TopListCreate,
-    current_user=Depends(get_current_user)
-):
 
-    owner = UserReference(
-        user_id=current_user["id"],
-        username=current_user["username"],
-        display_name=current_user["display_name"],
-        avatar_url=current_user.get("avatar_url")
-    )
-
-    items = []
-
-    for item in payload.items:
-        album = await db.albums.find_one({"id": item.album_id})
-
-        if not album:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Album {item.album_id} not found"
-            )
-
-        album_ref = AlbumReference(
-            id=album["id"],
-            title=album["title"],
-            artist=album["artist"]["name"],
-            cover_url=album.get("cover_url"),
-        )
-
-        items.append(
-            ListItem(
-                position=item.position,
-                album=album_ref,
-                why_this_album=item.why_this_album,
-                favorite_lyric=item.favorite_lyric,
-                owned=item.owned,
-                hunting=item.hunting,
-            )
-        )
-
-    top_list = TopList(
-        creator_id=current_user["id"],
-        owner=owner,
-        title=payload.title,
-        description=payload.description,
-        category=payload.category,
-        is_public=payload.is_public,
-        items=items,
-    )
-
-    await db.lists.insert_one(
-        top_list.model_dump()
-    )
-
-    return top_list
-
-@router.put("/{list_id}", response_model=TopList)
+@router.patch("/{list_id}", response_model=TopList)
 async def update_list(
     list_id: str,
-    payload: TopListCreate,
-    current_user=Depends(get_current_user)
+    data: TopListUpdate,
+    current_user=Depends(get_current_user),
 ):
+    top_list = await db.lists.find_one({
+        "id": list_id,
+    })
 
-    # Find existing list
-    existing_list = await db.lists.find_one(
-        {"id": list_id}
-    )
-
-    if not existing_list:
+    if not top_list:
         raise HTTPException(
             status_code=404,
-            detail="List not found"
+            detail="List not found",
         )
 
-    # Verify ownership
-    if existing_list["creator_id"] != current_user["id"]:
+    if top_list["creator_id"] != current_user["id"]:
         raise HTTPException(
             status_code=403,
-            detail="You can only edit your own lists"
+            detail="You do not have permission to edit this list",
         )
 
-    update_data = {
-        "title": payload.title,
-        "description": payload.description,
-        "category": payload.category,
-        "items": payload.items,
-        "updated_at": datetime.now(timezone.utc)
-    }
+    updates = data.model_dump(exclude_unset=True)
+
+    if not updates:
+        raise HTTPException(
+            status_code=400,
+            detail="No fields to update",
+        )
+
+    if data.items is not None:
+        items = []
+
+        for item in data.items:
+            list_item = await build_list_item(item)
+            items.append(list_item.model_dump())
+
+        updates["items"] = items
 
     await db.lists.update_one(
         {"id": list_id},
-        {
-            "$set": update_data
-        }
+        {"$set": updates},
     )
 
-    updated_list = await db.lists.find_one(
-        {"id": list_id}
-    )
+    updated_list = await db.lists.find_one({
+        "id": list_id
+    })
 
     return TopList(**updated_list)
+
+@router.delete("/{list_id}")
+async def delete_list(
+    list_id: str,
+    current_user=Depends(get_current_user),
+):
+    top_list = await db.top_lists.find_one({
+        "id": list_id,
+        "creator_id": current_user["id"],
+    })
+
+    if not top_list:
+        raise HTTPException(
+            status_code=404,
+            detail="List not found",
+        )
+
+    result = await db.top_lists.delete_one({
+        "id": list_id,
+        "creator_id": current_user["id"],
+    })
+
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="List not found",
+        )
+
+    return {
+        "message": "List deleted successfully",
+        "id": list_id,
+    }
+
+async def build_list_item(item: ListItemCreate) -> ListItem:
+    album = await db.albums.find_one({"id": item.album_id})
+
+    if not album:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Album {item.album_id} not found"
+        )
+
+    album_ref = AlbumReference(
+        id=album["id"],
+        title=album["title"],
+        artist=album["artist"]["name"],
+        cover_url=album.get("cover_url"),
+    )
+
+    return ListItem(
+        position=item.position,
+        album=album_ref,
+        why_this_album=item.why_this_album,
+        favorite_lyric=item.favorite_lyric,
+        owned=item.owned,
+        hunting=item.hunting,
+    )
 
 @router.post("/{list_id}/remix", response_model=TopList)
 async def remix_list(

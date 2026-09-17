@@ -577,3 +577,41 @@ async def get_similar_albums(album_id: str, limit: int = 5):
     ]
 
     return await db.albums.aggregate(pipeline).to_list(limit)
+
+@router.get("/{album_id}/status")
+async def get_album_status(
+    album_id: str,
+    current_user=Depends(get_current_user),
+):
+    user_id = str(current_user["id"])
+
+    owned = await db.collection_items.find_one(
+        {
+            "user_id": user_id,
+            "album_id": album_id,
+        },
+        {
+            "_id": 0,
+            "id": 1,
+        },
+    )
+
+    hunting = await db.hunts.find_one(
+        {
+            "owner.user_id": user_id,
+            "album.id": album_id,
+            "status": "hunting",
+        },
+        {
+            "_id": 0,
+            "id": 1,
+        },
+    )
+
+    return {
+        "album_id": album_id,
+        "owned": owned is not None,
+        "collection_id": owned["id"] if owned else None,
+        "hunting": hunting is not None,
+        "hunt_id": hunting["id"] if hunting else None,
+    }

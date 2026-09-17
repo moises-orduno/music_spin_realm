@@ -6,7 +6,7 @@ import { getAlbumSuggestions } from "../services/albumService";
 
 import { useLocation } from "react-router-dom";
 
-function AlbumTile({ a, onAdd }) {
+function AlbumTile({ a, onAdd, storageKey }) {
     return (
         <div
             className="card-panel overflow-hidden group hover-lift"
@@ -41,7 +41,7 @@ function AlbumTile({ a, onAdd }) {
                     className="w-full rounded-lg py-2 text-[11.5px] font-medium bg-[var(--accent-soft)] text-[var(--accent-2)] border border-[var(--accent)]/30 hover:bg-[var(--accent)] hover:text-white transition flex items-center justify-center gap-1.5"
                 >
                     <Plus size={12} />
-                    Add to list
+                     {storageKey === `new-collection-album-draft`?"Add to my collection":"Add to list"}
                 </button>
             </div>
         </div>
@@ -55,7 +55,7 @@ export default function ListAddAlbum() {
     const suggestionCategories = ["Similar Albums"];
     const [loading, setLoading] = useState(true);
     const location = useLocation();
-    const { returnTo, storageKey } = location.state || {};
+    const { returnTo, storageKey, position } = location.state || {};
 
     const handleSearchAlbumClick = () => {
 
@@ -121,15 +121,15 @@ export default function ListAddAlbum() {
             hunting: true,
         };
 
-        if (storageKey === "new-hunt-draft" || 
-            storageKey === "new-collection-album-draft"){
+        if (storageKey === "new-hunt-draft" ||
+            storageKey === "new-collection-album-draft") {
             // Hunts only have one album
             draft.items = [albumItem];
         } else {
             // Lists can have multiple albums
             draft.items.push({
                 ...albumItem,
-                position: draft.items.length + 1,
+                position: position ? position : draft.items.length ,
             });
         }
 
@@ -140,8 +140,8 @@ export default function ListAddAlbum() {
 
     return (
         <div className="max-w-[1100px] mx-auto fade-in-up space-y-8" data-testid="album-picker-page">
-            <Link to={`/lists/${listId}/remix`} className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] inline-flex items-center gap-1.5" data-testid="back-link">
-                <ArrowLeft size={13} /> Back to remix
+            <Link to={storageKey === `new-collection-album-draft`?`/collectionAlbumForm/new`:`/lists/${listId}/remix`} className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] inline-flex items-center gap-1.5" data-testid="back-link">
+                <ArrowLeft size={13} /> {storageKey === `new-collection-album-draft`?"Back to collection":"Back to remix"}
             </Link>
 
             <div>
@@ -184,6 +184,7 @@ export default function ListAddAlbum() {
                                 key={a.id}
                                 a={a}
                                 onAdd={handleAdd}
+                                storageKey = {storageKey}
                             />
                         ))}
                     </div>

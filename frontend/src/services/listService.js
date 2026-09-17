@@ -1,31 +1,23 @@
 import { authenticatedFetch } from "./authService";
+import { API_BASE_URL } from "./api";
 
 export async function getLists({ category, limit = 50, sort } = {}) {
-  const params = new URLSearchParams();
-
-  if (category) params.append("category", category);
-  if (limit) params.append("limit", limit);
-  if (sort) params.append("sort", sort);
-
-  const response = await authenticatedFetch(
-    `/lists?${params.toString()}`,
-    {
-      method: "GET",
+ 
+    const response = await fetch(
+      `${API_BASE_URL}/lists`
+    );
+  
+    if (!response.ok) {
+      throw new Error("Failed to fetch lists");
     }
-  );
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || "Failed to fetch lists");
-  }
-
-  return response.json();
+  
+    return response.json();
 }
 
 export async function getListById(id) {
   const response = await authenticatedFetch(`/lists/${id}`, {
     method: "GET",
-  });
+  },false);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -38,6 +30,54 @@ export async function getListById(id) {
 export async function getListRemixes(id) {
   const response = await authenticatedFetch(
     `/lists/${id}/remixes`,
+    {
+      method: "GET",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch list remixes");
+  }
+
+  return response.json();
+}
+
+export async function getMyLists() {
+  const response = await authenticatedFetch(
+    `/lists/me`,
+    {
+      method: "GET",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch list remixes");
+  }
+
+  return response.json();
+}
+
+export async function getMySavedLists() {
+  const response = await authenticatedFetch(
+    `/lists/saved`,
+    {
+      method: "GET",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch list remixes");
+  }
+
+  return response.json();
+}
+
+export async function getMyLikedLists() {
+  const response = await authenticatedFetch(
+    `/lists/liked`,
     {
       method: "GET",
     }
@@ -162,6 +202,51 @@ export async function createList(listData) {
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to create list");
+  }
+
+  return response.json();
+}
+
+export async function updateList(
+  listId,
+  payload
+) {
+  const response = await authenticatedFetch(
+    `/lists/${listId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+
+    throw new Error(
+      error.detail || "Failed to update list"
+    );
+  }
+
+  return response.json();
+}
+
+export async function deleteList(listId) {
+  const response = await authenticatedFetch(
+    `/lists/${listId}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+
+    throw new Error(
+      error.detail || "Failed to delete list"
+    );
   }
 
   return response.json();

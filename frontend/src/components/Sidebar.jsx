@@ -1,15 +1,38 @@
-import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, MessageSquare, ThumbsUp, Search, Store, Users, FolderOpen, Star, Clock, Target, UserCheck, Plus, AudioLines } from "lucide-react";
+import { Home, MessageSquare, ThumbsUp, Search, 
+  Store, Users, FolderOpen, Star, Clock, 
+  Target, UserCheck, ChevronDown, AudioLines } from "lucide-react";
+import React, { useState } from "react";
 
 const mainNav = [
-  { to: "/", label: "Home", icon: Home, end: true },
-  { to: "/debates", label: "Debates", icon: MessageSquare },
-  { to: "/topLists", label: "Top Lists", icon: ThumbsUp },
-  { to: "/hunt", label: "Hunt", icon: Search },
-  { to: "/marketplace", label: "Marketplace", icon: Store },
-  { to: "/people", label: "People", icon: Users },
-  { to: "/collection", label: "Collection", icon: FolderOpen },
+  {
+    to: "/", label: "Home", icon: Home, end: true,
+  },
+  {
+    to: "/debates", label: "Debates", icon: MessageSquare,
+  },
+  {
+    label: "Top Lists",
+    icon: ThumbsUp,
+    children: [
+      { to: "/topLists", label: "Discover", end: true },
+      { to: "/topLists/mine", label: "My Lists", end: true },
+      { to: "/topLists/liked", label: "Liked", end: true },
+      { to: "/topLists/saved", label: "Saved", end: true },
+    ],
+  },
+  {
+    to: "/hunt", label: "Hunt", icon: Search,
+  },
+  {
+    to: "/marketplace", label: "Marketplace", icon: Store,
+  },
+  {
+    to: "/people", label: "People", icon: Users,
+  },
+  {
+    to: "/collection", label: "My Collection", icon: FolderOpen,
+  },
 ];
 
 const shortcuts = [
@@ -19,7 +42,74 @@ const shortcuts = [
   { to: "/people", label: "Following", icon: UserCheck },
 ];
 
+function NavSection({ item, active }) {
+  const [manuallyOpen, setManuallyOpen] = useState(false);
+
+  const Icon = item.icon;
+
+  const open = active || manuallyOpen;
+
+   return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setManuallyOpen((value) => !value)}
+        className={`nav-item w-full flex items-center gap-3 px-3 py-2.5 text-[13.5px] ${
+          active ? "active" : ""
+        }`}
+      >
+        <Icon size={16.5} strokeWidth={1.7} />
+
+        <span className="flex-1 text-left">
+          {item.label}
+        </span>
+
+        <ChevronDown
+          size={15}
+          className={`transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open && (
+        <div className="ml-9 mt-0.5 mb-1 flex flex-col">
+          {item.children.map((child) => (
+            <NavLink
+              key={child.to}
+              to={child.to}
+              end={child.end}
+              className={({ isActive }) =>
+                `px-3 py-2 text-[12.5px] rounded-md transition-colors ${
+                  isActive
+                    ? "text-[var(--foreground)] font-medium"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                }`
+              }
+            >
+              {child.label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Sidebar() {
+
+  const location = useLocation();
+
+  const isSectionActive = (item) => {
+    if (!item.children) return false;
+
+    return item.children.some(
+      (child) =>
+        location.pathname === child.to ||
+        location.pathname.startsWith(`${child.to}/`)
+    );
+  };
+
   return (
     <aside className="w-[230px] shrink-0 px-4 py-7 border-r border-[var(--border)] min-h-screen flex flex-col sticky top-0" data-testid="sidebar">
       {/* Brand */}
@@ -31,31 +121,43 @@ export default function Sidebar() {
       </NavLink>
 
       {/* Main nav */}
-      <nav className="flex flex-col gap-0.5 mb-7" data-testid="sidebar-main-nav">
-        {mainNav.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            data-testid={`nav-${label.toLowerCase().replace(/\s/g, "-")}`}
-            className={({ isActive }) =>
-              `nav-item flex items-center gap-3 px-3 py-2.5 text-[13.5px] ${isActive ? "active" : ""}`
-            }
-          >
-            <Icon size={16.5} strokeWidth={1.7} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
+      <nav
+        className="flex flex-col gap-0.5 mb-7"
+        data-testid="sidebar-main-nav"
+      >
+        {mainNav.map((item) => {
+          if (item.children) {
+            return (
+              <NavSection
+                key={item.label}
+                item={item}
+                active={isSectionActive(item)}
+              />
+            );
+          }
+
+          const Icon = item.icon;
+
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              data-testid={`nav-${item.label
+                .toLowerCase()
+                .replace(/\s/g, "-")}`}
+              className={({ isActive }) =>
+                `nav-item flex items-center gap-3 px-3 py-2.5 text-[13.5px] ${isActive ? "active" : ""
+                }`
+              }
+            >
+              <Icon size={16.5} strokeWidth={1.7} />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
       </nav>
 
-      {/* Start a Debate CTA */}
-      <NavLink
-        to="/debates/new"
-        className="btn-accent rounded-xl px-3 py-3 text-[13px] flex items-center justify-center gap-2 mb-7"
-        data-testid="start-debate-btn"
-      >
-        <Plus size={15} /> Start a Debate
-      </NavLink>
 
       {/* Shortcuts */}
       <div className="mb-4">

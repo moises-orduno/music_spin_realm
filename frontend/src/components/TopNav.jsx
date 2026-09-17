@@ -2,7 +2,10 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { Search, Bell, MessageCircle, Menu } from "lucide-react";
 import { useDrawer } from "./Layout";
-import { getCurrentUser}  from "../services/authService";
+import { getCurrentUser, logout } from "../services/authService";
+import { useNavigate } from "react-router-dom";
+
+import { useState, useRef, useEffect } from "react";
 
 const topLinks = [
   { to: "/", label: "Home", end: true },
@@ -13,10 +16,93 @@ const topLinks = [
   { to: "/people", label: "People" },
 ];
 
+function UserMenu({ user, onLogout }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleLogoutClick = ()=>{
+    logout();
+    navigate(`/`);
+  }
+
+  return (
+    <div
+      ref={menuRef}
+      className="relative hidden sm:block"
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--border)] text-[13px] hover:bg-[var(--panel)] transition"
+      >
+        {user.display_name}
+
+        <span
+          className={`text-[10px] transition-transform ${open ? "rotate-180" : ""
+            }`}
+        >
+          ▼
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-44 rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-lg overflow-hidden z-50">
+          <NavLink
+            to={`/users/${user.username}`}
+            onClick={() => setOpen(false)}
+            className="block px-4 py-3 text-[13px] hover:bg-[var(--accent-soft)] transition"
+          >
+            Profile
+          </NavLink>
+
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              handleLogoutClick();
+            }}
+            className="w-full text-left px-4 py-3 text-[13px] hover:bg-[var(--accent-soft)] transition"
+          >
+            Log out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TopNav() {
   const { setOpen } = useDrawer();
   const user = getCurrentUser();
+  const navigate = useNavigate();
+
+  const handleSearchAlbumClick = () => {
+
+    navigate(
+      "/listsSearch",
+      {
+        state: {
+          returnTo: "/albums/",
+          storageKey: `album-detail`,
+        },
+      }
+    );
+  };
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-md bg-[rgba(12,11,10,0.85)] border-b border-[var(--border)]" data-testid="top-nav">
@@ -32,19 +118,28 @@ export default function TopNav() {
 
         {/* Mobile brand */}
         <div className="lg:hidden font-serif text-[15px] leading-[1] font-light shrink-0">
-          SOME SORT<br/>OF EAY
+          SOME SORT<br />OF EAY
         </div>
 
         {/* Search */}
         <div className="relative flex-1 max-w-[420px] hidden sm:block">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" strokeWidth={1.8} />
-          <input
-            data-testid="top-search-input"
-            placeholder="Search albums, artists, debates..."
-            className="w-full bg-[var(--panel)] border border-[var(--border)] rounded-full pl-10 pr-4 py-2.5 text-[13px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:border-[var(--border-2)] transition-colors"
-          />
-        </div>
+          <button
+            type="button"
+            onClick={handleSearchAlbumClick}
+            data-testid="open-search-link"
+            className="flex items-center gap-3 w-full h-12 px-5 bg-[var(--panel)] border border-[var(--border)] rounded-full text-[13px] text-[var(--text-muted)] hover:border-[var(--border-2)] transition-colors text-left"
+          >
+            <Search
+              size={17}
+              className="shrink-0 text-[var(--text-dim)]"
+              strokeWidth={1.8}
+            />
 
+            <span className="whitespace-nowrap">
+              Search albums, artists...
+            </span>
+          </button>
+        </div>
         {/* Mobile search icon */}
         <button className="sm:hidden ml-auto w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center btn-ghost" data-testid="mobile-search-btn">
           <Search size={15} strokeWidth={1.8} />
@@ -66,7 +161,6 @@ export default function TopNav() {
         </nav>
 
         {/* Actions */}
-        
         <div className="flex items-center gap-2 md:gap-3 md:ml-6">
 
           {!user ? (
@@ -78,13 +172,7 @@ export default function TopNav() {
               Log in
             </NavLink>
           ) : (
-            <NavLink
-              to={`/users/${user.username}`}
-              data-testid="profile-link"
-              className="hidden sm:inline-flex items-center px-4 py-2 rounded-full border border-[var(--border)] text-[13px] hover:bg-[var(--panel)] transition"
-            >
-              {user.display_name}
-            </NavLink>
+            <UserMenu user={user} onLogout={logout} />
           )}
 
           <button

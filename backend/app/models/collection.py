@@ -4,7 +4,6 @@ from datetime import datetime
 from bson import ObjectId
 from models.album import Album
 
-
 class CollectionItemCreate(BaseModel):
     album_id: str
 
@@ -30,11 +29,15 @@ class CollectionItemCreate(BaseModel):
     purchased_from: Optional[str] = None
     notes: Optional[str] = None
 
+    # Favorite
+    favorite: bool = False
+
     images: Optional[list[str]] = []
 
     # Source
     source: Optional[str] = "manual"
     source_release_id: Optional[str] = None
+
 
 class CollectionItemUpdate(BaseModel):
     # Release / pressing information
@@ -58,6 +61,9 @@ class CollectionItemUpdate(BaseModel):
     purchase_date: Optional[datetime] = None
     purchased_from: Optional[str] = None
     notes: Optional[str] = None
+
+    # Favorite
+    favorite: Optional[bool] = None
 
 
 class CollectionItemResponse(BaseModel):
@@ -83,6 +89,9 @@ class CollectionItemResponse(BaseModel):
     purchase_date: Optional[datetime] = None
     purchased_from: Optional[str] = None
     notes: Optional[str] = None
+
+    # Favorite
+    favorite: bool = False
 
     source: Optional[str] = None
     source_release_id: Optional[str] = None

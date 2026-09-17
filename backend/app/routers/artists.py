@@ -9,6 +9,15 @@ router = APIRouter(
     tags=["Artists"]
 )
 
+@router.get("", response_model=List[Artist])
+async def list_artists(limit: int = 100):
+    return await (
+        db.artists
+        .find({}, {"_id": 0})
+        .sort("name", 1)
+        .to_list(limit)
+    )
+
 @router.post("", response_model=Artist, status_code=201)
 async def create_artist(payload: ArtistCreate):
 
@@ -34,16 +43,6 @@ async def create_artist(payload: ArtistCreate):
     )
 
     return artist
-
-@router.get("", response_model=List[Artist])
-async def list_artists(limit: int = 100):
-    return await (
-        db.artists
-        .find({}, {"_id": 0})
-        .sort("name", 1)
-        .to_list(limit)
-    )
-
 
 @router.get("/{artist_id}", response_model=Artist)
 async def get_artist(artist_id: str):

@@ -74,7 +74,7 @@ export default function ListSearch() {
 
     draft.items.push({
       id: crypto.randomUUID(),
-      position: draft.items.length + 1,
+      position: draft.items.length,
       album,
       why_this_album: "",
       favorite_lyric: "",
@@ -114,7 +114,9 @@ export default function ListSearch() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search any album or artist..."
           data-testid="search-input"
-          className="w-full bg-[var(--panel)] border border-[var(--border)] rounded-xl pl-14 pr-14 py-4 text-[15px] placeholder:text-[var(--text-dim)] focus:outline-none focus:border-[var(--accent)]/50 transition"
+          className="w-full bg-[var(--panel)] border rounded-xl pl-11 pr-4 py-3.5 text-[13.5px] 
+              placeholder:text-[var(--text-dim)] 
+              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
         />
         {query && (
           <button onClick={() => setQuery("")} data-testid="clear-btn"

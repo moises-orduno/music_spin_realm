@@ -4,12 +4,11 @@ import { Chip } from "../components/ui-bits";
 import axios from "axios";
 import {
   Plus, MoreVertical, Users, Disc, Music, Clock,
-  Gamepad2, Hash, Zap, Shield, ChevronDown, Loader2,
+  Gamepad2, Hash, Zap, Shield,
 } from "lucide-react";
-import { debateOfTheDay, activeNow, popularCategories } from "../data/debates";
-import { getDebates } from "../services/debateService";
+import { popularCategories } from "../data/debates";
+import { getDebates,getRandomDebate } from "../services/debateService";
 
-const TABS = ["Trending", "New", "Hot", "My Debates", "Friends"];
 const CATS = ["All", "General", "Bands & Artists", "Albums", "Genres", "Era", "Fun & Games"];
 
 // Compute pct from votes for display
@@ -240,7 +239,8 @@ export default function Debates() {
   const [debates, setDebates] = useState([]);
   const [loadingDebates, setLoadingDebates] = useState(true);
   const [error, setError] = useState(null);
-  const [myVotes, setMyVotes] = useState({}); // {debateId: optionIndex}
+  const [myVotes, setMyVotes] = useState({}); 
+  const [debateOfTheDay, setDebateOfTheDay] = useState({});
 
   useEffect(() => {
     const loadDebates = async () => {
@@ -257,6 +257,21 @@ export default function Debates() {
         setLoadingDebates(false);
       }
     };
+
+    const loadRandomDebate = async () => {
+      try {
+
+        const data = await getRandomDebate();
+        setDebateOfTheDay(data);
+
+      } catch (err) {
+        setError(err.message || "Failed to load debates");
+      } finally {
+        setLoadingDebates(false);
+      }
+    };
+
+    loadRandomDebate();
 
     loadDebates();
   }, []);
@@ -295,21 +310,6 @@ export default function Debates() {
             <p className="text-[13px] text-[var(--text-muted)]">Where music lovers argue (respectfully).</p>
           </div>
           
-        </div>
-
-        {/* Tabs */}
-        <div className="flex items-center gap-7 border-b border-[var(--border)] overflow-x-auto" data-testid="debate-tabs">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              data-testid={`tab-${t.toLowerCase().replace(/\s/g, "-")}`}
-              className={`pb-3 text-[13px] whitespace-nowrap relative ${tab === t ? "text-[var(--text)]" : "text-[var(--text-muted)] hover:text-[var(--text)]"}`}
-            >
-              {t}
-              {tab === t && <span className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-[var(--accent)]" />}
-            </button>
-          ))}
         </div>
 
         {/* Category chips + sort */}
@@ -391,24 +391,6 @@ export default function Debates() {
           <button className="btn-accent w-full rounded-lg py-2 text-[12px]" data-testid="join-debate-day-btn">Join the Debate</button>
           <div className="text-center text-[10.5px] text-[var(--text-dim)] mt-2">
             {debateOfTheDay.votes} votes · {debateOfTheDay.comments} comments
-          </div>
-        </div>
-
-        <div className="card-panel p-5" data-testid="active-now">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="w-2 h-2 rounded-full bg-[#10b981]" />
-            <span className="text-[12px] font-medium">Active Now</span>
-          </div>
-          <div className="space-y-3">
-            {activeNow.map((u) => (
-              <div key={u.handle} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full shrink-0" style={{ background: `linear-gradient(135deg, ${u.color}, #1a1612)` }} />
-                <div className="min-w-0 flex-1">
-                  <div className="text-[12.5px] truncate">{u.handle}</div>
-                  <div className="text-[10.5px] text-[var(--text-muted)]">{u.status}</div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 

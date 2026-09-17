@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Chip, SectionTitle } from "../components/ui-bits";
 import { Trophy, ArrowRight, Plus } from "lucide-react";
 
-import { getLists } from "../services/listService";
-import { useNavigate } from "react-router-dom";
+import { getLists,getMyLists,getMySavedLists,getMyLikedLists } from "../services/listService";
+import { useNavigate,useLocation } from "react-router-dom";
 import { getCurrentUser } from "../services/authService";
 
 export default function TopLists() {
@@ -14,17 +14,16 @@ export default function TopLists() {
 
   const navigate = useNavigate();
 
-  const categories = [
-    "All",
-    "Rock",
-    "Jazz",
-    "Hip-Hop",
-    "Indie",
-    "Electronic",
-    "Classical",
-    "Folk",
-  ];
+  const location = useLocation();
 
+  const mode =
+    location.pathname === "/topLists/mine"
+      ? "mine"
+      : location.pathname === "/topLists/saved"
+      ? "saved"
+      : location.pathname === "/topLists/liked"
+      ? "liked"
+      : "discover";
 
   const user = getCurrentUser();
 
@@ -42,22 +41,33 @@ export default function TopLists() {
       });
       return;
     }
-
+    
+    // Only clear the draft after successful creation
+    sessionStorage.removeItem("new-list-draft");
     navigate(`/listForm/new`);
   };
 
   useEffect(() => {
     const loadLists = async () => {
+
       try {
         setLoadingLists(true);
         setError(null);
-
-        const data = await getLists({
+        var data;
+        if(mode == "mine"){
+          data = await getMyLists();
+        }else if(mode == "saved"){
+          data = await getMySavedLists();
+        }else if(mode == "liked"){
+          data = await getMyLikedLists();
+        }else{
+          data = await getLists({
           category:
             selectedCategory === "All"
               ? undefined
               : selectedCategory,
         });
+        }
 
         setLists(data);
       } catch (err) {
@@ -81,7 +91,7 @@ export default function TopLists() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
+        {/* <div className="flex flex-wrap gap-2">
           {categories.map((category) => (
             <Chip
               key={category}
@@ -91,7 +101,7 @@ export default function TopLists() {
               {category === "All" ? "All Genres" : category}
             </Chip>
           ))}
-        </div>
+        </div> */}
 
         <button
           onClick={() => handleListCreatelick()}

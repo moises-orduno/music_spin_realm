@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { User, Lock, Eye, EyeOff, Heart, Check, AudioLines } from "lucide-react";
 import { login } from "../services/authService";
 
 // Featured list cards for the left promo
 const FEATURED_LISTS = [
-  { title: "Sci-Fi Movies", author: "Alex", cover: "linear-gradient(160deg, #1a2540 0%, #0a0f20 100%)", likes: "612", rotate: -8, offsetY: 40 },
+  { title: "Best Guitar Work", author: "Alex", cover: "linear-gradient(160deg, #1a2540 0%, #0a0f20 100%)", likes: "612", rotate: -8, offsetY: 40 },
   { title: "90s Hip Hop Albums", author: "Maria", cover: "linear-gradient(160deg, #6a2a2a 0%, #2a0a05 100%)", likes: "2.4K", rotate: 2, offsetY: 0, big: true },
-  { title: "National Parks", author: "James", cover: "linear-gradient(160deg, #2a4a5a 0%, #0a2030 100%)", likes: "1.1K", rotate: 8, offsetY: 30 },
-  { title: "Pizza Places", author: "Chris", cover: "linear-gradient(160deg, #b8621f 0%, #3a1a05 100%)", likes: "432", rotate: -5, offsetY: 100 },
-  { title: "Animated Movies", author: "Sarah", cover: "linear-gradient(160deg, #4a6a3a 0%, #1a2a15 100%)", likes: "1.8K", rotate: 3, offsetY: 90 },
-  { title: "Video Games", author: "Daniel", cover: "linear-gradient(160deg, #8a3a5a 0%, #2a0a15 100%)", likes: "952", rotate: 10, offsetY: 110 },
+  { title: "British Invasion Last Wave", author: "James", cover: "linear-gradient(160deg, #2a4a5a 0%, #0a2030 100%)", likes: "1.1K", rotate: 8, offsetY: 30 },
+  { title: "Bands That Made Ska Popular", author: "Chris", cover: "linear-gradient(160deg, #b8621f 0%, #3a1a05 100%)", likes: "432", rotate: -5, offsetY: 100 },
+  { title: "Worst Album by Legendary a Band", author: "Sarah", cover: "linear-gradient(160deg, #4a6a3a 0%, #1a2a15 100%)", likes: "1.8K", rotate: 3, offsetY: 90 },
+  { title: "Proto Punk", author: "Daniel", cover: "linear-gradient(160deg, #8a3a5a 0%, #2a0a15 100%)", likes: "952", rotate: 10, offsetY: 110 },
 ];
+
 
 function SocialButton({ children, testid }) {
   return (
@@ -139,7 +140,6 @@ export default function Login() {
             </span>
           </h1>
           <p className="text-[15px] text-[var(--text-muted)] leading-relaxed max-w-sm">
-            Create and explore the best top lists on everything.
           </p>
         </div>
 
@@ -178,7 +178,7 @@ export default function Login() {
             ))}
           </div>
           <div className="text-[12.5px] text-[var(--text-muted)] leading-snug">
-            Join thousands of list makers<br />already sharing their top picks.
+
           </div>
         </div>
       </div>
@@ -224,12 +224,12 @@ export default function Login() {
                   }}
                   placeholder="Enter your email or username"
                   data-testid="email-input"
-                  className={`w-full bg-[var(--panel)] border rounded-xl  pl-11 pr-4 py-3.5 text-[13.5px] 
+                  className={`w-full bg-[var(--panel)] border rounded-xl pl-11 pr-4 py-3.5 text-[13.5px] 
                     text-[var(--text)] placeholder:text-[var(--text-dim)] 
                     focus:outline-none focus:ring-2 transition 
                     ${emailError
-                    ? "border-red-500/60 focus:ring-red-500/20"
-                    : "border-[var(--border)] focus:ring-[var(--accent)]"
+                      ? "border-red-500/60 focus:ring-red-500/20"
+                      : "border-[var(--border)] focus:ring-[var(--accent)]"
                     }`}
                 />
 
@@ -304,7 +304,8 @@ export default function Login() {
                 Remember me
               </button>
               {loginError && (
-                <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                <div
+                  className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400">
                   {loginError}
                 </div>
               )}
@@ -318,11 +319,8 @@ export default function Login() {
               type="submit"
               data-testid="submit-btn"
               disabled={loading}
-              className="w-full h-13 py-3.5 rounded-xl font-semibold text-[14px] text-white transition hover:opacity-95 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              style={{
-                background: "linear-gradient(90deg, #8b5cf6, #ec4899)",
-                boxShadow: "0 10px 30px rgba(139,92,246,0.35)"
-              }}
+              className="btn-accent w-full rounded-xl py-3.5 text-[14px] font-semibold transition hover:-translate-y-0.5"
+
             >
               {loading ? "Logging in..." : "Log in"}
             </button>

@@ -58,7 +58,6 @@ export async function addToMyCollection(data) {
   return response.json();
 }
 
-
 export async function deleteCollection(collectionId) {
   const response = await authenticatedFetch(
     `/collection/${collectionId}`,
@@ -97,7 +96,6 @@ export async function getCollectionById(collectionId) {
 
   return response.json();
 }
-
 
 export async function updateCollection(
   collectionId,
