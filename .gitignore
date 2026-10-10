@@ -86,3 +86,5 @@ android-sdk/
 credentials.json
 *.key
 .credentials
+
+/backend/spinrealm-e60d1405d62f.json
