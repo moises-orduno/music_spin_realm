@@ -5,6 +5,8 @@ from pydantic import Field
 from models.artist import ArtistReference
 from models.track import Track
 
+from typing import Dict, List, Optional
+
 class Album(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
@@ -17,7 +19,7 @@ class Album(BaseModel):
     total_lists: int = 0
     total_debates: int = 0
     country: Optional[str] = None
-    description: Optional[str] = None
+    descriptions: Dict[str, str] = Field(default_factory=dict)
     created_by: str = "system"
 
 class AlbumReference(BaseModel):
@@ -34,7 +36,7 @@ class AlbumCreate(BaseModel):
     genres: List[str] = Field(default_factory=list)
     label: Optional[str] = None
     country: Optional[str] = None
-    description: Optional[str] = None
+    descriptions: Dict[str, str] = Field(default_factory=dict)
     tracks: List[Track] = Field(default_factory=list)
 
 class AlbumUpdate(BaseModel):
@@ -42,6 +44,7 @@ class AlbumUpdate(BaseModel):
     year: Optional[int] = None
     cover_url: Optional[str] = None
     genres: Optional[List[str]] = None
+    descriptions: Optional[Dict[str, str]] = None
 
 class AlbumSuggestionRequest(BaseModel):
     album_ids: list[str]

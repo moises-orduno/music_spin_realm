@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef } from "react";
 import {
   ArrowLeft,
   Camera,
@@ -6,13 +6,505 @@ import {
   Plus,
   Music2,
   UserRound,
-  Mail,
   Pencil,
+  Search,
+  Check
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
+import { getImageUrl } from "../lib/utils";
 import { getProfile, updateUser } from "../services/userService";
-const ACCENT = "#F04BA8";
+const ACCENT = "#8b5cf6";
+import { getCurrentUser } from "../services/authService";
+import { getSearch } from "../services/artistService";
+
+const GENRES = [
+  "Alternative",
+  "Alternative Rock",
+  "Blues",
+  "Classical",
+  "Country",
+  "Electronic",
+  "Folk",
+  "Funk",
+  "Grunge",
+  "Hip-Hop",
+  "Indie",
+  "Jazz",
+  "Metal",
+  "Pop",
+  "Punk",
+  "R&B",
+  "Reggae",
+  "Rock",
+  "Soul",
+];
+
+function ArtistPicker({
+  onChange,
+  onClose,
+  pickedArtists
+}) {
+  const MAX_ARTISTS = 5;
+
+  const [search, setSearch] = useState("");
+  const [artists, setArtists] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const value = search.trim();
+
+    if (!value) {
+      setArtists([]);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        setLoading(true);
+
+        const data = await getSearch(value);
+        setArtists(data);
+      } catch (error) {
+        console.error("Artist search error:", error);
+        setArtists([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  const selectArtist = (artist) => {
+    // Maximum of 5 artists
+    if (pickedArtists.length >= MAX_ARTISTS) {
+      return;
+    }
+
+    // Prevent duplicates
+    if (pickedArtists.some((picked) => picked.id === artist.id)) {
+      return;
+    }
+
+    // Don't mutate pickedArtists directly
+    onChange([...pickedArtists, artist]);
+
+    onClose();
+  };
+
+  return (
+    <div
+      className="
+        fixed inset-0 z-50
+        flex items-center justify-center
+        bg-black
+        px-4
+      "
+      onClick={onClose}
+    >
+      <div
+        className="
+          w-full max-w-md
+          rounded-2xl
+          border
+          bg-[var(--background)]
+          p-5
+          shadow-xl
+        "
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold">
+              Add artist
+            </h2>
+
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Select up to {MAX_ARTISTS} artists ({pickedArtists.length}/{MAX_ARTISTS})
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="
+              rounded-full
+              p-2
+              transition
+              hover:bg-[var(--surface-hover)]
+            "
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="relative mt-5">
+          <Search
+            size={16}
+            className="
+              absolute
+              left-3
+              top-1/2
+              -translate-y-1/2
+              text-[var(--text-muted)]
+            "
+          />
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search artist..."
+            autoFocus
+            className="
+              w-full
+              rounded-xl
+              border
+              bg-transparent
+              py-2.5
+              pl-9
+              pr-3
+              text-sm
+              outline-none
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+            "
+            disabled={pickedArtists.length >= MAX_ARTISTS}
+          />
+        </div>
+
+        {/* Maximum reached */}
+        {pickedArtists.length >= MAX_ARTISTS && (
+          <p className="mt-3 text-center text-xs text-[var(--text-muted)]">
+            You've reached the maximum of {MAX_ARTISTS} artists.
+          </p>
+        )}
+
+        {/* Results */}
+        <div className="mt-4 max-h-80 overflow-y-auto">
+          {loading && (
+            <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+              Searching...
+            </p>
+          )}
+
+          {!loading &&
+            pickedArtists.length < MAX_ARTISTS &&
+            search.trim() &&
+            artists.length === 0 && (
+              <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+                No artists found
+              </p>
+            )}
+
+          {!loading && artists.length > 0 && (
+            <div className="space-y-1">
+              {artists.map((artist) => {
+                const isSelected = pickedArtists.some(
+                  (picked) => picked.id === artist.id
+                );
+
+                const isDisabled =
+                  isSelected ||
+                  pickedArtists.length >= MAX_ARTISTS;
+
+                return (
+                  <button
+                    key={artist.id}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => selectArtist(artist)}
+                    className="
+                      flex w-full
+                      items-center
+                      gap-3
+                      rounded-xl
+                      p-2.5
+                      text-left
+                      transition
+                      hover:bg-[var(--surface-hover)]
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
+                    "
+                  >
+                    {/* Artist image */}
+                    <div
+                      className="
+                        h-11 w-11
+                        flex-shrink-0
+                        overflow-hidden
+                        rounded-full
+                        bg-[var(--surface-hover)]
+                      "
+                    >
+                      {artist.image_url ? (
+                        <img
+                          src={artist.image_url}
+                          alt={artist.name}
+                          className="
+                            h-full
+                            w-full
+                            object-cover
+                          "
+                        />
+                      ) : (
+                        <div
+                          className="
+                            flex h-full w-full
+                            items-center justify-center
+                            text-sm font-semibold
+                          "
+                          style={{
+                            color: ACCENT,
+                          }}
+                        >
+                          {artist.name
+                            ?.charAt(0)
+                            .toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Artist information */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {artist.name}
+                      </p>
+
+                      <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                        {[
+                          artist.country,
+                          artist.genres?.slice(0, 2).join(" · "),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+
+                    {/* Selected state */}
+                    {isSelected && (
+                      <span className="flex-shrink-0 text-xs text-[var(--text-muted)]">
+                        Added
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GenrePicker({
+  selectedGenres,
+  onChange,
+  onClose,
+}) {
+  const [search, setSearch] = useState("");
+
+  const filteredGenres = GENRES.filter((genre) =>
+    genre.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggleGenre = (genre) => {
+    if (selectedGenres.includes(genre)) {
+      onChange(selectedGenres.filter((g) => g !== genre));
+    } else {
+      onChange([...selectedGenres, genre]);
+    }
+  };
+
+  return (
+    <div
+      className="
+        fixed inset-0 z-50
+        flex items-center justify-center
+        bg-black
+        px-4
+      "
+      onClick={onClose}
+    >
+      <div
+        className="
+          w-full max-w-md
+          rounded-2xl
+          border
+          bg-[var(--background)]
+          p-5
+          shadow-xl
+        "
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold">
+              Add genres
+            </h2>
+
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Select one or more genres
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="
+              rounded-full
+              p-2
+              transition
+              hover:bg-[var(--surface-hover)]
+            "
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="relative mt-5">
+          <Search
+            size={16}
+            className="
+              absolute
+              left-3
+              top-1/2
+              -translate-y-1/2
+              text-[var(--text-muted)]
+            "
+          />
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search genres..."
+            className="
+              w-full
+              rounded-xl
+              border
+              bg-transparent
+              py-2.5
+              pl-9
+              pr-3
+              text-sm
+              outline-none
+            "
+          />
+        </div>
+
+        {/* Selected */}
+        {selectedGenres.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-medium text-[var(--text-muted)]">
+              Selected
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              {selectedGenres.map((genre) => (
+                <button
+                  key={genre}
+                  type="button"
+                  onClick={() => toggleGenre(genre)}
+                  className="
+                    inline-flex
+                    items-center
+                    gap-1
+                    rounded-full
+                    px-3
+                    py-1.5
+                    text-xs
+                    font-medium
+                  "
+                  style={{
+                    backgroundColor: `${ACCENT}15`,
+                    color: ACCENT,
+                  }}
+                >
+                  {genre}
+                  <X size={12} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Genre list */}
+        <div className="mt-5 max-h-64 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-2">
+            {filteredGenres.map((genre) => {
+              const selected = selectedGenres.includes(genre);
+
+              return (
+                <button
+                  key={genre}
+                  type="button"
+                  onClick={() => toggleGenre(genre)}
+                  className="
+                    flex items-center justify-between
+                    rounded-xl
+                    border
+                    px-3
+                    py-2.5
+                    text-left
+                    text-sm
+                    transition
+                    hover:bg-[var(--surface-hover)]
+                  "
+                  style={{
+                    borderColor: selected
+                      ? ACCENT
+                      : "var(--border)",
+                    color: selected
+                      ? ACCENT
+                      : "var(--text)",
+                  }}
+                >
+                  {genre}
+
+                  {selected && (
+                    <Check size={15} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {filteredGenres.length === 0 && (
+            <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+              No genres found
+            </p>
+          )}
+        </div>
+
+        {/* Done */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="
+            mt-5
+            w-full
+            rounded-xl
+            py-2.5
+            text-sm
+            font-medium
+            text-white
+          "
+          style={{
+            backgroundColor: ACCENT,
+          }}
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function SectionTitle({ icon: Icon, title, description }) {
   return (
@@ -42,74 +534,80 @@ function Label({ children }) {
   );
 }
 
-function Input({ value, onChange, disabled = false }) {
-  return (
-    <input
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      className="
-        w-full rounded-lg
-        border border-[var(--border-2)]
-        bg-[var(--surface)]
-        px-3.5 py-3
-        text-sm text-[var(--text)]
-        outline-none
-        transition
-        focus:border-[#F04BA8]
-        focus:ring-1 focus:ring-[#F04BA8]/30
-        disabled:opacity-50
-      "
-    />
-  );
-}
-
 export default function ProfileForm() {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
-  const [displayName, setDisplayName] = useState(
-    profile?.display_name || ""
-  );
+  const [displayName, setDisplayName] = useState("");
 
-  const [username, setUsername] = useState(
-    profile?.username || ""
-  );
+  const [username, setUsername] = useState("");
 
-  const [bio, setBio] = useState(
-    profile?.bio || ""
-  );
+  const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [email, setEmail] = useState("");
 
-  const [genres, setGenres] = useState(
-    profile?.favorite_genres || []
-  );
+  const [genres, setGenres] = useState([]);
 
-  const [artists, setArtists] = useState(
-    profile?.favorite_artists || []
-  );
+  const [artists, setArtists] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [favoriteSong, setFavoriteSong] = useState(
-    profile?.favorite_song || null
-  );
+  const [currentlyListeningAlbum, setCurrentlyListeningAlbum] = useState(null);
+  const [showGenrePicker, setShowGenrePicker] = useState(false);
+  const [showArtistPicker, setShowArtistPicker] = useState(false);
 
-  const [saving, setSaving] = useState(false);
+  const user = getCurrentUser();
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
 
-  const [profile, setProfile] = useState({});
-  const handleSave = async () => {
+  const [photoPreview, setPhotoPreview] = useState(null);
+
+  const onPhotoSelected = (file) => {
+    setSelectedPhoto(file);
+
+    const previewUrl = URL.createObjectURL(file);
+    setPhotoPreview(previewUrl);
+  };
+
+  const handleSubmit = async () => {
     try {
-      setSaving(true);
+      setSubmitting(true);
 
-      await updateUser({
-        display_name: displayName,
-        username,
-        bio,
-        favorite_genres: genres,
-        favorite_artists: artists.map((artist) => artist.id),
-        favorite_song_id: favoriteSong?.id || null,
-      });
+      const formData = new FormData();
 
-      navigate(`/collection`);
+      formData.append("display_name", displayName);
+      formData.append("username", username);
+      formData.append("bio", bio);
+
+      formData.append(
+        "favorite_genres",
+        JSON.stringify(genres)
+      );
+
+      formData.append(
+        "favorite_artists",
+        JSON.stringify(artists.map((artist) => artist.id))
+      );
+
+      if (currentlyListeningAlbum?.id) {
+        formData.append(
+          "currently_listening_album_id",
+          currentlyListeningAlbum?.id
+        );
+      }
+
+      if (selectedPhoto) {
+        formData.append(
+          "avatar",
+          selectedPhoto
+        );
+      }
+
+      await updateUser(formData);
+
+      sessionStorage.removeItem("profile-form");
+
+      navigate(`/profile`);
     } finally {
-      setSaving(false);
+      setSubmitting(false);
     }
   };
 
@@ -125,32 +623,65 @@ export default function ProfileForm() {
     );
   };
 
-    useEffect(() => {
-  
-      if (!user) {
-        navigate("/login", {
-          state: {
-            message: "Log in to edit.",
-            redirectTo: `/collectionAlbumForm/new`,
-          },
-        });
-        return;
-      }
+  const handleAddAlbumClick = () => {
 
-      async function loadProfile() {
-        try {
-  
-          
-          const data = await getProfile(user.username);
-          setProfile(data);
-        } catch (error) {
-          console.error(error);
+    navigate("/listAddAlbum", {
+      state: {
+        returnTo: `/profileForm/edit`,
+        storageKey: `profile-form`,
+      },
+    });
+  };
+
+  useEffect(() => {
+
+    if (!user) {
+      navigate("/login", {
+        state: {
+          message: "Log in to edit.",
+          redirectTo: `/collectionAlbumForm/new`,
+        },
+      });
+      return;
+    }
+
+    async function loadProfile() {
+      try {
+
+        const data = await getProfile(user.username);
+
+        setBio(data.bio);
+        setUsername(data.username);
+        setDisplayName(data.display_name);
+        setEmail(data.email);
+        setGenres(data.favorite_genres);
+        setArtists(data.favorite_artists);
+        setAvatarUrl(data.avatar_url);
+
+        if (data.currentlyListeningAlbum) {
+          setCurrentlyListeningAlbum(data.currentlyListeningAlbum);
+        } else {
+          const cached = sessionStorage.getItem("profile-form");
+
+          if (!cached) return;
+
+          const draft = JSON.parse(cached);
+          const selectedAlbum = draft.items?.[0]?.album;
+
+          if (selectedAlbum) {
+            setCurrentlyListeningAlbum(selectedAlbum);
+          }
+
         }
+
+      } catch (error) {
+        console.error(error);
       }
-  
-      loadProfile();
-  
-    }, []);
+    }
+
+    loadProfile();
+
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -163,7 +694,7 @@ export default function ProfileForm() {
             flex items-center gap-2
             text-sm text-[var(--text-muted)]
             transition
-            hover:text-[#F04BA8]
+            hover:text-[#8b5cf6]
           "
         >
           <ArrowLeft size={17} />
@@ -212,75 +743,134 @@ export default function ProfileForm() {
                   background: ACCENT,
                 }}
               >
-                <img
-                  src={
-                    profile?.avatar_url ||
-                    "/default-avatar.png"
-                  }
-                  alt={displayName}
-                  className="
+                {photoPreview ? (
+                  <div className="flex flex-col items-center">
+                    <div className="relative">
+                      <img
+                        src={photoPreview}
+                        alt="Profile preview"
+                        className="h-32 w-32 rounded-full object-cover border"
+                        style={{
+                          borderColor: `${ACCENT}80`,
+                        }}
+                      />
+                    </div>
+
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <img
+                      src={getImageUrl(avatarUrl, `default_user_image.png`)}
+                      alt={displayName}
+                      className="
                     w-full h-full
                     rounded-full
                     object-cover
                     border-2 border-[var(--surface)]
                   "
-                />
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
-                <button
-                  onClick={onChangePhoto}
+                <input
+                  id="photo-upload"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+
+                    if (file) {
+                      onPhotoSelected(file);
+                    }
+
+                    // Allows selecting the same file again later
+                    e.target.value = "";
+                  }}
+                />
+                <label
+                  htmlFor="photo-upload"
                   className="
-                    inline-flex items-center gap-2
-                    rounded-full
-                    border
-                    px-5 py-2.5
-                    text-sm font-medium
-                    transition
-                  "
+                      flex flex-col items-center justify-center
+                      rounded-2xl
+                      border border-dashed
+                      px-6 py-8
+                      text-center
+                      cursor-pointer
+                      transition
+                      hover:bg-[var(--surface-hover)]
+                      "
                   style={{
-                    borderColor: ACCENT,
-                    color: ACCENT,
+                    borderColor: `${ACCENT}80`,
                   }}
                 >
-                  <Camera size={16} />
-                  Change photo
-                </button>
+                  <Camera size={22} style={{ color: ACCENT }} />
 
-                <p className="mt-2 text-xs text-[var(--text-muted)]">
-                  JPG, PNG or WebP. Max 5MB.
-                </p>
+                  <p className="mt-3 text-sm font-medium">
+                    Drag & drop your photo here
+                  </p>
+
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    or click to choose a file
+                  </p>
+
+                  <span
+                    className="mt-3 inline-flex items-center rounded-full border px-5 py-2.5 text-sm font-medium"
+                    style={{
+                      borderColor: ACCENT,
+                      color: ACCENT,
+                    }}
+                  >
+                    Choose photo
+                  </span>
+
+                  <p className="mt-3 text-xs text-[var(--text-muted)]">
+                    JPG, PNG or WebP · Max 5MB
+                  </p>
+                </label>
+              </div>
+            </div>
+
+
+            {/* Username */}
+            <div className="card-panel p-5" data-testid="username-field">
+              <Label className="text-[12.5px] font-medium mb-2 block">
+                Username
+              </Label>
+
+              <div className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)]">
+                {username}
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="card-panel p-5" data-testid="email-field">
+              <Label className="text-[12.5px] font-medium mb-2 block">
+                Email
+              </Label>
+
+              <div className="w-full bg-[var(--panel-2)] border border-[var(--border)] 
+              rounded-lg px-4 py-3 text-[14px] text-[var(--text)]">
+                {email}
               </div>
             </div>
 
             {/* Display name */}
-            <div className="mb-6">
+            <div data-testid="display-name-field">
               <Label>Display name</Label>
-
-              <Input
+              <input
+                type="text"
                 value={displayName}
-                onChange={(e) =>
-                  setDisplayName(e.target.value)
-                }
+                onChange={(e) => setDisplayName(e.target.value.slice(0, 50))}
+                maxLength={50}
+                className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
+                            placeholder:text-[var(--text-dim)] 
+                            focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
+
               />
-            </div>
-
-            {/* Username */}
-            <div className="mb-6">
-              <Label>Username</Label>
-
-              <Input
-                value={username}
-                onChange={(e) =>
-                  setUsername(e.target.value)
-                }
-              />
-
-              <p className="mt-2 text-xs text-[var(--text-muted)]">
-                This is your public profile URL:
-                {" "}
-                spinrealm.com/users/{username}
-              </p>
             </div>
 
             {/* Bio */}
@@ -294,20 +884,9 @@ export default function ProfileForm() {
                 }
                 maxLength={500}
                 rows={4}
-                className="
-                  w-full
-                  resize-none
-                  rounded-lg
-                  border border-[var(--border-2)]
-                  bg-[var(--surface)]
-                  px-3.5 py-3
-                  text-sm
-                  text-[var(--text)]
-                  outline-none
-                  transition
-                  focus:border-[#F04BA8]
-                  focus:ring-1 focus:ring-[#F04BA8]/30
-                "
+                className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
+                            placeholder:text-[var(--text-dim)] 
+                            focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
               />
 
               <div className="mt-1 text-right text-xs text-[var(--text-muted)]">
@@ -315,78 +894,6 @@ export default function ProfileForm() {
               </div>
             </div>
 
-            <div className="border-t border-[var(--border-2)] pt-7">
-
-              {/* Email */}
-              <div className="mb-8">
-                <Label>
-                  Email{" "}
-                  <span className="font-normal text-[var(--text-muted)]">
-                    (not public)
-                  </span>
-                </Label>
-
-                <div className="relative">
-                  <Mail
-                    size={17}
-                    className="
-                      absolute
-                      left-3
-                      top-1/2
-                      -translate-y-1/2
-                      text-[var(--text-muted)]
-                    "
-                  />
-
-                  <Input
-                    value={profile?.email || ""}
-                    disabled
-                    onChange={() => {}}
-                  />
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-4">
-
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="
-                    rounded-full
-                    px-7 py-3
-                    text-sm
-                    font-semibold
-                    text-white
-                    transition
-                    hover:brightness-110
-                    disabled:opacity-50
-                  "
-                  style={{
-                    background: ACCENT,
-                  }}
-                >
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
-
-                <button
-                  onClick={() => navigate(-1)}
-                  className="
-                    rounded-full
-                    border border-[var(--border-2)]
-                    px-7 py-3
-                    text-sm
-                    text-[var(--text-muted)]
-                    transition
-                    hover:border-[#F04BA8]
-                    hover:text-[#F04BA8]
-                  "
-                >
-                  Cancel
-                </button>
-
-              </div>
-            </div>
           </section>
 
 
@@ -421,11 +928,11 @@ export default function ProfileForm() {
                       items-center
                       gap-1.5
                       rounded-full
-                      bg-[#F04BA8]/10
+                      bg-[#8b5cf6]/10
                       px-3.5 py-2
                       text-xs
                       font-medium
-                      text-[#F04BA8]
+                      text-[#8b5cf6]
                       transition
                       hover:bg-[#F04BA8]/20
                     "
@@ -438,6 +945,7 @@ export default function ProfileForm() {
               </div>
 
               <button
+                onClick={() => setShowGenrePicker(true)}
                 className="
                   mt-4
                   inline-flex
@@ -459,6 +967,14 @@ export default function ProfileForm() {
                 <Plus size={15} />
                 Add Genre
               </button>
+
+              {showGenrePicker && (
+                <GenrePicker
+                  selectedGenres={genres}
+                  onChange={setGenres}
+                  onClose={() => setShowGenrePicker(false)}
+                />
+              )}
             </section>
 
 
@@ -474,11 +990,10 @@ export default function ProfileForm() {
               <SectionTitle
                 icon={UserRound}
                 title="Favorite Artists"
-                description="Add your favorite artists (max 10)."
+                description="Add your favorite artists."
               />
 
               <div className="flex flex-wrap gap-7">
-
                 {artists.map((artist) => (
                   <div
                     key={artist.id}
@@ -532,6 +1047,7 @@ export default function ProfileForm() {
               </div>
 
               <button
+                onClick={() => setShowArtistPicker(true)}
                 className="
                   mt-5
                   inline-flex
@@ -553,10 +1069,18 @@ export default function ProfileForm() {
                 <Plus size={15} />
                 Add Artist
               </button>
+
+              {showArtistPicker && (
+                <ArtistPicker
+                  onChange={setArtists}
+                  onClose={() => setShowArtistPicker(false)}
+                  pickedArtists={artists}
+                />
+              )}
             </section>
 
 
-            {/* Favorite Song */}
+            {/* Album currently listing to */}
             <section
               className="
                 rounded-xl
@@ -567,11 +1091,11 @@ export default function ProfileForm() {
             >
               <SectionTitle
                 icon={Music2}
-                title="Favorite Song"
-                description="Choose a song that means a lot to you."
+                title="I'm listening to"
+                description="Choose the album you are listening to now."
               />
 
-              {favoriteSong ? (
+              {currentlyListeningAlbum ? (
                 <div
                   className="
                     flex
@@ -585,10 +1109,10 @@ export default function ProfileForm() {
 
                   <img
                     src={
-                      favoriteSong.album_cover_url ||
+                      currentlyListeningAlbum.cover_url ||
                       "/default-album.png"
                     }
-                    alt={favoriteSong.album_title}
+                    alt={currentlyListeningAlbum.title}
                     className="
                       h-24 w-24
                       shrink-0
@@ -600,16 +1124,11 @@ export default function ProfileForm() {
                   <div className="min-w-0 flex-1">
 
                     <h3 className="truncate text-sm font-medium text-[var(--text)]">
-                      {favoriteSong.title}
+                      {currentlyListeningAlbum.title}
                     </h3>
 
                     <p className="mt-1 text-sm text-[var(--text-muted)]">
-                      {favoriteSong.artist?.name ||
-                        favoriteSong.artist}
-                    </p>
-
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">
-                      {favoriteSong.album_title}
+                      {currentlyListeningAlbum.artist.name}
                     </p>
 
                     <button
@@ -632,13 +1151,13 @@ export default function ProfileForm() {
                       }}
                     >
                       <Pencil size={13} />
-                      Change song
+                      Change album
                     </button>
 
                   </div>
 
                   <button
-                    onClick={() => setFavoriteSong(null)}
+                    onClick={handleAddAlbumClick}
                     className="
                       self-start
                       text-[#F04BA8]
@@ -652,6 +1171,7 @@ export default function ProfileForm() {
                 </div>
               ) : (
                 <button
+                  onClick={handleAddAlbumClick}
                   className="
                     flex w-full
                     items-center
@@ -664,18 +1184,35 @@ export default function ProfileForm() {
                     text-sm
                     text-[var(--text-muted)]
                     transition
-                    hover:border-[#F04BA8]
-                    hover:text-[#F04BA8]
+                    hover:border-[#8b5cf6]
+                    hover:text-[#8b5cf6]
                   "
                 >
                   <Plus size={17} />
-                  Choose a favorite song
+                  Choose an album
                 </button>
               )}
 
             </section>
 
           </div>
+        </div>
+        {/* Actions */}
+        <div className="pt-2">
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            data-testid="continue-btn"
+            className="w-full rounded-xl py-3 font-semibold text-[13px] text-white transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: "linear-gradient(90deg, #8b5cf6, #6d28d9)",
+              boxShadow: "0 6px 20px var(--accent-glow)",
+            }}
+          >
+            {submitting
+              ? ("Saving...")
+              : ("Save Changes")}
+          </button>
         </div>
       </main>
     </div>

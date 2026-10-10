@@ -11,6 +11,19 @@ import {
 }
   from "../services/listService";
 
+function Label({ children, hint }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <label className="text-[10.5px] tracking-[0.15em] uppercase text-[var(--text-muted)]">{children}</label>
+      {hint && (
+        <button type="button" className="text-[11px] text-[var(--accent-2)] hover:underline flex items-center gap-1">
+          <Info size={11} /> {hint}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Toggle({ on, onClick, testid }) {
   return (
     <button
@@ -328,9 +341,9 @@ export default function ListRemix() {
 
         {/* Original title */}
         <div className="card-panel p-5" data-testid="title-field">
-          <label className="text-[12.5px] font-medium mb-2 block">
+          <Label className="text-[12.5px] font-medium mb-2 block">
             List title
-          </label>
+          </Label>
 
           <div className="w-full bg-[var(--panel-2)] border border-[var(--border)] rounded-lg px-4 py-3 text-[14px] text-[var(--text)]">
             {draft?.title}
@@ -344,7 +357,7 @@ export default function ListRemix() {
         {/* Description */}
         <div className="card-panel p-5" data-testid="description-field">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-[12.5px] font-medium">Your description <span className="text-[var(--text-muted)]">(optional)</span></label>
+            <Label className="text-[12.5px] font-medium">Your description <span className="text-[var(--text-muted)]">(optional)</span></Label>
             <span className="text-[11px] text-[var(--text-dim)]">{draft?.description.length}/250</span>
           </div>
           <textarea

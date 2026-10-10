@@ -95,22 +95,39 @@ export default function Layout({ children, showRightPanel = true }) {
         </div>
 
         {/* Main area */}
-        <div className="flex-1 flex min-w-0">
-          <div className="flex-1 min-w-0 flex flex-col">
-            <TopNav />
-            <main className="flex-1 px-4 sm:px-6 lg:px-8 py-5 lg:py-6">{children}</main>
-            {/* Mobile right panel at bottom */}
+        <div className="flex-1 min-w-0">
+          {/* Top navigation spans the entire main area */}
+          <TopNav />
+
+          {/* Content + Right Panel */}
+          <div className="flex min-w-0">
+            <div className="flex-1 min-w-0 flex flex-col">
+              <main className="flex-1 px-4 sm:px-6 lg:px-8 py-5 lg:py-6">
+                {children}
+              </main>
+
+              {/* Mobile right panel at bottom */}
+              {showRightPanel && (
+                <div className="xl:hidden border-t border-[var(--border)]">
+                  <RightPanel
+                    mobile
+                    hunting={hunt}
+                    rareFinds={rareFinds}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Desktop right panel */}
             {showRightPanel && (
-              <div className="xl:hidden border-t border-[var(--border)]">
-                <RightPanel mobile />
+              <div className="hidden xl:block">
+                <RightPanel
+                  hunting={hunt}
+                  rareFinds={rareFinds}
+                />
               </div>
             )}
           </div>
-          {showRightPanel && (
-            <div className="hidden xl:block">
-              <RightPanel hunting={hunt} rareFinds={rareFinds} />
-            </div>
-          )}
         </div>
       </div>
     </DrawerContext.Provider>

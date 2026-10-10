@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, EmailStr, Field
 import uuid
 
+from models.album import AlbumReference
+
 
 class UserRole(str, Enum):
     USER = "user"
@@ -38,8 +40,9 @@ class User(BaseModel):
 
     favorite_genres: List[str] = Field(default_factory=list)
     favorite_artists: List[str] = Field(default_factory=list)
-    favorite_song_id: Optional[str] = None
+    currently_listening_album_id: Optional[str] = None
 
+    collections_count: int = 0
     lists_count: int = 0
     debates_count: int = 0
 
@@ -67,8 +70,12 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     display_name: Optional[str] = None
+    username: Optional[str] = None
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
+    favorite_genres: Optional[List[str]] = None
+    favorite_artists: Optional[List[str]] = None
+    favorite_song_id: Optional[str] = None
 
 
 class UserReference(BaseModel):
@@ -91,12 +98,16 @@ class ProfileResponse(BaseModel):
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
 
-    albums_count: int = 0
+    email: Optional[str] = None
+
+    collections_count: int = 0
     lists_count: int = 0
     debates_count: int = 0
     following_count: int = 0
     followers_count: int = 0
 
+    is_following: bool = False
+
     favorite_genres: List[str] = []
     favorite_artists: List[dict] = []
-    favorite_song: Optional[dict] = None
+    currently_listening_album: Optional[AlbumReference] = None

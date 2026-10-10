@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, File, Form, UploadFile
 from datetime import datetime, timezone
 from typing import Optional
 import uuid
+from helpers.aws_upload import upload_collection_image_to_s3
 
 from models.collection import (
     CollectionItemCreate,
@@ -150,51 +151,94 @@ async def get_my_collection(
 
 @router.post("/me", response_model=CollectionItemResponse)
 async def add_to_my_collection(
-    payload: CollectionItemCreate,
-    current_user=Depends(get_current_user)
+    album_id: str = Form(None),
+
+    pressing: Optional[str] = Form(None),
+    pressing_country: Optional[str] = Form(None),
+    pressing_year: Optional[int] = Form(None),
+
+    label: Optional[str] = Form(None),
+    catalog_number: Optional[str] = Form(None),
+    barcode: Optional[str] = Form(None),
+    matrix_runout: Optional[str] = Form(None),
+    edition: Optional[str] = Form(None),
+
+    media_condition: Optional[str] = Form(None),
+    sleeve_condition: Optional[str] = Form(None),
+
+    favorite: bool = Form(False),
+
+    price_paid: Optional[float] = Form(None),
+    currency: Optional[str] = Form(None),
+    purchase_date: Optional[str] = Form(None),
+    purchased_from: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+
+    source: Optional[str] = Form(None),
+    source_release_id: Optional[str] = Form(None),
+
+    image: Optional[UploadFile] = File(None),
+
+    current_user=Depends(get_current_user),
 ):
     user_id = str(current_user["id"])
 
     album = await db.albums.find_one({
-        "id": payload.album_id
+        "id": album_id
     })
 
     if not album:
         raise HTTPException(
             status_code=404,
-            detail="Album not found"
+            detail="Album not found",
         )
 
     now = datetime.now(timezone.utc)
+    collection_id = str(uuid.uuid4())
+
+    image_url = None
+
+    # Upload the collection photo to S3, if provided.
+    if image is not None:
+        uploaded = await upload_collection_image_to_s3(
+            image,
+            user_id,
+            collection_id,
+        )
+
+        image_url = uploaded
 
     collection_item = {
-        "id": str(uuid.uuid4()),
+        "id": collection_id,
         "user_id": user_id,
-        "album_id": payload.album_id,
+        "album_id": album_id,
 
-        "pressing": payload.pressing,
-        "pressing_country": payload.pressing_country,
-        "pressing_year": payload.pressing_year,
+        "pressing": pressing,
+        "pressing_country": pressing_country,
+        "pressing_year": pressing_year,
 
-        "label": payload.label,
-        "catalog_number": payload.catalog_number,
-        "barcode": payload.barcode,
-        "matrix_runout": payload.matrix_runout,
-        "edition": payload.edition,
+        "label": label,
+        "catalog_number": catalog_number,
+        "barcode": barcode,
+        "matrix_runout": matrix_runout,
+        "edition": edition,
 
-        "media_condition": payload.media_condition,
-        "sleeve_condition": payload.sleeve_condition,
+        "media_condition": media_condition,
+        "sleeve_condition": sleeve_condition,
 
-        "favorite":payload.favorite,
+        "favorite": favorite,
 
-        "price_paid": payload.price_paid,
-        "currency": payload.currency,
-        "purchase_date": payload.purchase_date,
-        "purchased_from": payload.purchased_from,
-        "notes": payload.notes,
+        "price_paid": price_paid,
+        "currency": currency,
+        "purchase_date": purchase_date,
+        "purchased_from": purchased_from,
+        "notes": notes,
 
-        "source": payload.source,
-        "source_release_id": payload.source_release_id,
+        "source": source,
+        "source_release_id": source_release_id,
+
+        # S3 image fields
+        "image_url": image_url,
 
         "created_at": now,
         "updated_at": now,
@@ -202,8 +246,17 @@ async def add_to_my_collection(
 
     await db.collection_items.insert_one(collection_item)
 
-    # Don't expose Mongo's _id
+    await db.users.update_one(
+        {"id": user_id},
+        {
+            "$inc": {
+                "collections_count": 1
+            }
+        },
+    )
+
     collection_item.pop("_id", None)
+    collection_item.pop("image_key", None)
 
     return CollectionItemResponse(**collection_item)
 
@@ -261,29 +314,99 @@ async def delete_collection(
             detail="Collection item not found"
         )
 
+    await db.users.update_one(
+    {"id": current_user["id"]},
+        {
+            "$inc": {
+                "collections_count": -1
+            }
+        }
+    )
+
     return {
         "message": "Collection item deleted successfully",
         "id": collection_id,
     }
 
-@router.patch("/{collection_id}")
+@router.patch("/{collection_id}", response_model=CollectionItemResponse)
 async def update_collection_item(
     collection_id: str,
-    payload: CollectionItemUpdate,
+
+    pressing: Optional[str] = Form(None),
+    pressing_country: Optional[str] = Form(None),
+    pressing_year: Optional[int] = Form(None),
+
+    label: Optional[str] = Form(None),
+    catalog_number: Optional[str] = Form(None),
+    barcode: Optional[str] = Form(None),
+    matrix_runout: Optional[str] = Form(None),
+    edition: Optional[str] = Form(None),
+
+    media_condition: Optional[str] = Form(None),
+    sleeve_condition: Optional[str] = Form(None),
+
+    favorite: Optional[bool] = Form(None),
+
+    price_paid: Optional[float] = Form(None),
+    currency: Optional[str] = Form(None),
+    purchase_date: Optional[str] = Form(None),
+    purchased_from: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+
+    source: Optional[str] = Form(None),
+    source_release_id: Optional[str] = Form(None),
+
+    image: Optional[UploadFile] = File(None),
+
     current_user=Depends(get_current_user),
 ):
     user_id = str(current_user["id"])
 
-    # Only update fields actually provided
-    update_data = payload.model_dump(exclude_unset=True)
+    updates = {}
 
-    if not update_data:
-        raise HTTPException(
-            status_code=400,
-            detail="No fields to update"
+    # Only update fields explicitly provided.
+    fields = {
+        "pressing": pressing,
+        "pressing_country": pressing_country,
+        "pressing_year": pressing_year,
+        "label": label,
+        "catalog_number": catalog_number,
+        "barcode": barcode,
+        "matrix_runout": matrix_runout,
+        "edition": edition,
+        "media_condition": media_condition,
+        "sleeve_condition": sleeve_condition,
+        "favorite": favorite,
+        "price_paid": price_paid,
+        "currency": currency,
+        "purchase_date": purchase_date,
+        "purchased_from": purchased_from,
+        "notes": notes,
+        "source": source,
+        "source_release_id": source_release_id,
+    }
+
+    for field, value in fields.items():
+        if value is not None:
+            updates[field] = value
+
+    # Upload a new collection photo to S3, if provided.
+    if image is not None:
+        image_url = await upload_collection_image_to_s3(
+            image,
+            user_id,
+            collection_id,
         )
 
-    update_data["updated_at"] = datetime.now(timezone.utc)
+        updates["image_url"] = image_url
+
+    if not updates:
+        raise HTTPException(
+            status_code=400,
+            detail="No fields to update",
+        )
+
+    updates["updated_at"] = datetime.now(timezone.utc)
 
     result = await db.collection_items.update_one(
         {
@@ -291,14 +414,14 @@ async def update_collection_item(
             "user_id": user_id,
         },
         {
-            "$set": update_data
-        }
+            "$set": updates,
+        },
     )
 
     if result.matched_count == 0:
         raise HTTPException(
             status_code=404,
-            detail="Collection item not found"
+            detail="Collection item not found",
         )
 
     updated_item = await db.collection_items.find_one(
@@ -307,8 +430,8 @@ async def update_collection_item(
             "user_id": user_id,
         },
         {
-            "_id": 0
-        }
+            "_id": 0,
+        },
     )
 
-    return updated_item
+    return CollectionItemResponse(**updated_item)

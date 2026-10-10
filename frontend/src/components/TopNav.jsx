@@ -63,7 +63,7 @@ function UserMenu({ user, onLogout }) {
       {open && (
         <div className="absolute right-0 mt-2 w-44 rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-lg overflow-hidden z-50">
           <NavLink
-            to={`/users/${user.username}`}
+            to={`/profile`}
             onClick={() => setOpen(false)}
             className="block px-4 py-3 text-[13px] hover:bg-[var(--accent-soft)] transition"
           >

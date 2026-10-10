@@ -10,6 +10,8 @@ import {
   Heart,
   MessageCircle,
   Flame,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 import {
@@ -126,8 +128,31 @@ function ReplyCard({ c, onLike, liked }) {
 /* ---------------------------
    Comment Card
 ----------------------------*/
-function CommentCard({ c, onLike, likedMap }) {
-  const [showReply, setShowReply] = useState(false);
+function CommentCard({ c, onLike, likedMap, setComments, debateId }) {
+  const [showReplyInput, setShowReplyInput] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [replies, setReplies] = useState(c.replies);
+
+
+  const handleAddReplyComment = async () => {
+    if (!replyText.trim()) return;
+
+    try {
+
+      const newComment = await createComment(debateId, {
+        text: replyText,
+        parent_comment_id: c.id,
+      });
+
+      setReplies((prev) => [newComment, ...prev]);
+      setReplyText("");
+    } catch (error) {
+      console.error("Failed to create reply:", error);
+    } finally {
+      setShowReplyInput(false);
+    }
+  };
 
   return (
     <div>
@@ -150,7 +175,9 @@ function CommentCard({ c, onLike, likedMap }) {
           <p className="text-[13px] text-[var(--text)]/90">{c.text}</p>
 
           <div className="flex gap-4 mt-3">
-            <button onClick={() => onLike(c.id)}>
+            <button
+              onClick={() => onLike(c.id)}
+              className="flex items-center gap-1 text-[12px]">
               <Heart
                 size={13}
                 className={
@@ -162,31 +189,61 @@ function CommentCard({ c, onLike, likedMap }) {
               {c.likes + (likedMap[c.id] ? 1 : 0)}
             </button>
 
-            <button onClick={() => setShowReply(!showReply)}>
+            <button
+              onClick={() => setShowReplyInput(!showReplyInput)}
+              className="flex items-center gap-1 text-[12px]">
               <MessageCircle size={13} /> Reply
             </button>
+
+            {replies.length!=0 ? (
+              <button
+                onClick={() => setShowReplies(!showReplies)}
+                className="flex items-center gap-1 text-[12px]"
+              >
+                {showReplies ? (
+                  <>
+                    <ChevronUp size={13} />
+                    Hide Replies
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={13} />
+                    Show Replies
+                  </>
+                )}
+              </button>) : (<div></div>)}
           </div>
 
-          {showReply && (
-            <div className="mt-3 flex gap-2">
+          {showReplyInput && (
+            <div className="mt-2 flex gap-2">
               <input
-                className="flex-1 border rounded px-3 py-2 text-[12px]"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                className="flex-1 border rounded px-3 py-2 text-[12px] text-black placeholder:text-gray-400"
                 placeholder="Write a reply..."
               />
-              <button className="btn-accent px-3 text-[12px]">Send</button>
+              <button
+                onClick={handleAddReplyComment}
+                className="btn-accent px-3 text-[12px]">
+                Post
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      {c.replies?.map((r) => (
-        <ReplyCard
-          key={r.id}
-          c={r}
-          onLike={onLike}
-          liked={likedMap[r.id]}
-        />
-      ))}
+      <div className="mt-5 ml-8">
+        {showReplies && (
+
+          replies?.map((r) => (
+            <ReplyCard
+              key={r.id}
+              c={r}
+              onLike={onLike}
+              liked={likedMap[r.id]}
+            />
+          )))}
+      </div>
     </div>
   );
 }
@@ -207,7 +264,6 @@ export default function DebateDetail() {
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState([]);
 
- 
 
   /* ---------------------------
      Derived options (safe)
@@ -255,7 +311,7 @@ export default function DebateDetail() {
         const data = await getCommentsByDebateId(id);
         setComments(data);
       } catch (err) {
-        console.error("Failed to load debate:", err);
+        console.error("Failed to load comment:", err);
       } finally {
         setLoading(false);
       }
@@ -280,7 +336,7 @@ export default function DebateDetail() {
     } catch (error) {
       console.error(error);
     } finally {
-      
+
     }
   };
 
@@ -438,7 +494,9 @@ export default function DebateDetail() {
               onLike={(id) =>
                 setLikedComments((p) => ({ ...p, [id]: !p[id] }))
               }
+              setComments={setComments}
               likedMap={likedComments}
+              debateId={id}
             />
           ))}
         </div>
@@ -472,7 +530,6 @@ export default function DebateDetail() {
       <aside className="w-[280px] hidden xl:block">
         <div className="card-panel p-5">
           <div className="text-xs uppercase mb-3">Results</div>
-
           <svg viewBox="0 0 100 100" className="w-[120px] h-[120px]">
             <circle
               cx="50"

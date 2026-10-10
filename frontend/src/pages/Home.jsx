@@ -1,12 +1,50 @@
 import React, { useState, useEffect } from "react";
 import { Crown, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
-import { spotlight } from "../data/mock";
 import { SectionTitle } from "../components/ui-bits";
 import { useNavigate, Link } from "react-router-dom";
 
-import { getDebates } from "../services/debateService";
+import { getDebates, getRandomDebate } from "../services/debateService";
 import { getLists } from "../services/listService";
+import { getProfiles } from "../services/userService";
 
+const formatTitle = (text, maxLineLength = 20) => {
+  const words = text.trim().split(/\s+/);
+  const lines = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const candidate = currentLine
+      ? `${currentLine} ${word}`
+      : word;
+
+    if (candidate.length <= maxLineLength || !currentLine) {
+      currentLine = candidate;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines;
+};
+
+function FormattedTitle({ text }) {
+  const lines = formatTitle(text, 20);
+
+  return (
+    <h1 className="font-serif text-[30px] sm:text-[38px] lg:text-[44px] leading-[1.05] font-normal mb-4">
+      {lines.map((line, index) => (
+        <span key={index} className="block">
+          {line}
+        </span>
+      ))}
+    </h1>
+  );
+}
 
 export default function Home() {
 
@@ -14,6 +52,9 @@ export default function Home() {
   const [loadingDebates, setLoadingDebates] = useState(true);
   const [lists, setLists] = useState([]);
   const [loadingLists, setLoadingLists] = useState(true);
+  const [profiles, setProfiles] = useState([]);
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
+  const [debateOfTheDay, setDebateOfTheDay] = useState(null);
   const [error, setError] = useState(null);
 
   const navigate = useNavigate();
@@ -42,8 +83,6 @@ export default function Home() {
       }
     };
 
-    loadDebates();
-
     const loadLists = async () => {
       try {
         setLoadingLists(true);
@@ -53,14 +92,51 @@ export default function Home() {
         setLists(data);
 
       } catch (err) {
-        setError(err.message || "Failed to load debates");
+        setError(err.message || "Failed to load lists");
         console.log(err);
       } finally {
         setLoadingLists(false);
       }
     };
 
+
+    const loadProfiles = async () => {
+      try {
+        setLoadingProfiles(true);
+        setError(null);
+
+        const data = await getProfiles();
+        setProfiles(data);
+
+      } catch (err) {
+        setError(err.message || "Failed to load profiles");
+        console.log(err);
+      } finally {
+        setLoadingProfiles(false);
+      }
+    };
+
+    const loadRandomDebate = async () => {
+      try {
+
+        const data = await getRandomDebate();
+        setDebateOfTheDay(data);
+
+      } catch (err) {
+        setError(err.message || "Failed to load debates");
+      } finally {
+        setLoadingDebates(false);
+      }
+    };
+
+    loadRandomDebate();
+
+    loadProfiles();
+
+    loadDebates();
+
     loadLists();
+
   }, []);
 
   return (
@@ -74,40 +150,44 @@ export default function Home() {
         }}
         data-testid="hero-music-court"
       >
-        <div className="relative z-10 max-w-[540px]">
-          <div className="flex items-center gap-2 mb-5">
-            <Crown size={14} className="text-[var(--accent)]" />
-            <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)]">Music Court</span>
-          </div>
-          <h1 className="font-serif text-[30px] sm:text-[38px] lg:text-[44px] leading-[1.05] font-normal mb-4">
-            Which albums<br />truly have no skips?
-          </h1>
-          <p className="text-[14px] text-[var(--text-muted)] mb-7 max-w-[420px]">
-            Defend your pick. Convince the court.
-          </p>
-          <div className="flex items-center gap-3 mb-7">
-            <button className="btn-accent px-6 py-2.5 rounded-lg text-[13px]" data-testid="join-debate-btn">
-              Join the debate
-            </button>
-            <button className="text-[13px] text-[var(--text)] flex items-center gap-1.5 px-4 py-2.5 btn-ghost">
-              See all debates <ArrowRight size={14} />
-            </button>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-2">
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="w-7 h-7 rounded-full border-2 border-[#1a1612]"
-                  style={{ background: `linear-gradient(135deg, hsl(${i * 70}, 40%, 50%), hsl(${i * 70 + 30}, 30%, 25%))` }}
-                />
-              ))}
+        {debateOfTheDay ?
+          <div className="relative z-10 max-w-[540px]">
+            <div className="flex items-center gap-2 mb-5">
+              <Crown size={14} className="text-[var(--accent)]" />
+              <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)]">Music Court</span>
             </div>
-            <span className="text-[12px] text-[var(--text-muted)]">
-              <span className="text-[var(--text)] font-medium">1.2K collectors</span> defending their picks
-            </span>
+            <FormattedTitle text={debateOfTheDay.title} />
+            <p className="text-[14px] text-[var(--text-muted)] mb-7 max-w-[420px]">
+              Defend your pick. Convince the court.
+            </p>
+            <div className="flex items-center gap-3 mb-7">
+              <button className="btn-accent w-full rounded-full py-2 text-[12px]"
+                data-testid="join-debate-btn"
+                onClick={() => handleDebateClick(debateOfTheDay)}>
+                Join the debate
+              </button>
+              <Link to="/debates">
+                <button className="text-[13px] text-[var(--text)] flex items-center gap-1.5 px-4 py-2.5 btn-ghost">
+                  See all debates <ArrowRight size={14} />
+                </button>
+              </Link>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="w-7 h-7 rounded-full border-2 border-[#1a1612]"
+                    style={{ background: `linear-gradient(135deg, hsl(${i * 70}, 40%, 50%), hsl(${i * 70 + 30}, 30%, 25%))` }}
+                  />
+                ))}
+              </div>
+              <span className="text-[12px] text-[var(--text-muted)]">
+                <span className="text-[var(--text)] font-medium">{debateOfTheDay.comments}</span> defending their picks
+              </span>
+            </div>
           </div>
-        </div>
+          : <div>Loading debates...</div>}
 
         {/* Decorative album cluster */}
         <div className="absolute right-[-40px] top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-3 opacity-90">
@@ -129,15 +209,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Carousel arrows */}
-        <div className="absolute bottom-6 right-6 flex gap-2 z-20">
-          <button className="w-8 h-8 rounded-full border border-[var(--border-2)] flex items-center justify-center btn-ghost" data-testid="hero-prev">
-            <ChevronLeft size={14} />
-          </button>
-          <button className="w-8 h-8 rounded-full border border-[var(--border-2)] flex items-center justify-center btn-ghost" data-testid="hero-next">
-            <ChevronRight size={14} />
-          </button>
-        </div>
       </section>
 
       {/* Top Debates This Week */}
@@ -229,7 +300,7 @@ export default function Home() {
         </SectionTitle>
 
         {loadingLists ? (
-          <div>Loading...</div>
+          <div>Loading Lists...</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {lists.map((list) => (
@@ -260,7 +331,7 @@ export default function Home() {
                   {list.recent_albums.slice(0, 3).map((album, index) => (
                     <div key={album.id} className="flex items-center gap-3">
                       <span className="text-[13px] text-[var(--text-dim)] w-3">
-                        {(album.position+1)}
+                        {(album.position + 1)}
                       </span>
 
                       <div className="min-w-0">
@@ -289,35 +360,43 @@ export default function Home() {
 
       {/* Collector Spotlight */}
       <section data-testid="collector-spotlight-section">
+
         <SectionTitle
           action={
-            <button className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 hover:text-[var(--accent)]">
-              View all <ArrowRight size={12} />
-            </button>
+            <Link
+              to="/people"
+              className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 hover:text-[var(--accent)]"
+            >
+              View all people <ArrowRight size={12} />
+            </Link>
           }
         >
           Collector Spotlight
         </SectionTitle>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {spotlight.slice(0, 4).map((s) => (
-            <div key={s.id} className="card-panel hover-lift p-5 cursor-pointer" data-testid={`spotlight-${s.id}`}>
-              <div className="flex gap-4 mb-3">
-                <div
-                  className="w-[60px] h-[60px] rounded-full shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${s.avatarColor}, #1a1612)` }}
-                />
-                <div className="min-w-0">
-                  <div className="text-[13.5px] font-medium truncate">{s.handle}</div>
-                  <div className="text-[11px] text-[var(--text-muted)] truncate">{s.type}</div>
+
+        {loadingProfiles ? (
+          <div>Loading profiles...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {profiles.slice(0, 4).map((s) => (
+              <div key={s.id} className="card-panel hover-lift p-5 cursor-pointer" data-testid={`spotlight-${s.id}`}>
+                <div className="flex gap-4 mb-3">
+                  <div
+                    className="w-[60px] h-[60px] rounded-full shrink-0"
+                    style={{ background: `linear-gradient(135deg, ${s.avatarColor}, #1a1612)` }}
+                  />
+                  <div className="min-w-0">
+                    <div className="text-[13.5px] font-medium truncate">{s.display_name}</div>
+                  </div>
                 </div>
+                <p className="font-serif text-[14px] italic text-[var(--text)]/85 leading-snug mb-3">
+                  “{s.bio}”
+                </p>
+                <div className="text-[10.5px] text-[var(--text-dim)]">{s.followers_count} followers</div>
               </div>
-              <p className="font-serif text-[14px] italic text-[var(--text)]/85 leading-snug mb-3">
-                “{s.quote}”
-              </p>
-              <div className="text-[10.5px] text-[var(--text-dim)]">Top 10 · {s.followers} followers</div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

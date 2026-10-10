@@ -27,6 +27,10 @@ import SignUp from "./pages/SingUp";
 import MyLists from "./pages/MyLists";
 import MySavedLists from "./pages/MySavedLists";
 import MyLikedLists from "./pages/MyLikedLists";
+import PeopleFollowing from "./pages/PeopleFollowing";
+import PeopleFollowers from "./pages/PeopleFollowers";
+import ProfileDetail from "./pages/ProfileDetail";
+import ProfileForm from "./pages/ProfileForm";
 
 function App() {
   return (
@@ -64,11 +68,12 @@ function App() {
           <Route path="/marketplace/:id" element={<Layout showRightPanel={false}><MarketplaceDetail /></Layout>} />
           {/* User */}
           <Route path="/people" element={<Layout><People /></Layout>} />
+          <Route path="/people/following" element={<Layout><PeopleFollowing /></Layout>} />
+          <Route path="/people/followers" element={<Layout><PeopleFollowers /></Layout>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
-          <Route path="/profile" element={<Layout showRightPanel={false}><Profile /></Layout>} />
-          <Route path="/profile/:username" element={<Layout showRightPanel={false}><Profile /></Layout>} />
-          <Route path="/profileForm/edit" element={<Layout showRightPanel={false}><Profile /></Layout>} />
+          <Route path="/profile" element={<Layout showRightPanel={false}><ProfileDetail /></Layout>} />
+          <Route path="/profileForm/edit" element={<Layout showRightPanel={false}><ProfileForm /></Layout>} />
            {/* List search */}
           <Route path="/listsSearch/:id" element={<Layout showRightPanel={false}><ListSearch /></Layout>} />
           <Route path="/listsSearch" element={<Layout showRightPanel={false}><ListSearch /></Layout>} />

@@ -1,4 +1,5 @@
-import { authenticatedFetch } from "./authService";
+import { authenticatedFetch, getToken } from "./authService";
+import { API_BASE_URL } from "./api";
 
 export async function getMyCollection({
   search = "",
@@ -34,25 +35,22 @@ export async function getMyCollection({
   return response.json();
 }
 
-
-export async function addToMyCollection(data) {
-  const response = await authenticatedFetch(
-    "/collection/me",
+export async function addToMyCollection(formData) {
+  const token = getToken();
+  const response = await fetch(
+    `${API_BASE_URL}/collection/me`,
     {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(data),
+      body: formData,
     }
   );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-
-    throw new Error(
-      error.detail || "Failed to add to collection"
-    );
+    console.log(await response.text());
+    throw new Error("Failed to add collection");
   }
 
   return response.json();
@@ -77,7 +75,6 @@ export async function deleteCollection(collectionId) {
   return response.json();
 }
 
-
 export async function getCollectionById(collectionId) {
   const response = await authenticatedFetch(
     `/collection/${collectionId}`,
@@ -99,25 +96,23 @@ export async function getCollectionById(collectionId) {
 
 export async function updateCollection(
   collectionId,
-  payload
+  formData
 ) {
-  const response = await authenticatedFetch(
-    `/collection/${collectionId}`,
+  const token = getToken();
+  const response = await fetch(
+    `${API_BASE_URL}/collection/${collectionId}`,
     {
       method: "PATCH",
       headers: {
-        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(payload),
+      body: formData,
     }
   );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-
-    throw new Error(
-      error.detail || "Failed to update collection"
-    );
+    console.log(await response.text());
+    throw new Error("Failed to update collection");
   }
 
   return response.json();

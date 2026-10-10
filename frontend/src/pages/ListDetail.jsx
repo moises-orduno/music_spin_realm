@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Heart, MessageCircle, Users, Eye, Shuffle, Bookmark,
-  ChevronDown, Check, ArrowRight, ArrowLeft, Trash2, Pencil,
+  ChevronDown, Check, ArrowRight, ArrowLeft, Trash2, PencilIcon,
 } from "lucide-react";
 import { getCurrentUser, isSameUser } from "../services/authService";
 
@@ -395,13 +395,30 @@ export default function ListDetail() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => handleEditListClick(id)}
-                    className="btn-ghost border border-[var(--border)] px-3 py-2 rounded-lg text-[12px] flex items-center gap-2"
+                    className="
+                                                                  btn-ghost
+                                                                  inline-flex
+                                                                  items-center
+                                                                  justify-center
+                                                                  gap-1.5
+                                                                  rounded-full
+                                                                  border
+                                                                  border-[var(--border)]
+                                                                  px-4
+                                                                  py-2
+                                                                  text-[12px]
+                                                                  whitespace-nowrap
+                                                                  transition
+                                                                  hover:border-[#3d85c6]
+                                                                  hover:text-[#3d85c6]
+                                                                "
                   >
-                    <Pencil size={13} />
+                    <PencilIcon size={13} />
                     Edit
                   </button>
 
                   <button
+                    type="button"
                     onClick={async () => {
                       const confirmed = window.confirm(
                         "Are you sure you want to delete this list?"
@@ -411,6 +428,8 @@ export default function ListDetail() {
 
                       try {
                         await deleteList(id);
+
+                        // Go back to lists
                         navigate("/topLists");
                       } catch (err) {
                         console.error("Failed to delete list", err);
@@ -420,7 +439,25 @@ export default function ListDetail() {
                         );
                       }
                     }}
-                    className="btn-ghost border border-[var(--border)] px-3 py-2 rounded-lg text-[12px] flex items-center gap-2 text-red-500 hover:text-red-600"
+                    className="
+                                              btn-ghost
+                                              inline-flex
+                                              items-center
+                                              justify-center
+                                              gap-1.5
+                                              rounded-full
+                                              border
+                                              border-[var(--border)]
+                                              px-4
+                                              py-2
+                                              text-[12px]
+                                              whitespace-nowrap
+                                              text-red-500
+                                              transition
+                                              hover:border-red-500/50
+                                              hover:bg-red-500/10
+                                              hover:text-red-500
+                                            "
                   >
                     <Trash2 size={13} />
                     Delete
@@ -467,7 +504,12 @@ export default function ListDetail() {
 
               {/* Save */}
               <button
-                onClick={() => handleSaveClick()}
+                onClick={(e) => {
+
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSaveClick();
+                }}
                 data-testid="save-list-btn"
                 className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-[13px] font-medium transition ${saved
                   ? "border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]"
@@ -483,7 +525,11 @@ export default function ListDetail() {
 
               {/* Like */}
               <button
-                onClick={() => handleLikeClick()}
+                onClick={(e) => {
+
+                  e.preventDefault();
+                  e.stopPropagation(); handleLikeClick();
+                }}
                 data-testid="like-list-btn"
                 className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-[13px] font-medium transition ${liked
                   ? "border-red-500/40 bg-red-500/10 text-red-400"

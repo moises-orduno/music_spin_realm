@@ -1,4 +1,5 @@
-import { authenticatedFetch } from "./authService";
+import { authenticatedFetch, getToken } from "./authService";
+import { API_BASE_URL } from "./api";
 
 export async function getProfile(username) {
     const response = await authenticatedFetch(
@@ -19,26 +20,22 @@ export async function getProfile(username) {
     return response.json();
 }
 
-export async function updateUser(
-  payload
-) {
-  const response = await authenticatedFetch(
-    `/users/me`,
+export async function updateUser(formData) {
+  const token = getToken();
+  const response = await fetch(
+    `${API_BASE_URL}/users/me`,
     {
       method: "PATCH",
       headers: {
-        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(payload),
+      body: formData,
     }
   );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-
-    throw new Error(
-      error.detail || "Failed to update user"
-    );
+    console.log(await response.text());
+    throw new Error("Failed to update user");
   }
 
   return response.json();
@@ -46,13 +43,12 @@ export async function updateUser(
 
 export async function getProfiles() {
   const response = await authenticatedFetch(
-    `/users/users`,
+    `/users`,
     {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
     },
     false
   );
@@ -63,6 +59,71 @@ export async function getProfiles() {
     throw new Error(
       error.detail || "Failed to get user"
     );
+  }
+
+  return response.json();
+}
+
+export async function getProfilesFollowing() {
+  const response = await authenticatedFetch(
+    `/users/following`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+    false
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+
+    throw new Error(
+      error.detail || "Failed to get users"
+    );
+  }
+
+  return response.json();
+}
+
+export async function getProfilesFollowers() {
+  const response = await authenticatedFetch(
+    `/users/followers`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+    false
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+
+    throw new Error(
+      error.detail || "Failed to get users"
+    );
+  }
+
+  return response.json();
+}
+
+export async function toggleFollowById(id) {
+  const response = await authenticatedFetch(
+    `/users/${id}/follow`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to toggle follow");
   }
 
   return response.json();

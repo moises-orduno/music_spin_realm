@@ -15,7 +15,8 @@ const CONDITION_COLORS = {
     "G": "#ef4444",
 };
 
-import {FileText, ShoppingCart, Heart, ListFilter, Pencil,
+import {
+    FileText, ShoppingCart, Heart, ListFilter, PencilIcon,
     ArrowLeft, Trash2, Globe, Calendar, Target, MapPin, Disc3, BadgeCheck, Wallet
 } from "lucide-react";
 
@@ -169,10 +170,7 @@ export default function HuntDetail() {
                 setHunt(hunt);
 
                 // Now that we have the hunt, load its listings
-                console.log("hunt", hunt);
-
                 const data = await getAlbumListings(hunt.album.id);
-                console.log("data", data.listings);
 
                 setCopies(data.listings);
 
@@ -189,13 +187,11 @@ export default function HuntDetail() {
         initializeForm();
     }, [id]);
 
-
     if (loading || !hunt) {
         return <div className="p-6">Loading Hunt...</div>;
     }
 
     return (
-
         <div
             className="flex gap-6 min-w-0 fade-in-up"
             data-testid="hunt-details-page"
@@ -262,19 +258,36 @@ export default function HuntDetail() {
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex items-center gap-2 shrink-0">
-
+                                <div className="flex items-center gap-2">
                                     <button
+                                        type="button"
                                         onClick={() =>
                                             navigate(`/huntForm/${hunt.id}/edit`)
                                         }
-                                        className="btn-ghost border border-[var(--border)] px-3 py-2 rounded-lg text-[12px] flex items-center gap-2"
+                                        className="
+                                              btn-ghost
+                                              inline-flex
+                                              items-center
+                                              justify-center
+                                              gap-1.5
+                                              rounded-full
+                                              border
+                                              border-[var(--border)]
+                                              px-4
+                                              py-2
+                                              text-[12px]
+                                              whitespace-nowrap
+                                              transition
+                                              hover:border-[#3d85c6]
+                                              hover:text-[#3d85c6]
+                                            "
                                     >
-                                        <Pencil size={13} />
+                                        <PencilIcon size={13} />
                                         Edit
                                     </button>
 
                                     <button
+                                        type="button"
                                         onClick={async () => {
                                             const confirmed = window.confirm(
                                                 "Are you sure you want to delete this hunt?"
@@ -300,12 +313,29 @@ export default function HuntDetail() {
                                                 );
                                             }
                                         }}
-                                        className="btn-ghost border border-[var(--border)] px-3 py-2 rounded-lg text-[12px] flex items-center gap-2 text-red-500 hover:text-red-600"
+                                        className="
+                                              btn-ghost
+                                              inline-flex
+                                              items-center
+                                              justify-center
+                                              gap-1.5
+                                              rounded-full
+                                              border
+                                              border-[var(--border)]
+                                              px-4
+                                              py-2
+                                              text-[12px]
+                                              whitespace-nowrap
+                                              text-red-500
+                                              transition
+                                              hover:border-red-500/50
+                                              hover:bg-red-500/10
+                                              hover:text-red-500
+                                            "
                                     >
                                         <Trash2 size={13} />
                                         Delete
                                     </button>
-
                                 </div>
 
                             </div>
@@ -390,7 +420,7 @@ export default function HuntDetail() {
                 {/* Future: matching listings */}
                 <div className="card-panel p-6 text-center border border-dashed border-[var(--border)]">
 
-                     <div className="px-5 py-4 border-b border-[var(--border)]">
+                    <div className="px-5 py-4 border-b border-[var(--border)]">
                         <div className="flex items-center gap-2">
                             <ListFilter size={15} className="text-[var(--accent-2)]" />
                             <h3 className="font-serif text-[20px]">

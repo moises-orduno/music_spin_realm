@@ -41,7 +41,7 @@ function AlbumTile({ a, onAdd, storageKey }) {
                     className="w-full rounded-lg py-2 text-[11.5px] font-medium bg-[var(--accent-soft)] text-[var(--accent-2)] border border-[var(--accent)]/30 hover:bg-[var(--accent)] hover:text-white transition flex items-center justify-center gap-1.5"
                 >
                     <Plus size={12} />
-                     {storageKey === `new-collection-album-draft`?"Add to my collection":"Add to list"}
+                    {storageKey === `new-collection-album-draft` ? "Add to my collection" : "Add to list"}
                 </button>
             </div>
         </div>
@@ -122,14 +122,15 @@ export default function ListAddAlbum() {
         };
 
         if (storageKey === "new-hunt-draft" ||
-            storageKey === "new-collection-album-draft") {
+            storageKey === "new-collection-album-draft" ||
+            storageKey === "profile-form") {
             // Hunts only have one album
             draft.items = [albumItem];
         } else {
             // Lists can have multiple albums
             draft.items.push({
                 ...albumItem,
-                position: position ? position : draft.items.length ,
+                position: position ? position : draft.items.length,
             });
         }
 
@@ -138,10 +139,30 @@ export default function ListAddAlbum() {
         navigate(returnTo);
     };
 
+    let backLink;
+    let backLabel;
+
+    switch (storageKey) {
+        case "new-collection-album-draft":
+            backLink = "/collectionAlbumForm/new";
+            backLabel = "Back to collection";
+            break;
+
+        case "profile-form":
+            backLink = "/profileForm/edit";
+            backLabel = "Back to profile";
+            break;
+
+        default:
+            backLink = `/lists/${listId}/remix`;
+            backLabel = "Back to remix";
+            break;
+    }
+
     return (
         <div className="max-w-[1100px] mx-auto fade-in-up space-y-8" data-testid="album-picker-page">
-            <Link to={storageKey === `new-collection-album-draft`?`/collectionAlbumForm/new`:`/lists/${listId}/remix`} className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] inline-flex items-center gap-1.5" data-testid="back-link">
-                <ArrowLeft size={13} /> {storageKey === `new-collection-album-draft`?"Back to collection":"Back to remix"}
+            <Link to={backLink} className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] inline-flex items-center gap-1.5" data-testid="back-link">
+                <ArrowLeft size={13} /> {backLabel}
             </Link>
 
             <div>
@@ -184,7 +205,7 @@ export default function ListAddAlbum() {
                                 key={a.id}
                                 a={a}
                                 onAdd={handleAdd}
-                                storageKey = {storageKey}
+                                storageKey={storageKey}
                             />
                         ))}
                     </div>

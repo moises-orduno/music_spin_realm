@@ -82,7 +82,7 @@ export function isSameUser(owner) {
 
   export async function authenticatedFetch(url, options = {}, isTokenNecessary= true) {
     const token = getToken();
-    
+
     if(!token && isTokenNecessary){
       return;
     }
@@ -101,6 +101,7 @@ export function isSameUser(owner) {
 
     // Token expired or invalid
     if (response.status === 401) {
+
       logout();
 
       window.location.href = "/login";

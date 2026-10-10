@@ -1,6 +1,7 @@
 from models.artist import Artist
 from models.artist import ArtistCreate
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+
 from db.mongodb import db
 from typing import List
 
@@ -43,6 +44,62 @@ async def create_artist(payload: ArtistCreate):
     )
 
     return artist
+
+
+
+@router.get("/search")
+async def search_artists(
+    name: str = Query(..., min_length=1),
+    limit: int = Query(20, ge=1, le=50)
+):
+    search = name.strip()
+
+    if not search:
+        return []
+
+    artists = await db.artists.aggregate([
+        {
+            "$match": {
+                "name": {
+                    "$regex": search,
+                    "$options": "i"
+                }
+            }
+        },
+        {
+            "$addFields": {
+                "starts_with": {
+                    "$cond": [
+                        {
+                            "$regexMatch": {
+                                "input": "$name",
+                                "regex": f"^{search}",
+                                "options": "i"
+                            }
+                        },
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "$sort": {
+                "starts_with": 1,
+                "name": 1
+            }
+        },
+        {
+            "$limit": limit
+        },
+        {
+            "$project": {
+                "_id": 0
+            }
+        }
+    ]).to_list(length=limit)
+
+    return artists
 
 @router.get("/{artist_id}", response_model=Artist)
 async def get_artist(artist_id: str):

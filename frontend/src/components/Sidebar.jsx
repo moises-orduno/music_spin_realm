@@ -3,6 +3,7 @@ import { Home, MessageSquare, ThumbsUp, Search,
   Store, Users, FolderOpen, Star, Clock, 
   Target, UserCheck, ChevronDown, AudioLines } from "lucide-react";
 import React, { useState } from "react";
+import { getCurrentUser } from "../services/authService";
 
 const mainNav = [
   {
@@ -28,7 +29,13 @@ const mainNav = [
     to: "/marketplace", label: "Marketplace", icon: Store,
   },
   {
-    to: "/people", label: "People", icon: Users,
+    label: "People",
+    icon: Users,
+    children: [
+      { to: "/people", label: "Discover", end: true },
+      { to: "/people/following", label: "Following", end: true },
+      { to: "/people/followed", label: "Followed", end: true },
+    ],
   },
   {
     to: "/collection", label: "My Collection", icon: FolderOpen,
@@ -178,10 +185,10 @@ export default function Sidebar() {
       </div>
 
       {/* User mini card */}
-      <NavLink to="/profile/analogmind" className="mt-auto card-panel p-3 flex items-center gap-3 hover:border-[var(--accent)]/40 transition" data-testid="user-mini-card">
+      <NavLink to="/profile" className="mt-auto card-panel p-3 flex items-center gap-3 hover:border-[var(--accent)]/40 transition" data-testid="user-mini-card">
         <div className="w-10 h-10 rounded-full shrink-0" style={{ background: "radial-gradient(circle at 30% 30%, #c2a876, #1a1612)" }} />
         <div className="min-w-0 flex-1">
-          <div className="text-[12.5px] font-medium truncate">analogmind</div>
+          <div className="text-[12.5px] font-medium truncate">{getCurrentUser()?getCurrentUser().username:""}</div>
           <div className="text-[10.5px] text-[var(--text-muted)]">View profile →</div>
         </div>
       </NavLink>

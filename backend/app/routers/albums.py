@@ -10,6 +10,13 @@ from models.album import AlbumCreate, Album, AlbumUpdate, AlbumSuggestionRequest
 import re
 from fastapi import APIRouter, HTTPException
 
+from enum import Enum
+
+class Language(str, Enum):
+    EN = "en"
+    ES = "es"
+    FR = "fr"
+
 router = APIRouter(
     prefix="/albums",
     tags=["Albums"]
@@ -614,4 +621,30 @@ async def get_album_status(
         "collection_id": owned["id"] if owned else None,
         "hunting": hunting is not None,
         "hunt_id": hunting["id"] if hunting else None,
+    }
+
+@router.put("/{album_id}/description/{language}")
+async def update_album_description(
+    album_id: str,
+    language: str,
+    description: str
+):
+    result = await db.albums.update_one(
+        {"id": album_id},
+        {
+            "$set": {
+                f"descriptions.{language}": description
+            }
+        }
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="Album not found"
+        )
+
+    return {
+        "language": language,
+        "description": description
     }

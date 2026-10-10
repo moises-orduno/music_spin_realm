@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 import uuid
 from db.mongodb import db
-from helpers.token_helper import get_current_user, get_optional_user
+from helpers.token_helper import get_current_user
 import copy
 from models.hunt import Hunt, HuntFormRequest, HuntStatus, UpdateHuntRequest
 from models.album import AlbumReference
@@ -39,7 +39,13 @@ async def create_hunt(
 ):
     album = await db.albums.find_one(
         {"id": request.album_id},
-        {"_id": 0, "id": 1, "title": 1, "artist": 1, "cover_url": 1},
+        {
+            "_id": 0, 
+             "id": 1, 
+             "title": 1, 
+             "artist": 1, 
+             "cover_url": 1
+             },
     )
 
     if album is None:

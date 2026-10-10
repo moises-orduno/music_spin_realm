@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Grid2x2, List, Plus } from "lucide-react";
+import { UserCheck, UserPlus, Plus } from "lucide-react";
 import { getMyCollection } from "../services/collectionService";
 import { getCurrentUser } from "../services/authService";
 import { useNavigate, useParams } from "react-router-dom";
-import { getProfile } from "../services/userService";
+import { getProfile, toggleFollowById } from "../services/userService";
+import { getImageUrl } from "../lib/utils";
 
 function FavoriteSong({ song }) {
   if (!song) {
@@ -318,7 +319,23 @@ function ProfileHeader({
   profile,
   isOwnProfile = false,
   onEditProfile,
+  setProfile,
 }) {
+
+  const handleFollowClick = async (userId) => {
+    try {
+      const result = await toggleFollowById(userId);
+
+      setProfile({
+        ...profile,
+        is_following: result.following,
+        followers_count: result.followers_count,
+      });
+    } catch (err) {
+      console.log(err.message);
+    }
+  };
+
   return (
     <section className="px-8 pt-10 pb-8">
       {/* Profile intro */}
@@ -327,16 +344,12 @@ function ProfileHeader({
           {/* Avatar */}
           <div className="shrink-0">
             <img
-              src={profile.avatar_url || "/default-avatar.png"}
+              src={getImageUrl(profile.avatar_url, `default_user_image.png`)}
               alt={profile.display_name}
-              className="
-                w-44 h-44
-                rounded-full
-                object-cover
-                border-2
-                border-[var(--accent)]
-                p-1
-              "
+              className="w-44 h-44 rounded-full object-cover border-2 border-[var(--accent)] p-1"
+              onError={(e) => {
+                e.currentTarget.src = `/images/default_user_image.png`;
+              }}
             />
           </div>
 
@@ -366,7 +379,7 @@ function ProfileHeader({
             {/* Stats */}
             <div className="flex items-center gap-10 mt-6">
               <ProfileStat
-                value={profile.albums_count ?? 0}
+                value={profile.collections_count ?? 0}
                 label="Albums"
               />
 
@@ -411,18 +424,31 @@ function ProfileHeader({
           </button>
         ) : (
           <button
-            className="
-              px-6 py-2.5
-              rounded-full
-              bg-[var(--accent)]
-              text-white
-              text-sm font-medium
-              hover:opacity-90
-              transition
-            "
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleFollowClick(profile.id);
+            }}
+            className={`shrink-0 border text-[12px] px-20 py-1.5 rounded-full transition flex items-center gap-1.5 ${profile.is_following
+              ? "border-[var(--border)] text-[var(--text-muted)]"
+              : "border-[var(--accent)]/40 text-[var(--accent-2)] hover:bg-[var(--accent-soft)]"
+              }`}
+            data-testid={`follow-btn-${profile.id}`}
           >
-            Follow
+            {profile.is_following ? (
+              <>
+                <UserCheck size={11} />
+                Following
+              </>
+            ) : (
+              <>
+                <UserPlus size={11} />
+                Follow
+              </>
+            )}
           </button>
+
+
         )}
       </div>
 
@@ -460,9 +486,6 @@ export default function Collection() {
   });
 
   const filterCollection = (filterName, value) => {
-
-    console.log("filterName",filterName);
-    console.log("value",value);
 
     const newFilters = {
       ...filters,
@@ -595,25 +618,28 @@ export default function Collection() {
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">
-            Your Shelf
+            
+            {username ?  "My music" :"Your Shelf" }
           </div>
 
           <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">
-            My Collection
+            {username ?  "Collector" :"My Collection" }
+
           </h1>
-          <p className="text-[13px] text-[var(--text-muted)]">Share your collection with the world.</p>
+          <p className="text-[13px] text-[var(--text-muted)]"> {username ? "Enjoy others collection" : "Share your collection with the world."}</p>
 
         </div>
 
         {username ?
 
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
 
-          <ProfileHeader
-            profile={profile}
-            isOwnProfile={profile.username === user.username}
-          />
-          {/* <button
+            <ProfileHeader
+              profile={profile}
+              isOwnProfile={profile.username === user.username}
+              setProfile={setProfile}
+            />
+            {/* <button
             className="w-9 h-9 rounded-lg border border-[var(--border-2)] flex items-center justify-center btn-ghost text-[var(--accent)]"
           >
             <Grid2x2 size={14} />
@@ -625,8 +651,8 @@ export default function Collection() {
             <List size={14} />
           </button> */}
 
-        </div>
-       :<div></div> }
+          </div>
+          : <div></div>}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -670,8 +696,8 @@ export default function Collection() {
 
           <FilterChip
             label="Price"
-            value={filters.priceFilter}
-            onChange={(value) => filterCollection("priceFilter", value)}
+            value={filters.price}
+            onChange={(value) => filterCollection("price", value)}
             options={[
               { value: "all", label: "Any price" },
               { value: "under_50", label: "Under $50" },
@@ -696,16 +722,18 @@ export default function Collection() {
           ]}
         />
 
-        <button
-          onClick={handleAddAlbumClick}
-          className="btn-accent inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
-          data-testid="add-album-btn"
-        >
-          <Plus size={14} />
-          Add album
-        </button>
-      </div>
+        {!username ?
 
+          <button
+            onClick={handleAddAlbumClick}
+            className="btn-accent inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
+            data-testid="add-album-btn"
+          >
+            <Plus size={14} />
+            Add album
+          </button>
+          : <div></div>}
+      </div>
       <div className="flex items-center gap-6 text-[13px] text-[var(--text-muted)]">
         <span>
           <span className="text-[var(--text)] font-medium">
@@ -756,14 +784,16 @@ export default function Collection() {
           <p className="text-[var(--text-muted)] mb-6">
             Start building your shelf by adding the records you own.
           </p>
+          {!username ?
 
-          <button
-            onClick={handleAddAlbumClick}
-            className="btn-accent inline-flex items-center gap-2 px-5 py-3 rounded-full"
-          >
-            <Plus size={14} />
-            Add Your First Album
-          </button>
+            <button
+              onClick={handleAddAlbumClick}
+              className="btn-accent inline-flex items-center gap-2 px-5 py-3 rounded-full"
+            >
+              <Plus size={14} />
+              Add Your First Album
+            </button>
+            : <div></div>}
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">

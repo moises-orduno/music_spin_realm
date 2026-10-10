@@ -28,7 +28,7 @@ class CommentList(BaseModel):
 
 class ReplyCreate(BaseModel):
     text: str
-    author: str = "anonymous"
+    author: UserReference
 
 class CommentVoteRequest(BaseModel):
     direction: Literal["up", "down"]

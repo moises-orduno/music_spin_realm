@@ -104,7 +104,9 @@ async def vote_comment(
     return {"success": True}
 
 @router.get("/debates/{debate_id}")
-async def get_comments(debate_id: str):
+async def get_debates_comments(debate_id: str):
+
+    # Get top-level comments
     comments = await (
         db.comments
         .find(
@@ -114,9 +116,46 @@ async def get_comments(debate_id: str):
             },
             {"_id": 0}
         )
-        .sort("votes", -1)
+        .sort("likes", -1)
         .to_list(100)
     )
+
+    if not comments:
+        return []
+
+    # Get all replies for those comments
+    comment_ids = [comment["id"] for comment in comments]
+
+    replies = await (
+        db.comments
+        .find(
+            {
+                "debate_id": debate_id,
+                "parent_comment_id": {"$in": comment_ids}
+            },
+            {"_id": 0}
+        )
+        .sort("created_at", 1)
+        .to_list(500)
+    )
+
+    # Group replies by parent
+    replies_by_parent = {}
+
+    for reply in replies:
+        parent_id = reply["parent_comment_id"]
+
+        if parent_id not in replies_by_parent:
+            replies_by_parent[parent_id] = []
+
+        replies_by_parent[parent_id].append(reply)
+
+    # Attach replies to their parent
+    for comment in comments:
+        comment["replies"] = replies_by_parent.get(
+            comment["id"],
+            []
+        )
 
     return comments
 
@@ -168,14 +207,11 @@ async def add_list_comment(
 
     return comment
 
-
 # Get comments for a list
 @router.get("/lists/{list_id}")
-async def get_list_comments(
-    list_id: str,
-    limit: int = 100
-):
+async def get_list_comments(list_id: str):
 
+    # Get top-level comments
     comments = await (
         db.comments
         .find(
@@ -183,15 +219,47 @@ async def get_list_comments(
                 "list_id": list_id,
                 "parent_comment_id": None
             },
-            {
-                "_id": 0
-            }
+            {"_id": 0}
         )
-        .sort(
-            "likes_count",
-            -1
-        )
-        .to_list(limit)
+        .sort("likes", -1)
+        .to_list(100)
     )
+
+    if not comments:
+        return []
+
+    # Get all replies for those comments
+    comment_ids = [comment["id"] for comment in comments]
+
+    replies = await (
+        db.comments
+        .find(
+            {
+                "list_id": list_id,
+                "parent_comment_id": {"$in": comment_ids}
+            },
+            {"_id": 0}
+        )
+        .sort("created_at", 1)
+        .to_list(500)
+    )
+
+    # Group replies by parent
+    replies_by_parent = {}
+
+    for reply in replies:
+        parent_id = reply["parent_comment_id"]
+
+        if parent_id not in replies_by_parent:
+            replies_by_parent[parent_id] = []
+
+        replies_by_parent[parent_id].append(reply)
+
+    # Attach replies to their parent
+    for comment in comments:
+        comment["replies"] = replies_by_parent.get(
+            comment["id"],
+            []
+        )
 
     return comments

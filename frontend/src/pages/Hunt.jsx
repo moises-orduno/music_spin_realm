@@ -99,14 +99,14 @@ export default function Hunt() {
             active={status === "found"}
             onClick={() => setStatus("found")}
           >
-            ✅ Found ({counts.found})
+            ✅ Found ({hunt.found?hunt.found:0})
           </Chip>
 
           <Chip
             active={status === "completed"}
             onClick={() => setStatus("completed")}
           >
-            📦 Completed ({counts.completed})
+            📦 Completed ({hunt.completed?hunt.completed:0})
           </Chip>
         </div>
         <button

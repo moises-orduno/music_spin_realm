@@ -18,6 +18,8 @@ class CollectionItemCreate(BaseModel):
     matrix_runout: Optional[str] = None
     edition: Optional[str] = None
 
+    image_url: Optional[str] = None
+
     # Condition
     media_condition: Optional[str] = None
     sleeve_condition: Optional[str] = None
@@ -50,6 +52,8 @@ class CollectionItemUpdate(BaseModel):
     barcode: Optional[str] = None
     matrix_runout: Optional[str] = None
     edition: Optional[str] = None
+    
+    image_url: Optional[str] = None
 
     # Condition
     media_condition: Optional[str] = None
@@ -89,6 +93,8 @@ class CollectionItemResponse(BaseModel):
     purchase_date: Optional[datetime] = None
     purchased_from: Optional[str] = None
     notes: Optional[str] = None
+
+    image_url: Optional[str] = None
 
     # Favorite
     favorite: bool = False

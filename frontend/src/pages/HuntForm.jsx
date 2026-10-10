@@ -90,7 +90,6 @@ export default function HuntForm() {
   const [album, setAlbum] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-
   const [pressing, setPressing] = useState("First Press");
   const [countryPress, setCountryPress] = useState("United Kingdom");
   const [year, setYear] = useState("");
@@ -150,7 +149,7 @@ export default function HuntForm() {
           setNotes(hunt.details || "");
 
         } else {
-          // CREATE MODE
+          // CREATE ALBUM
           const cached = sessionStorage.getItem("new-hunt-draft");
 
           if (!cached) return;

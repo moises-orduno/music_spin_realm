@@ -67,10 +67,10 @@ export default function CollectionAlbumDetail() {
 
         const data = await getCollectionById(id);
 
-        // Album cover first, then user's photos
+        // Album cover first, then user's collection photo
         const images = [
           ...(data.album?.cover_url ? [data.album.cover_url] : []),
-          ...(data.images || []),
+          ...(data.image_url ? [data.image_url] : []),
         ];
 
         setItem({
@@ -222,48 +222,49 @@ export default function CollectionAlbumDetail() {
       {/* Main */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] gap-8 xl:gap-12">
 
-        {/* Album cover */}
-        <div className="min-w-0">
-          <div className="relative aspect-square rounded-xl overflow-hidden bg-[var(--surface)] border border-[var(--border)]">
-            {currentImage ? (
-              <img
-                src={currentImage}
-                alt={item.album?.title || "Album"}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
-                <Disc3 size={60} strokeWidth={1} />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {images.length > 1 && (
-          <div className="flex gap-2.5 mt-3 overflow-x-auto pb-1">
-            {images.map((image, index) => (
-              <button
-                key={`${image}-${index}`}
-                type="button"
-                onClick={() => setSelectedImage(index)}
-                className={`
-          w-16 h-16 shrink-0 rounded-md overflow-hidden border transition-all
-          ${selectedImage === index
-                    ? "border-[var(--accent)] ring-1 ring-[var(--accent)]"
-                    : "border-[var(--border)] opacity-70 hover:opacity-100"
-                  }
-        `}
-              >
+        <div>
+          {/* Album cover */}
+          <div className="min-w-0">
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-[var(--surface)] border border-[var(--border)]">
+              {currentImage ? (
                 <img
-                  src={image}
-                  alt=""
+                  src={currentImage}
+                  alt={item.album?.title || "Album"}
                   className="w-full h-full object-cover"
                 />
-              </button>
-            ))}
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
+                  <Disc3 size={60} strokeWidth={1} />
+                </div>
+              )}
+            </div>
           </div>
-        )}
 
+          {images.length > 1 && (
+            <div className="flex gap-2.5 mt-3 overflow-x-auto pb-1">
+              {images.map((image, index) => (
+                <button
+                  key={`${image}-${index}`}
+                  type="button"
+                  onClick={() => setSelectedImage(index)}
+                  className={`
+          w-16 h-16 shrink-0 rounded-md overflow-hidden border transition-all
+          ${selectedImage === index
+                      ? "border-[var(--accent)] ring-1 ring-[var(--accent)]"
+                      : "border-[var(--border)] opacity-70 hover:opacity-100"
+                    }
+        `}
+                >
+                  <img
+                    src={image}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {/* Collection information */}
         <div className="min-w-0">
 

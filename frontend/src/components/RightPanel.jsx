@@ -25,6 +25,7 @@ export default function RightPanel({
   };
 
   const handleHuntCreateClick = () => {
+    console.log("hunt");
     if (!user) {
       navigate("/login", {
         state: {

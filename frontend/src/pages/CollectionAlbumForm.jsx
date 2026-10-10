@@ -8,14 +8,24 @@ const CONDITIONS = [
     { code: "M", label: "Mint" },
 ];
 const CURRENCIES = ["USD", "EUR", "GBP", "MXN", "JPY"];
+import { getImageUrl } from "../lib/utils";
 
 const COUNTRIES = ["United Kingdom", "United States", "Japan", "Germany", "France", "Italy", "Mexico", "Spain", "Any"];
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { addToMyCollection, getCollectionById, updateCollection } from "../services/collectionService";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+const ACCENT = "#8b5cf6";
 
 import {
-    ArrowLeft, ChevronDown, Globe, Calendar, Info, Disc3, DollarSign, Heart
+    ArrowLeft,
+    ChevronDown,
+    Globe,
+    Calendar,
+    Info,
+    Disc3,
+    DollarSign,
+    Heart,
+    Camera
 } from "lucide-react";
 
 function Chip({ children, active, onClick, testid }) {
@@ -104,6 +114,17 @@ export default function CollectionAlbumForm() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
     const [albumError, setAlbumError] = useState(null);
+    const [photoPreview, setPhotoPreview] = useState(null);
+    const [albumUrl, setAlbumUrl] = useState("");
+    const fileInputRef = useRef(null);
+    const [selectedPhoto, setSelectedPhoto] = useState(null);
+
+    const onPhotoSelected = (file) => {
+        setSelectedPhoto(file);
+
+        const previewUrl = URL.createObjectURL(file);
+        setPhotoPreview(previewUrl);
+    };
 
     const handleAddAlbumClick = () => {
         setAlbumError(null);
@@ -182,8 +203,7 @@ export default function CollectionAlbumForm() {
     }, [id, isEditing]);
 
     const handleSubmit = async () => {
-
-        var isError = false;
+        let isError = false;
 
         if (!album) {
             setAlbumError("Please add the album to add to your collection");
@@ -196,63 +216,62 @@ export default function CollectionAlbumForm() {
 
         setSubmitting(true);
 
-        const payload = {
-            album_id: album.id,
+        const formData = new FormData();
 
-            // Release / pressing
-            pressing: pressing || null,
-            pressing_country: countryPress || null,
-            pressing_year: year ? Number(year) : null,
+        formData.append("album_id", album.id);
 
-            label: label || null,
-            catalog_number: catalogNumber || null,
-            barcode: barcode || null,
-            edition: edition || null,
+        // Release / pressing
+        formData.append("pressing", pressing || "");
+        formData.append("pressing_country", countryPress || "");
+        formData.append("pressing_year", year ? String(Number(year)) : "");
 
-            // Condition
-            media_condition: mediaCondition || null,
-            sleeve_condition: sleeveCondition || null,
+        formData.append("label", label || "");
+        formData.append("catalog_number", catalogNumber || "");
+        formData.append("barcode", barcode || "");
+        formData.append("edition", edition || "");
 
-            favorite: favorite || false,
+        // Condition
+        formData.append("media_condition", mediaCondition || "");
+        formData.append("sleeve_condition", sleeveCondition || "");
 
-            // Purchase information
-            price_paid: pricePaid
-                ? Number(pricePaid)
-                : null,
-            currency: currency || "USD",
+        formData.append("favorite", String(favorite || false));
 
-            // Personal information
-            purchase_date: null,
-            purchased_from: null,
-            notes: notes || null,
+        // Purchase information
+        formData.append(
+            "price_paid",
+            pricePaid ? String(Number(pricePaid)) : ""
+        );
+        formData.append("currency", currency || "USD");
 
-            // Source
-            source: "manual",
-            source_release_id: null,
-        };
+        // Personal information
+        formData.append("notes", notes || "");
+
+        // Source
+        formData.append("source", "manual");
+
+        // Optional collection photo
+        if (selectedPhoto) {
+            formData.append("image", selectedPhoto);
+        }
 
         try {
             if (isEditing) {
-                await updateCollection(id, payload);
+                // This depends on whether updateCollection supports FormData.
+                await updateCollection(id, formData);
             } else {
-                await addToMyCollection({
-                    album_id: album.id,
-                    ...payload,
-                });
+                await addToMyCollection(formData);
             }
 
-            // Only clear the draft after successful creation
             if (!isEditing) {
                 sessionStorage.removeItem("new-collection-album-draft");
             }
 
             navigate("/collection");
         } catch (err) {
-            console.error("Failed to add album to collection:", err);
+            console.error("Failed to save album to collection:", err);
+        } finally {
+            setSubmitting(false);
         }
-        setSubmitting(false);
-
-
     };
 
     return (
@@ -330,6 +349,104 @@ export default function CollectionAlbumForm() {
                     </div>
                 )}
 
+                {/* Album Collection Photo */}
+                <div className="flex justify-center items-center mb-2">
+                    {/* Square image preview */}
+                    <div
+                        className="
+            relative
+            w-40 h-40
+            shrink-0
+            rounded-xl
+            p-[2px]
+        "
+                        style={{
+                            background: ACCENT,
+                        }}
+                    >
+                        <img
+                            src={
+                                photoPreview ||
+                                getImageUrl(albumUrl, "default_record_image.png")
+                            }
+                            alt="Album collection preview"
+                            className="
+                w-full h-full
+                rounded-[10px]
+                object-cover
+                border-2 border-[var(--surface)]
+            "
+                        />
+                    </div>
+                </div>
+
+                {/* Photo upload */}
+                <div lassName="flex items-center gap-3 mb-2">
+                    <input
+                        id="photo-upload"
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+
+                            if (file) {
+                                onPhotoSelected(file);
+                            }
+
+                            // Allows selecting the same file again later
+                            e.target.value = "";
+                        }}
+                    />
+
+                    <label
+                        htmlFor="photo-upload"
+                        className="
+                                flex flex-col items-center justify-center
+                                rounded-2xl
+                                border border-dashed
+                                px-6 py-8
+                                text-center
+                                cursor-pointer
+                                transition
+                                hover:bg-[var(--surface-hover)]
+                            "
+                        style={{
+                            borderColor: `${ACCENT}80`,
+                        }}
+                    >
+                        <Camera size={22} style={{ color: ACCENT }} />
+
+                        <p className="mt-3 text-sm font-medium">
+                            Drag & drop your album photo here
+                        </p>
+
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                            or click to choose a file
+                        </p>
+
+                        <span
+                            className="
+                                    mt-3 inline-flex items-center
+                                    rounded-full border
+                                    px-5 py-2.5
+                                    text-sm font-medium
+                                    "
+                            style={{
+                                borderColor: ACCENT,
+                                color: ACCENT,
+                            }}
+                        >
+                            Choose photo
+                        </span>
+
+                        <p className="mt-3 text-xs text-[var(--text-muted)]">
+                            JPG, PNG or WebP · Max 5MB
+                        </p>
+                    </label>
+                </div>
+
                 {/* What pressing is this? */}
                 <div data-testid="pressing-section">
                     <Label>What is the pressing?</Label>
@@ -350,8 +467,8 @@ export default function CollectionAlbumForm() {
                         onClick={(e) => setFavorite(!favorite)}
                         data-testid="like-list-btn"
                         className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-[13px] font-medium transition ${favorite
-  ? "border-[#F04BA8DD] bg-[#F04BA81A] text-[#F04BA8]"
-  : "border-[var(--border-2)] text-[var(--text-muted)] hover:border-[#F04BA8DD] hover:bg-[#F04BA81A] hover:text-[#F04BA8]"
+                            ? "border-[#F04BA8DD] bg-[#F04BA81A] text-[#F04BA8]"
+                            : "border-[var(--border-2)] text-[var(--text-muted)] hover:border-[#F04BA8DD] hover:bg-[#F04BA81A] hover:text-[#F04BA8]"
                             }`}
                     >
                         <Heart
@@ -429,8 +546,8 @@ export default function CollectionAlbumForm() {
                         maxLength={100}
                         data-testid="label-input"
                         className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
-              placeholder:text-[var(--text-dim)] 
-              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
+                            placeholder:text-[var(--text-dim)] 
+                            focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                     />
                 </div>
 
@@ -448,8 +565,8 @@ export default function CollectionAlbumForm() {
                         maxLength={100}
                         data-testid="label-input"
                         className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
-              placeholder:text-[var(--text-dim)] 
-              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
+                            placeholder:text-[var(--text-dim)] 
+                            focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                     />
                 </div>
 
@@ -463,8 +580,8 @@ export default function CollectionAlbumForm() {
                         placeholder="e.g. 602547123456"
                         maxLength={50}
                         className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
-              placeholder:text-[var(--text-dim)] 
-              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
+                            placeholder:text-[var(--text-dim)] 
+                            focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
 
                     />
                 </div>
@@ -483,8 +600,8 @@ export default function CollectionAlbumForm() {
                         maxLength={100}
                         data-testid="edition-input"
                         className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
-              placeholder:text-[var(--text-dim)] 
-              focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
+                            placeholder:text-[var(--text-dim)] 
+                            focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                     />
                 </div>
 
@@ -516,8 +633,8 @@ export default function CollectionAlbumForm() {
                                 maxLength={10}
                                 data-testid="price-input"
                                 className="w-full bg-[var(--panel-2)] border rounded-xl pl-11 pr-4 py-3.5 text-[13.5px] 
-                placeholder:text-[var(--text-dim)] 
-                focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
+                                    placeholder:text-[var(--text-dim)] 
+                                    focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                             />
                         </div>
 
@@ -552,8 +669,8 @@ export default function CollectionAlbumForm() {
                         placeholder="Any specific details, condition preferences, etc."
                         data-testid="notes-input"
                         className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
-            placeholder:text-[var(--text-dim)] 
-            focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
+                            placeholder:text-[var(--text-dim)] 
+                            focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
                     />
                 </div>
 

@@ -115,13 +115,7 @@ export default function TopLists() {
         </button>
       </div>
 
-      <SectionTitle
-        action={
-          <button className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 hover:text-[var(--accent)]">
-            View all <ArrowRight size={12} />
-          </button>
-        }
-      >
+      <SectionTitle>
         Featured Tops
       </SectionTitle>
 

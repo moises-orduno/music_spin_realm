@@ -7,9 +7,10 @@ import {
   Gamepad2, Hash, Zap, Shield,
 } from "lucide-react";
 import { popularCategories } from "../data/debates";
-import { getDebates,getRandomDebate } from "../services/debateService";
+import { getDebates, getRandomDebate } from "../services/debateService";
 
 const CATS = ["All", "General", "Bands & Artists", "Albums", "Genres", "Era", "Fun & Games"];
+
 
 // Compute pct from votes for display
 function withPct(d) {
@@ -40,14 +41,22 @@ function Badge({ label, color }) {
   );
 }
 
-function VotersAvatars({ seed = 0 }) {
+function VotersAvatars({ seed = 0, votes = 0 }) {
+  const voteArray = Array.from({ length: votes }, (_, i) => i);
+
   return (
     <div className="flex -space-x-2">
-      {[0, 1, 2].map((i) => (
+      {voteArray.map((i) => (
         <div
           key={i}
           className="w-7 h-7 rounded-full border-2 border-[var(--panel)]"
-          style={{ background: `linear-gradient(135deg, hsl(${(seed + i) * 80 % 360}, 40%, 50%), hsl(${(seed + i) * 80 % 360 + 30}, 30%, 25%))` }}
+          style={{
+            background: `linear-gradient(
+              135deg,
+              hsl(${((seed + i) * 80) % 360}, 40%, 50%),
+              hsl(${(((seed + i) * 80) + 30) % 360}, 30%, 25%)
+            )`,
+          }}
         />
       ))}
     </div>
@@ -86,7 +95,7 @@ function VsCard({ d, onVote, selectedOption }) {
               <div className="w-[80px] h-[60px] sm:w-[120px] sm:h-[80px] rounded-md shrink-0 cover" style={{ background: c.image }} />
               <div className="min-w-0 flex-1">
                 <div className="text-[12px] text-[var(--text-muted)] truncate">{c.name}</div>
-                <div className={`text-[22px] sm:text-[26px] font-serif transition ${selectedOption === i ? "text-[var(--accent-2)]" : "text-[var(--text)]"}`}>{c.pct}%</div>
+                <div className={`text-[22px] sm:text-[26px] font-serif transition ${selectedOption === i ? "text-[var(--accent-2)]" : "text-[var(--text)]"}`}>{c.pct}% </div>
                 <div className="h-1 rounded-full bg-[var(--border)] overflow-hidden mt-1">
                   <div className="h-full rounded-full transition-all duration-700" style={{ width: `${c.pct}%`, background: "var(--accent)", boxShadow: selectedOption === i ? "0 0 12px var(--accent-glow)" : "none" }} />
                 </div>
@@ -98,7 +107,7 @@ function VsCard({ d, onVote, selectedOption }) {
 
       {d.extra && (
         <div className="mt-4 flex items-center gap-3 px-2">
-          <div className="text-[12.5px] text-[var(--text-muted)] w-16">{d.extra.name}</div>
+          <div className="text-[12.5px] text-[var(--text-muted)] w-16">{d.extra.name} </div>
           <div className="text-[12.5px] text-[var(--text)] w-10">{d.extra.pct}%</div>
           <div className="flex-1 h-1 rounded-full bg-[var(--border)] overflow-hidden">
             <div className="h-full rounded-full" style={{ width: `${d.extra.pct}%`, background: "var(--accent)" }} />
@@ -108,12 +117,15 @@ function VsCard({ d, onVote, selectedOption }) {
 
       <Footer testid={`debate-footer-${d.id}`}>
         <div className="flex items-center gap-3 text-[12px] text-[var(--text-muted)]">
-          <VotersAvatars seed={d.id.charCodeAt(0)} />
+          <VotersAvatars seed={d.id.charCodeAt(0)} votes={d.votes+1} />
           <span>{d.votes} votes</span>
           <span className="text-[var(--text-dim)]">·</span>
           <span>{d.comments} comments</span>
         </div>
-        <Link to={`/debates/${d.id}`} className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block" data-testid={`view-debate-${d.id}`}>
+        <Link
+          to={`/debates/${d.id}`}
+          className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-full hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block"
+        >
           View Debate
         </Link>
       </Footer>
@@ -143,7 +155,7 @@ function BinaryCard({ d, vote, onVote }) {
               className="flex-1 text-left"
             >
               <div className="text-[12px] text-[var(--text-muted)] mb-1">{o.label}</div>
-              <div className={`text-[28px] sm:text-[34px] font-serif transition ${vote === i ? "text-[var(--accent-2)]" : "text-[var(--text)]"}`}>{(o.votes / d.total_votes) * 100}%</div>
+              <div className={`text-[28px] sm:text-[34px] font-serif transition ${vote === i ? "text-[var(--accent-2)]" : "text-[var(--text)]"}`}>{o.votes ? ((o.votes / d.total_votes) * 100).toFixed(1) : 0}%</div>
               <div className="h-1 rounded-full bg-[var(--border)] overflow-hidden mt-1.5">
                 <div className="h-full rounded-full transition-all duration-700" style={{ width: `${((o.votes / d.total_votes) * 100)}%`, background: "var(--accent)", boxShadow: vote === i ? "0 0 12px var(--accent-glow)" : "none" }} />
               </div>
@@ -154,12 +166,15 @@ function BinaryCard({ d, vote, onVote }) {
 
       <Footer testid={`debate-footer-${d.id}`}>
         <div className="flex items-center gap-3 text-[12px] text-[var(--text-muted)]">
-          <VotersAvatars seed={d.id.charCodeAt(0)} />
+          <VotersAvatars seed={d.id.charCodeAt(0)} votes={d.votes+1}/>
           <span>{d.total_votes} votes</span>
           <span className="text-[var(--text-dim)]">·</span>
           <span>{d.comments} comments</span>
         </div>
-        <Link to={`/debates/${d.id}`} className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block">
+        <Link
+          to={`/debates/${d.id}`}
+          className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-full hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block"
+        >
           View Debate
         </Link>
       </Footer>
@@ -187,12 +202,15 @@ function AlbumPickCard({ d, onVote }) {
 
       <Footer testid={`debate-footer-${d.id}`}>
         <div className="flex items-center gap-3 text-[12px] text-[var(--text-muted)]">
-          <VotersAvatars seed={d.id.charCodeAt(0)} />
+          <VotersAvatars seed={d.id.charCodeAt(0)} votes={d.votes+1}/>
           <span>{d.total_votes} votes</span>
           <span className="text-[var(--text-dim)]">·</span>
           <span>{d.comments} comments</span>
         </div>
-        <Link to={`/debates/${d.id}`} className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block">
+        <Link
+          to={`/debates/${d.id}`}
+          className="border border-[var(--border-2)] text-[12.5px] px-4 py-2 rounded-full hover:border-[var(--accent)] hover:text-[var(--accent-2)] transition inline-block"
+        >
           View Debate
         </Link>
       </Footer>
@@ -239,7 +257,7 @@ export default function Debates() {
   const [debates, setDebates] = useState([]);
   const [loadingDebates, setLoadingDebates] = useState(true);
   const [error, setError] = useState(null);
-  const [myVotes, setMyVotes] = useState({}); 
+  const [myVotes, setMyVotes] = useState({});
   const [debateOfTheDay, setDebateOfTheDay] = useState({});
 
   useEffect(() => {
@@ -276,7 +294,7 @@ export default function Debates() {
     loadDebates();
   }, []);
 
-  const handleCreateDebate = ()=>{
+  const handleCreateDebate = () => {
 
   }
 
@@ -303,20 +321,20 @@ export default function Debates() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">
-              Your Shelf
+              Join the discussion
             </div>
 
             <h1 className="font-serif text-[34px] sm:text-[44px] leading-none mb-2">Debates</h1>
             <p className="text-[13px] text-[var(--text-muted)]">Where music lovers argue (respectfully).</p>
           </div>
-          
+
         </div>
 
         {/* Category chips + sort */}
         <div className="flex flex-wrap items-center justify-between gap-3">
 
           {/* Categories */}
-          <div
+          {/* <div
             className="flex flex-wrap gap-2"
             data-testid="category-chips"
           >
@@ -329,13 +347,13 @@ export default function Debates() {
                 {category}
               </Chip>
             ))}
-          </div>
+          </div> */}
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          {/* <div className="flex items-center gap-2"> */}
 
-            {/* Create Debate */}
-            <button
+          {/* Create Debate */}
+          {/* <button
               onClick={handleCreateDebate}
               className="btn-accent inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
               data-testid="create-debate-btn"
@@ -344,7 +362,7 @@ export default function Debates() {
               Create Debate
             </button>
 
-          </div>
+          </div> */}
         </div>
 
         {/* Loading / Error / List */}
@@ -388,7 +406,7 @@ export default function Debates() {
           <div className="rounded-lg overflow-hidden mb-3 cover" style={{ background: debateOfTheDay.cover, aspectRatio: "1 / 1" }} />
           <div className="font-serif text-[15px] mb-1">{debateOfTheDay.title}</div>
           <p className="text-[11.5px] text-[var(--text-muted)] mb-3">{debateOfTheDay.subtitle}</p>
-          <button className="btn-accent w-full rounded-lg py-2 text-[12px]" data-testid="join-debate-day-btn">Join the Debate</button>
+          <button  className="btn-accent inline-flex items-center gap-2 px-5 py-3 rounded-full" data-testid="join-debate-day-btn">Join the Debate</button>
           <div className="text-center text-[10.5px] text-[var(--text-dim)] mt-2">
             {debateOfTheDay.votes} votes · {debateOfTheDay.comments} comments
           </div>

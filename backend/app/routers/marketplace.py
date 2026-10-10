@@ -3,7 +3,6 @@ from db.mongodb import db
 from models.marketplace import RecommendedListingCreate
 from fastapi import APIRouter
 from datetime import datetime, timezone
-from typing import Optional
 from bson import ObjectId
 from models.user import User, UserRole
 
