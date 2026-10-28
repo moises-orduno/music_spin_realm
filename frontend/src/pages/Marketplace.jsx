@@ -3,6 +3,8 @@ import { Tag, Search, ArrowRight, SlidersHorizontal } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { getRecommended, getMarketplaceHuntMatches } from "../services/marketplaceService";
 import { useNavigate } from "react-router-dom";
+import { getCurrentUser } from "../services/authService";
+
 
 export default function Marketplace() {
     const [loadingListings, setLoadingListings] = useState(true);
@@ -13,6 +15,7 @@ export default function Marketplace() {
     const [huntMatches, setHuntMatches] = useState([]);
 
     const navigate = useNavigate();
+    const user = getCurrentUser();
 
     const displayedListings =
         view === "all"
@@ -25,22 +28,31 @@ export default function Marketplace() {
                 setLoadingListings(true);
                 setError(null);
 
-                const [recommended, huntMatches] = await Promise.all([
-                    getRecommended(),
-                    getMarketplaceHuntMatches(),
-                ]);
+                if (!user) {
+                    const recommended = await getRecommended();
 
-                setRecommendedListings(
-                    Array.isArray(recommended)
-                        ? recommended
-                        : recommended.items || []
-                );
+                    setRecommendedListings(Array.isArray(recommended)
+                            ? recommended
+                            : recommended.items || []);
+                } else {
+                    const [recommended, huntMatches] = await Promise.all([
+                        getRecommended(),
+                        getMarketplaceHuntMatches(),
+                    ]);
 
-                setHuntMatches(
-                    Array.isArray(huntMatches)
-                        ? huntMatches
-                        : huntMatches.items || []
-                );
+                    setRecommendedListings(
+                        Array.isArray(recommended)
+                            ? recommended
+                            : recommended.items || []
+                    );
+
+                    setHuntMatches(
+                        Array.isArray(huntMatches)
+                            ? huntMatches
+                            : huntMatches.items || []
+                    );
+                }
+
 
             } catch (err) {
                 console.error("Failed to load marketplace", err);
@@ -170,7 +182,7 @@ export default function Marketplace() {
                         <div
                             key={listing.id}
                             onClick={() =>
-                                navigate(`/albums/${listing.album?.id}`)
+                                navigate(`/albumDetail/${listing.album?.id}`)
                             }
                             className="card-panel hover-lift p-4 sm:p-5 flex gap-4 sm:gap-5 cursor-pointer"
                         >
@@ -261,7 +273,7 @@ export default function Marketplace() {
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             navigate(
-                                                `/albums/${listing.album?.id}`
+                                                `/albumDetail/${listing.album?.id}`
                                             );
                                         }}
                                         className="border border-[var(--border-2)] text-[12px] px-3 py-1.5 rounded-full btn-ghost"
@@ -273,7 +285,7 @@ export default function Marketplace() {
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             navigate(
-                                                `/albums/${listing.album?.id}`
+                                                `/albumDetail/${listing.album?.id}`
                                             );
                                         }}
                                         className="bg-[var(--accent-soft)] border border-[var(--accent)]/30 text-[var(--accent)] text-[12px] px-3 py-1.5 rounded-full hover:bg-[var(--accent)]/20 transition"

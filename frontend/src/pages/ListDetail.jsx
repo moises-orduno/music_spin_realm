@@ -613,7 +613,7 @@ export default function ListDetail() {
               <div
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/albums/${a?.id}`);
+                  navigate(`/albumDetail/${a?.id}`);
                 }}
                 key={a.position}
                 className="card-panel overflow-hidden hover-lift cursor-pointer"

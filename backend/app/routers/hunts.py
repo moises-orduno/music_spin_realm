@@ -1,11 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 import uuid
 from db.mongodb import db
 from helpers.token_helper import get_current_user
-import copy
 from models.hunt import Hunt, HuntFormRequest, HuntStatus, UpdateHuntRequest
 from models.album import AlbumReference
-from datetime import datetime, timezone
 from models.user import UserReference
 
 router = APIRouter(
@@ -108,7 +106,7 @@ async def update_hunt(
 
     if hunt is None:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Hunt not found"
         )
 
@@ -120,7 +118,7 @@ async def update_hunt(
 
     if not updates:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="No fields to update"
         )
 
@@ -152,7 +150,7 @@ async def delete_hunt(
 
     if result.deleted_count == 0:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Hunt not found"
         )
 
@@ -179,7 +177,7 @@ async def get_hunt_by_id(
 
     if doc is None:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Hunt not found",
         )
 

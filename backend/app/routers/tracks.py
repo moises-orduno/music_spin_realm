@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from db.mongodb import db
 from models.album import Album
 from models.track import Track, TrackUpdate
@@ -29,7 +29,7 @@ async def add_track(
 
     if result.matched_count == 0:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Album not found"
         )
 
@@ -65,7 +65,7 @@ async def update_track(
 
     if result.matched_count == 0:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Album or track not found"
         )
 
@@ -92,7 +92,7 @@ async def delete_track(
 
     if result.matched_count == 0:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Album not found"
         )
 

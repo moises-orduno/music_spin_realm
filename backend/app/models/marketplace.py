@@ -1,12 +1,36 @@
 from pydantic import BaseModel
 from typing import Optional
 
+from datetime import datetime, timezone
+from typing import Optional
+from pydantic import BaseModel, Field
+
+from enum import Enum
+
+
+class ListingStatus(str, Enum):
+    AVAILABLE = "available"
+    SOLD = "sold"
+    RESERVED = "reserved"
+    PENDING = "pending"
+    DRAFT = "draft"
+    REMOVED = "removed"
+
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, Field
+
+
 class RecommendedListingCreate(BaseModel):
     album_id: str
 
     # Sale
-    price: float
+    price: float = Field(gt=0)
     currency: str = "USD"
+
+    # Inventory lifecycle
+    status: ListingStatus = ListingStatus.AVAILABLE
+    sold_at: Optional[datetime] = None
 
     # Pressing
     pressing_country: Optional[str] = None
@@ -18,7 +42,7 @@ class RecommendedListingCreate(BaseModel):
     # Format
     format: Optional[str] = None
     speed: Optional[int] = None
-    channels: Optional[str] = None  # Stereo / Mono
+    channels: Optional[str] = None
 
     # Condition
     media_condition: Optional[str] = None
@@ -31,4 +55,4 @@ class RecommendedListingCreate(BaseModel):
     notes: Optional[str] = None
 
     # Photos
-    images: list[str] = []
+    images: list[str] = Field(default_factory=list)

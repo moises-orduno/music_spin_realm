@@ -151,19 +151,20 @@ export default function HuntDetail() {
 
     const { id } = useParams();
 
-    const [error, setError] = useState(null);
     const navigate = useNavigate();
 
     const [hunt, setHunt] = useState(null);
     const [loading, setLoading] = useState(false);
     const [copies, setCopies] = useState([]);
 
+    const handleAlbumCopyClick = (c) => {
+        navigate(`/marketplaceDetail/${c.id}`);
+    }
 
     useEffect(() => {
         const initializeForm = async () => {
             try {
                 setLoading(true);
-                setError(null);
 
                 // Load hunt first
                 const hunt = await getHuntById(id);
@@ -176,9 +177,6 @@ export default function HuntDetail() {
 
             } catch (err) {
                 console.error(err);
-                setError(
-                    err.message || "Failed to load hunt"
-                );
             } finally {
                 setLoading(false);
             }
@@ -445,7 +443,7 @@ export default function HuntDetail() {
                         <>
                             <div className="space-y-2.5">
                                 {copies.slice(0, 5).map((c) => (
-                                    <CopyRow key={c.id} c={c} />
+                                    <CopyRow key={c.id} c={c} handleAlbumCopyClick={handleAlbumCopyClick} />
                                 ))}
                             </div>
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from db.mongodb import db
 from typing import List, Optional
 
@@ -40,7 +40,7 @@ async def get_random_debate():
 
     if not docs:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="No debates found"
         )
 
@@ -68,11 +68,23 @@ async def create_debate(payload: DebateCreate):
 async def update_debate(debate_id: str, payload: DebateUpdate):
     updates = {k: v for k, v in payload.model_dump().items() if v is not None}
     if not updates:
-        raise HTTPException(status_code=400, detail="No fields to update")
-    result = await db.debates.update_one({"id": debate_id}, {"$set": updates})
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="No fields to update"
+            )
+    result = await db.debates.update_one(
+        {"id": debate_id}, 
+        {"$set": updates}
+        )
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Debate not found")
-    doc = await db.debates.find_one({"id": debate_id}, {"_id": 0})
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Debate not found"
+            )
+    doc = await db.debates.find_one(
+        {"id": debate_id}, 
+        {"_id": 0}
+        )
     return _serialize(doc)
 
 
@@ -80,7 +92,10 @@ async def update_debate(debate_id: str, payload: DebateUpdate):
 async def delete_debate(debate_id: str):
     result = await db.debates.delete_one({"id": debate_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Debate not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+              detail="Debate not found"
+              )
     return None
 
 @router.post("/{debate_id}/vote")
@@ -93,11 +108,14 @@ async def vote_debate(
 
     debate = await db.debates.find_one({"id": debate_id})
     if not debate:
-        raise HTTPException(404, "Debate not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Debate not found")
 
     options = debate.get("options", [])
     if payload.option_index < 0 or payload.option_index >= len(options):
-        raise HTTPException(400, "Invalid option_index")
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, 
+            "Invalid option_index"
+            )
 
     existing_vote = await db.votes.find_one({
         "debate_id": debate_id,

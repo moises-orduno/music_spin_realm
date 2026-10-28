@@ -1,6 +1,6 @@
 from models.artist import Artist
 from models.artist import ArtistCreate
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 
 from db.mongodb import db
 from typing import List
@@ -33,7 +33,7 @@ async def create_artist(payload: ArtistCreate):
 
     if existing:
         raise HTTPException(
-            status_code=409,
+            status_code=status.HTTP_409_CONFLICT,
             detail="Artist already exists"
         )
 
@@ -111,7 +111,7 @@ async def get_artist(artist_id: str):
 
     if not artist:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Artist not found"
         )
 

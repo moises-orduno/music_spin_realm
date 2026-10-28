@@ -3,14 +3,29 @@ import { React, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { UserPlus, UserCheck } from "lucide-react";
 import { getProfilesFollowers, toggleFollowById } from "../services/userService";
+import { getCurrentUser } from "../services/authService";
+import { useNavigate } from "react-router-dom";
 
 export default function PeopleFollowers() {
 
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const user = getCurrentUser();
+  const navigate = useNavigate();
 
   useEffect(() => {
+
+     if (!user) {
+      navigate("/login", {
+        state: {
+          message: "Log in to see your followers.",
+          redirectTo: `/people/followers`,
+        },
+      });
+      return;
+    }
+
     const loadProfilesFollowers = async () => {
       try {
         setLoading(true);
@@ -50,7 +65,7 @@ export default function PeopleFollowers() {
   };
 
   return (
-    <div className="space-y-8 fade-in-up" data-testid="people-page">
+    <div className="space-y-8 fade-in-up" data-testid="peopl-followers-page">
       <div>
         <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">The Community</div>
         <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">People</h1>
@@ -76,11 +91,24 @@ export default function PeopleFollowers() {
 
                 {/* Avatar */}
                 <div
-                  className="w-[64px] h-[64px] rounded-full shrink-0 border border-[var(--border-2)]"
-                  style={{
-                    background: `linear-gradient(135deg, ${s.avatarColor}, #1a1612)`
-                  }}
-                />
+                  className="w-9 h-9 rounded-full border border-[var(--border-2)] shrink-0 overflow-hidden"
+                  data-testid="user-avatar"
+                >
+                  {s?.avatar_url ? (
+                    <img
+                      src={s.avatar_url}
+                      alt={s.display_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full"
+                      style={{
+                        background: "linear-gradient(135deg, #c2a876, #3a2a1a)",
+                      }}
+                    />
+                  )}
+                </div>
 
                 {/* User info */}
                 <div className="flex-1 min-w-0">

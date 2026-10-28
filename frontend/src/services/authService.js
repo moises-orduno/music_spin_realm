@@ -70,44 +70,67 @@ export function isSameUser(owner) {
   return owner.user_id === getCurrentUser().id
 }
 
-  export function getCurrentUser() {
-    const user = localStorage.getItem("user");
-    return user ? JSON.parse(user) : null;
+export function getCurrentUser() {
+  const user = localStorage.getItem("user");
+  return user ? JSON.parse(user) : null;
+}
+
+export function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+}
+
+export async function authenticatedFetch(url, options = {}, isTokenNecessary = true) {
+  const token = getToken();
+
+  if (!token && isTokenNecessary) {
+    return;
   }
 
-  export function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-  }
-
-  export async function authenticatedFetch(url, options = {}, isTokenNecessary= true) {
-    const token = getToken();
-
-    if(!token && isTokenNecessary){
-      return;
+  const response = await fetch(
+    `${API_BASE_URL}${url}`,
+    {
+      ...options,
+      headers: {
+        ...options.headers,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     }
+  );
 
-    const response = await fetch(
-      `${API_BASE_URL}${url}`,
-      {
-        ...options,
-        headers: {
-          ...options.headers,
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+  // Token expired or invalid
+  if (response.status === 401) {
 
-    // Token expired or invalid
-    if (response.status === 401) {
+    logout();
 
-      logout();
+    window.location.href = "/login";
 
-      window.location.href = "/login";
-
-      throw new Error("Session expired");
-    }
-
-    return response;
+    throw new Error("Session expired");
   }
+
+  return response;
+}
+
+export async function loginWithGoogleAccessToken(accessToken) {
+  const response = await fetch(
+    `${API_BASE_URL}/users/google/access-token`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Google login failed");
+  }
+
+  return data;
+}

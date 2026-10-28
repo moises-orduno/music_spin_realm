@@ -15,7 +15,7 @@ import { createHunt, updateHunt, getHuntById } from "../services/huntService";
 import React, { useState, useEffect } from "react";
 
 import {
-  ArrowLeft, ChevronDown, Globe, Calendar, DollarSign, MapPin, Info, Shuffle
+  ArrowLeft, ChevronDown, Globe, Calendar, DollarSign, MapPin, Info, Shuffle, Plus
 } from "lucide-react";
 
 function Chip({ children, active, onClick, testid }) {
@@ -84,7 +84,6 @@ export default function HuntForm() {
 
   const isEditing = Boolean(id);
 
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const [album, setAlbum] = useState(null);
@@ -163,10 +162,6 @@ export default function HuntForm() {
         }
       } catch (err) {
         console.error(err);
-        setError(
-          err.message ||
-          `Failed to ${isEditing ? "load hunt" : "initialize hunt"}`
-        );
       } finally {
 
       }
@@ -244,7 +239,7 @@ export default function HuntForm() {
   }[sellerLoc];
 
   return (
-    <div className="flex gap-6 min-w-0 fade-in-up" data-testid="list-remix-page">
+    <div className="flex gap-6 min-w-0 fade-in-up" data-testid="hunt-form-page">
       <div className="flex-1 min-w-0 space-y-6">
         <Link to={`/hunt`} className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] inline-flex items-center gap-1.5" data-testid="back-link">
           <ArrowLeft size={13} /> Back to hunt
@@ -357,9 +352,9 @@ export default function HuntForm() {
               placeholder:text-[var(--text-dim)] 
               focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
             />
-            <Calendar 
-            size={15} 
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+            <Calendar
+              size={15}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           </div>
         </div>
 
@@ -455,24 +450,43 @@ export default function HuntForm() {
             className="w-full bg-[var(--panel)] border rounded-xl px-4 py-3.5 pr-11 text-[13.5px] 
             placeholder:text-[var(--text-dim)] 
             focus:outline-none focus:ring-2 transition border-[var(--border)] focus:ring-[var(--accent)]"
-           />
+          />
         </div>
 
         {/* Actions */}
-        <div className="pt-2">
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
           <button
+            type="button"
+            onClick={() => navigate("/hunt")}
+            disabled={submitting}
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] px-6 py-3 text-sm transition hover:border-[var(--accent)] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
             onClick={handleSubmit}
             disabled={submitting}
             data-testid="continue-btn"
-            className="w-full rounded-xl py-3 font-semibold text-[13px] text-white transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: "linear-gradient(90deg, #8b5cf6, #6d28d9)",
-              boxShadow: "0 6px 20px var(--accent-glow)",
-            }}
+            className="btn-accent inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting
-              ? (isEditing ? "Saving..." : "Creating...")
-              : (isEditing ? "Save Changes" : "Create Hunt")}
+            {submitting ? (
+              <>
+                <LoaderCircle size={17} className="animate-spin" />
+                {isEditing ? "Saving..." : "Creating..."}
+              </>
+            ) : isEditing ? (
+              <>
+                <Save size={17} />
+                Save Changes
+              </>
+            ) : (
+              <>
+                <Plus size={17} />
+                Create Hunt
+              </>
+            )}
           </button>
         </div>
       </div>

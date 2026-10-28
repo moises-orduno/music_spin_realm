@@ -248,12 +248,12 @@ export default function CollectionAlbumDetail() {
                   type="button"
                   onClick={() => setSelectedImage(index)}
                   className={`
-          w-16 h-16 shrink-0 rounded-md overflow-hidden border transition-all
-          ${selectedImage === index
+                      w-16 h-16 shrink-0 rounded-md overflow-hidden border transition-all
+                      ${selectedImage === index
                       ? "border-[var(--accent)] ring-1 ring-[var(--accent)]"
                       : "border-[var(--border)] opacity-70 hover:opacity-100"
                     }
-        `}
+                  `}
                 >
                   <img
                     src={image}

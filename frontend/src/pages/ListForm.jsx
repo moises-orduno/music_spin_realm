@@ -463,7 +463,7 @@ export default function ListForm() {
   };
 
   return (
-    <div className="flex gap-6 min-w-0 fade-in-up" data-testid="create-list-page">
+    <div className="flex gap-6 min-w-0 fade-in-up" data-testid="list-form-page">
       <div className="flex-1 min-w-0 space-y-6">
         <Link to={`/lists/${id || "saddest-albums-ever"}`} className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] inline-flex items-center gap-1.5" data-testid="back-link">
           <ArrowLeft size={13} /> Back to list
@@ -686,20 +686,40 @@ export default function ListForm() {
         </div>
 
         {/* Actions */}
-        <div className="pt-2">
+
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
           <button
+            type="button"
+            onClick={() => navigate("/topLists")}
+            disabled={submitting}
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] px-6 py-3 text-sm transition hover:border-[var(--accent)] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
             onClick={handleSubmit}
             disabled={submitting}
             data-testid="continue-btn"
-            className="w-full rounded-xl py-3 font-semibold text-[13px] text-white transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: "linear-gradient(90deg, #8b5cf6, #6d28d9)",
-              boxShadow: "0 6px 20px var(--accent-glow)",
-            }}
+            className="btn-accent inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting
-              ? (isEditing ? "Saving..." : "Creating...")
-              : (isEditing ? "Save Changes" : "Publish List")}
+            {submitting ? (
+              <>
+                <LoaderCircle size={17} className="animate-spin" />
+                {isEditing ? "Saving..." : "Creating..."}
+              </>
+            ) : isEditing ? (
+              <>
+                <Save size={17} />
+                Save Changes
+              </>
+            ) : (
+              <>
+                <Plus size={17} />
+                Publish List
+              </>
+            )}
           </button>
         </div>
       </div>

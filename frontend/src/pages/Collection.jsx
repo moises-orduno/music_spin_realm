@@ -549,8 +549,6 @@ export default function Collection() {
 
   const { username } = useParams();
 
-  const isOwner = username;
-
   const [collectionAlbums, setCollectionAlbums] = useState([]);
   const [filteredCollectionAlbums, setFilteredCollectionAlbums] = useState([]);
 
@@ -636,20 +634,9 @@ export default function Collection() {
 
             <ProfileHeader
               profile={profile}
-              isOwnProfile={profile.username === user.username}
+              isOwnProfile={user?profile.username === user.username:false}
               setProfile={setProfile}
             />
-            {/* <button
-            className="w-9 h-9 rounded-lg border border-[var(--border-2)] flex items-center justify-center btn-ghost text-[var(--accent)]"
-          >
-            <Grid2x2 size={14} />
-          </button>
-
-          <button
-            className="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center btn-ghost"
-          >
-            <List size={14} />
-          </button> */}
 
           </div>
           : <div></div>}

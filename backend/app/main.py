@@ -12,7 +12,10 @@ from routers.users import router as users_router
 from routers.hunts import router as hunts_router
 from routers.tracks import router as tracks_router
 from routers.collections import router as collections_router
-
+from routers.shoppingcart import router as shoppingcart_router
+from routers.shipping_addresses import router as shipping_addresses_router
+from routers.checkout import router as checkout_router
+from routers.order import router as order_router
 
 app = FastAPI()
 
@@ -41,3 +44,7 @@ app.include_router(users_router, prefix="/api")
 app.include_router(hunts_router, prefix="/api")
 app.include_router(tracks_router, prefix="/api")
 app.include_router(collections_router, prefix="/api")
+app.include_router(shoppingcart_router, prefix="/api")
+app.include_router(shipping_addresses_router, prefix="/api")
+app.include_router(checkout_router, prefix="/api")
+app.include_router(order_router, prefix="/api")

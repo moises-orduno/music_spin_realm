@@ -25,7 +25,8 @@ import {
     Disc3,
     DollarSign,
     Heart,
-    Camera
+    Camera,
+    Plus
 } from "lucide-react";
 
 function Chip({ children, active, onClick, testid }) {
@@ -675,20 +676,41 @@ export default function CollectionAlbumForm() {
                 </div>
 
                 {/* Actions */}
-                <div className="pt-2">
+
+                {/* Actions */}
+                <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
                     <button
+                        type="button"
+                        onClick={() => navigate("/collection")}
+                        disabled={submitting}
+                        className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] px-6 py-3 text-sm transition hover:border-[var(--accent)] disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="button"
                         onClick={handleSubmit}
                         disabled={submitting}
                         data-testid="continue-btn"
-                        className="w-full rounded-xl py-3 font-semibold text-[13px] text-white transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{
-                            background: "linear-gradient(90deg, #8b5cf6, #6d28d9)",
-                            boxShadow: "0 6px 20px var(--accent-glow)",
-                        }}
+                        className="btn-accent inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {submitting
-                            ? (isEditing ? "Saving..." : "Adding...")
-                            : (isEditing ? "Save Changes" : "Add Album to your Collection")}
+                        {submitting ? (
+                            <>
+                                <LoaderCircle size={17} className="animate-spin" />
+                                {isEditing ? "Saving..." : "Adding..."}
+                            </>
+                        ) : isEditing ? (
+                            <>
+                                <Save size={17} />
+                                Save Changes
+                            </>
+                        ) : (
+                            <>
+                                <Plus size={17} />
+                                Add Album to your Collection
+                            </>
+                        )}
                     </button>
                 </div>
             </div>

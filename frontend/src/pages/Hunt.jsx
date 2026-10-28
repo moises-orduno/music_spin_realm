@@ -13,14 +13,13 @@ export default function Hunt() {
   const user = getCurrentUser();
   const navigate = useNavigate();
   const [status, setStatus] = useState("hunting");
-  const [counts, setCounts] = useState({});
 
   const handleHuntCreateClick = () => {
     if (!user) {
       navigate("/login", {
         state: {
-          message: "Log in to create a list.",
-          redirectTo: `/createList`,
+          message: "Log in to create a hunt.",
+          redirectTo: `/huntForm/new`,
         },
       });
       return;

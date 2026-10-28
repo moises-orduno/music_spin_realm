@@ -9,7 +9,6 @@ import { getCurrentUser } from "../services/authService";
 export default function MyLikedLists() {
   const [lists, setLists] = useState([]);
   const [loadingLists, setLoadingLists] = useState(false);
-  const [error, setError] = useState(null);
 
   const navigate = useNavigate();
 
@@ -28,12 +27,11 @@ export default function MyLikedLists() {
 
       try {
         setLoadingLists(true);
-        setError(null);
         const data = await getMyLikedLists();
 
         setLists(data);
       } catch (err) {
-        setError(err.message || "Failed to load lists");
+        console.error(err.message || "Failed to load lists");
       } finally {
         setLoadingLists(false);
       }

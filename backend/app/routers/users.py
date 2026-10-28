@@ -1,10 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from typing import Optional
 
 from db.mongodb import db
 from helpers.token_helper import create_access_token
 from helpers.password_checker import verify_password, hash_password
-
+import httpx
 import json
 from helpers.token_helper import get_current_user, get_optional_user
 
@@ -15,8 +15,11 @@ from models.user import (
     RegisterRequest,
     LoginRequest,
     ProfileResponse,
-    UserFollow
+    UserFollow,
+    GoogleLoginRequest
 )
+
+from fastapi import HTTPException
 
 from models.album import (
     AlbumReference
@@ -30,34 +33,9 @@ router = APIRouter(
     tags=["Users"]
 )
 
-@router.post("/login")
-async def login(payload: LoginRequest):
-
-    user = await db.users.find_one(
-        {"email": payload.email}
-    )
-
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid email or password"
-        )
-
-    if not verify_password(
-        payload.password,
-        user["password_hash"]
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid email or password"
-        )
-
-    token = create_access_token(
-        user["id"]
-    )
-
+def build_auth_response(user: dict) -> dict:
     return {
-        "access_token": token,
+        "access_token": create_access_token(user["id"]),
         "token_type": "bearer",
         "user": {
             "id": user["id"],
@@ -65,34 +43,53 @@ async def login(payload: LoginRequest):
             "display_name": user["display_name"],
             "avatar_url": user.get("avatar_url"),
             "bio": user.get("bio"),
-            "email": user["email"]
-        }
+            "email": user["email"],
+            "role": user.get("role", "user"),
+            "onboarding_completed": user.get(
+                "onboarding_completed", False
+            ),
+        },
     }
+
+@router.post("/login")
+async def login(payload: LoginRequest):
+    email = payload.email.strip().lower()
+
+    user = await db.users.find_one({"email": email})
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    password_hash = user.get("password_hash")
+
+    if not password_hash or not verify_password(
+        payload.password, password_hash
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    return build_auth_response(user)
 
 @router.post("/register")
 async def register(payload: RegisterRequest):
-
     email = payload.email.strip().lower()
     username = payload.username.strip().lower()
 
-    existing_email = await db.users.find_one({
-        "email": email
-    })
-
-    if existing_email:
+    if await db.users.find_one({"email": email}):
         raise HTTPException(
             status_code=400,
-            detail="Email already exists"
+            detail="Email already exists",
         )
 
-    existing_username = await db.users.find_one({
-        "username": username
-    })
-
-    if existing_username:
+    if await db.users.find_one({"username": username}):
         raise HTTPException(
             status_code=400,
-            detail="Username already exists"
+            detail="Username already exists",
         )
 
     user = User(
@@ -102,26 +99,11 @@ async def register(payload: RegisterRequest):
         password_hash=hash_password(payload.password),
     )
 
-    await db.users.insert_one(
-        user.model_dump(mode="json")
-    )
+    user_data = user.model_dump(mode="json")
 
-    token = create_access_token(user.id)
+    await db.users.insert_one(user_data)
 
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "display_name": user.display_name,
-            "avatar_url": user.avatar_url,
-            "bio": user.bio,
-            "email": user.email,
-            "role": user.role,
-            "onboarding_completed": user.onboarding_completed,
-        }
-    }
+    return build_auth_response(user_data)
 
 @router.get("")
 async def get_users(
@@ -680,8 +662,101 @@ async def delete_user(user_id: str):
 
     if result.deleted_count == 0:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
 
     return None
+
+@router.post("/google/access-token")
+async def google_login(payload: GoogleLoginRequest):
+
+    # Get the Google profile using the access token.
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={
+                "Authorization": f"Bearer {payload.access_token}"
+            },
+        )
+
+    if response.status_code != status.HTTP_200_OK:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google access token",
+        )
+
+    google_user = response.json()
+
+    if (
+        not google_user.get("sub")
+        or not google_user.get("email")
+        or not google_user.get("email_verified")
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google account email is not verified",
+        )
+
+    google_id = google_user["sub"]
+    email = google_user["email"].strip().lower()
+
+    # Find an account already linked to this Google identity.
+    user = await db.users.find_one({"google_id": google_id})
+
+    if not user:
+        # Check whether this email already belongs to an account.
+        user = await db.users.find_one({"email": email})
+
+        if user:
+            # Don't silently link a different Google identity.
+            if user.get("google_id") and user["google_id"] != google_id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email is linked to another Google account",
+                )
+
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"google_id": google_id}},
+            )
+
+            user["google_id"] = google_id
+
+        else:
+            # Generate a unique username.
+            base_username = (
+                google_user.get("given_name")
+                or email.split("@")[0]
+            ).strip().lower()
+
+            base_username = "".join(
+                char
+                for char in base_username
+                if char.isalnum() or char in "_-"
+            )[:25] or "user"
+
+            username = base_username
+            suffix = 1
+
+            while await db.users.find_one({"username": username}):
+                suffix += 1
+                username = f"{base_username[:20]}{suffix}"
+
+            # Create the new SpinRealm user.
+            user_model = User(
+                username=username,
+                display_name=google_user.get("name") or username,
+                email=email,
+                password_hash=None,
+                avatar_url=google_user.get("picture"),
+            )
+
+            user_data = user_model.model_dump(mode="json")
+            user_data["google_id"] = google_id
+
+            await db.users.insert_one(user_data)
+            user = user_data
+
+    # Return the same response structure as email login/register.
+    return build_auth_response(user)

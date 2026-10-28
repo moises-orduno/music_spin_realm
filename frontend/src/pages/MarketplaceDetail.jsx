@@ -22,6 +22,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { getMarketplaceListing } from "../services/marketplaceService";
+import { addToMyCart, getCart } from "../services/cartService";
 
 function DetailRow({ Icon, label, value }) {
   return (
@@ -69,9 +70,16 @@ export default function MarketplaceDetail() {
       try {
         setLoading(true);
 
-        const data = await getMarketplaceListing(id);
+        const [data, cart] = await Promise.all([
+          getMarketplaceListing(id),
+          getCart(),
+        ]);
 
         setListing(data);
+
+        setAddedToCart(
+          cart.items.some((item) => item.listing_id === data.id)
+        );
       } catch (err) {
         console.error(err);
         setError("Unable to load this marketplace listing.");
@@ -80,18 +88,19 @@ export default function MarketplaceDetail() {
       }
     }
 
-      loadListing();
-    
+    loadListing();
   }, [id]);
 
   const handleAddToCart = async () => {
     try {
       setAddingToCart(true);
 
-      // Replace this with your actual cart API call.
-      // await addToCart(listing.id);
+      const payload = {
+        listing_id: listing.id,
+      };
 
-      setAddedToCart(true);
+      const data = await addToMyCart(payload);
+      setAddedToCart(data.listing_id === listing.id);
     } catch (err) {
       console.error(err);
     } finally {
@@ -229,10 +238,9 @@ export default function MarketplaceDetail() {
                   onClick={() => setSelectedImage(index)}
                   className={`
                     w-16 h-16 shrink-0 rounded-md overflow-hidden border transition-all
-                    ${
-                      selectedImage === index
-                        ? "border-[var(--accent)] ring-1 ring-[var(--accent)]"
-                        : "border-[var(--border)] opacity-70 hover:opacity-100"
+                    ${selectedImage === index
+                      ? "border-[var(--accent)] ring-1 ring-[var(--accent)]"
+                      : "border-[var(--border)] opacity-70 hover:opacity-100"
                     }
                   `}
                 >
@@ -339,19 +347,18 @@ export default function MarketplaceDetail() {
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-2 gap-2.5 mb-7">
+          <div className="grid  gap-2.5 mb-7">
             <button
               type="button"
-              onClick={handleAddToCart}
+              onClick={() => handleAddToCart()}
               disabled={addingToCart}
               className={`
                 h-11 rounded-lg border border-[var(--accent)]
                 flex items-center justify-center gap-2
                 text-[13px] font-medium transition-all
-                ${
-                  addedToCart
-                    ? "bg-[var(--accent)] text-white"
-                    : "text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white"
+                ${addedToCart
+                  ? "bg-[var(--accent)] text-white"
+                  : "text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white"
                 }
                 disabled:opacity-50
               `}
@@ -359,7 +366,7 @@ export default function MarketplaceDetail() {
               {addedToCart ? (
                 <>
                   <CircleCheck size={16} />
-                  Added
+                  In Cart
                 </>
               ) : (
                 <>
@@ -369,15 +376,7 @@ export default function MarketplaceDetail() {
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={handleBuyNow}
-              disabled={addingToCart}
-              className="h-11 rounded-lg bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[13px] font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              <Zap size={16} />
-              Buy Now
-            </button>
+           
           </div>
 
           {/* Seller */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Star, Heart, Plus, Target, ChevronDown, ChevronRight, Disc,
-  FolderOpen, MessageSquare, Users, ShoppingCart, ArrowRight,
+  FolderOpen, MessageSquare, Users, ShoppingCart, ArrowRight, CircleCheck
 } from "lucide-react";
 import {
   getAlbumById, getSimilarAlbumsById, getAlbumStatus
@@ -13,8 +13,13 @@ import {
 }
   from "../services/marketplaceService";
 
-import { useNavigate, useParams, Link } from "react-router-dom";
+import {
+  getCart
+}
+  from "../services/cartService";
 
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { getCurrentUser } from "../services/authService";
 
 const ICON_MAP = { FolderOpen, MessageSquare, Users, Target };
 
@@ -39,6 +44,7 @@ function ConditionBadge({ code }) {
 }
 
 function CopyRow({ c, handleAlbumCopyClick }) {
+
   return (
     <div
       onClick={() => handleAlbumCopyClick(c)}
@@ -99,19 +105,34 @@ function CopyRow({ c, handleAlbumCopyClick }) {
       {/* Actions */}
       <div className="flex items-center gap-2 ml-auto shrink-0">
         <button
-          className="btn-accent rounded-lg px-4 py-2 text-[12px] flex items-center gap-1.5"
+          type="button"
+          disabled={c.isInCart}
+          className={`
+            h-9 rounded-lg border border-[var(--accent)]
+            px-4 py-2 text-[12px] flex items-center justify-center gap-1.5
+            font-medium transition-all
+            ${c.isInCart
+              ? "bg-[var(--accent)] text-white"
+              : "text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white"
+            }
+              disabled:opacity-50
+            `}
           data-testid={`add-cart-${c.album?.id}-${c.catalog_number}`}
         >
-          <ShoppingCart size={12} />
-          Add to cart
+          {c.isInCart ? (
+            <>
+              <CircleCheck size={16} />
+              Added
+            </>
+          ) : (
+            <>
+              <ShoppingCart size={16} />
+              Add to Cart
+            </>
+          )}
         </button>
 
-        <button
-          className="w-9 h-9 rounded-lg border border-[var(--border-2)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--accent-2)] hover:border-[var(--accent)]/40 transition"
-          data-testid={`save-${c.album?.id}-${c.catalog_number}`}
-        >
-          <Heart size={13} />
-        </button>
+      
       </div>
     </div>
   );
@@ -132,7 +153,6 @@ export default function AlbumDetail() {
   const [expandedDesc, setExpandedDesc] = useState(false);
   const [sort, setSort] = useState("Price: Low to High");
   const [showSort, setShowSort] = useState(false);
-  const [favorited, setFavorited] = useState(false);
   const [album, setAlbum] = useState({});
   const [albumsRelated, setAlbumsRelated] = useState({});
   const [loading, setLoading] = useState();
@@ -140,6 +160,7 @@ export default function AlbumDetail() {
 
   const [statuses, setStatuses] = useState({});
   const navigate = useNavigate();
+  const user = getCurrentUser();
 
   const createEmptyDraft = () => ({
     title: "",
@@ -148,9 +169,18 @@ export default function AlbumDetail() {
     items: [],
   });
 
-
   const handleAlbumCopyClick = (c) => {
-    navigate(`/marketplace/${c.id}`);
+     if (!user) {
+      navigate("/login", {
+        state: {
+          message: "Log in add to cart.",
+          redirectTo: `/marketplace`,
+        },
+      });
+      return;
+    }
+
+    navigate(`/marketplaceDetail/${c.id}`);
   }
 
   const handleHuntCreateClick = () => {
@@ -233,19 +263,37 @@ export default function AlbumDetail() {
 
     async function fetchCopies() {
       try {
-        const data = await getAlbumListings(id);
-        setCopies(data.listings);
+
+        if (!user) {
+          const data = await getAlbumListings(id);
+          setCopies(data.listings);
+
+        } else {
+
+          const [data, cart] = await Promise.all([
+            getAlbumListings(id),
+            getCart(),
+          ]);
+
+          const cartListingIds = new Set(
+            cart.items.map((item) => item.listing_id)
+          );
+
+          const copiesWithCartStatus = data.listings.map((listing) => ({
+            ...listing,
+            isInCart: cartListingIds.has(listing.id),
+          }));
+
+          setCopies(copiesWithCartStatus);
+        }
       } catch (err) {
         console.error("Failed to load copies:", err);
-      } finally {
       }
     }
-
     async function fetchStatus() {
-      console.log("fetchStatus id", id);
+
       try {
         const data = await getAlbumStatus(id);
-        console.log("data", data);
         setStatuses(data);
       } catch (err) {
         console.error("Failed to load debate:", err);
@@ -660,7 +708,7 @@ export default function AlbumDetail() {
               {albumsRelated.map((r) => (
                 <Link
                   key={r.id}
-                  to={`/albums/${r.id}`}
+                  to={`/albumDetail/${r.id}`}
                   className="group"
                   data-testid={`related-${r.id}`}
                 >

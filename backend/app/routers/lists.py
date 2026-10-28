@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 import uuid
 from db.mongodb import db
 from models.topList import TopList,TopListCreate, TopListUpdate
@@ -239,7 +239,7 @@ async def create_list(
 
         if not album:
             raise HTTPException(
-                status_code=404,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Album {item.album_id} not found"
             )
 
@@ -354,7 +354,7 @@ async def update_list(
 
     if not top_list:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="List not found",
         )
 
@@ -404,7 +404,7 @@ async def delete_list(
 
     if not top_list:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="List not found",
         )
 
@@ -415,7 +415,7 @@ async def delete_list(
 
     if result.deleted_count == 0:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="List not found",
         )
 
@@ -429,7 +429,7 @@ async def build_list_item(item: ListItemCreate) -> ListItem:
 
     if not album:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Album {item.album_id} not found"
         )
 
@@ -461,7 +461,7 @@ async def remix_list(
 
     if not original:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="List not found"
         )
 
@@ -576,7 +576,7 @@ async def toggle_like_list(
 
     if not existing_list:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="List not found"
         )
 
@@ -621,61 +621,3 @@ async def toggle_like_list(
         "liked": True,
         "message": "List liked"
     }
-
-@router.post("/{list_id}/remix", response_model=TopList)
-async def remix_list(
-    list_id: str,
-    payload: RemixCreate,
-    current_user=Depends(get_current_user)
-):
-    original = await db.lists.find_one(
-        {"id": list_id},
-        {"_id": 0}
-    )
-
-    if not original:
-        raise HTTPException(
-            status_code=404,
-            detail="List not found"
-        )
-
-    owner = UserReference(
-        user_id=current_user["id"],
-        username=current_user["username"],
-        display_name=current_user["display_name"],
-        avatar_url=current_user.get("avatar_url")
-    )
-
-    remix = TopList(
-        creator_id=current_user["id"],
-        owner=owner,
-
-        title=payload.title,
-        description=payload.description,
-        category=payload.category,
-        items=payload.items,
-
-        parent_list_id=list_id,
-
-        likes_count=0,
-        comments_count=0,
-        remix_count=0,
-        views_count=0,
-
-        is_public=True
-    )
-
-    await db.lists.insert_one(
-        remix.model_dump()
-    )
-
-    await db.lists.update_one(
-        {"id": list_id},
-        {
-            "$inc": {
-                "remix_count": 1
-            }
-        }
-    )
-
-    return remix

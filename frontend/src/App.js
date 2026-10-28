@@ -8,7 +8,6 @@ import DebateDetail from "./pages/DebateDetail";
 import TopLists from "./pages/TopLists";
 import Hunt from "./pages/Hunt";
 import Collection from "./pages/Collection";
-import Profile from "./pages/ProfileForm";
 import People from "./pages/People";
 import Login from "./pages/Login";
 import ListDetail from "./pages/ListDetail";
@@ -31,6 +30,12 @@ import PeopleFollowing from "./pages/PeopleFollowing";
 import PeopleFollowers from "./pages/PeopleFollowers";
 import ProfileDetail from "./pages/ProfileDetail";
 import ProfileForm from "./pages/ProfileForm";
+import ShoppingCart from "./pages/ShoppingCart";
+import ShippingAddressForm from "./pages/ShippingAddressForm";
+import Checkout from "./pages/Checkout";
+import MyActiveOrders from "./pages/MyActiveOrders";
+import MyCancelledOrders from "./pages/MyCancelledOrders";
+import MyCompletedOrders from "./pages/MyCompletedOrders";
 
 function App() {
   return (
@@ -65,7 +70,7 @@ function App() {
           <Route path="/collectionDetail/:id" element={<Layout showRightPanel={false}><CollectionAlbumDetail /></Layout>} />
           {/* Marketplace */}
           <Route path="/marketplace" element={<Layout showRightPanel={false}><Marketplace /></Layout>} />
-          <Route path="/marketplace/:id" element={<Layout showRightPanel={false}><MarketplaceDetail /></Layout>} />
+          <Route path="/marketplaceDetail/:id" element={<Layout showRightPanel={false}><MarketplaceDetail /></Layout>} />
           {/* User */}
           <Route path="/people" element={<Layout><People /></Layout>} />
           <Route path="/people/following" element={<Layout><PeopleFollowing /></Layout>} />
@@ -77,7 +82,17 @@ function App() {
            {/* List search */}
           <Route path="/listsSearch/:id" element={<Layout showRightPanel={false}><ListSearch /></Layout>} />
           <Route path="/listsSearch" element={<Layout showRightPanel={false}><ListSearch /></Layout>} />
-          <Route path="/albums/:id" element={<Layout showRightPanel={false}><AlbumDetail /></Layout>} />
+          <Route path="/albumDetail/:id" element={<Layout showRightPanel={false}><AlbumDetail /></Layout>} />
+            {/* Shopping cart */}
+          <Route path="/shoppingCart" element={<Layout showRightPanel={false}><ShoppingCart /></Layout>} />
+          <Route path="/checkout" element={<Layout showRightPanel={false}><Checkout /></Layout>} />
+          <Route path="/shippingAddressForm/new" element={<Layout showRightPanel={false}><ShippingAddressForm /></Layout>} />
+          <Route path="/shippingAddressForm/:id/edit" element={<Layout showRightPanel={false}><ShippingAddressForm /></Layout>} />
+          {/* Orders */}
+          <Route path="/orders/active" element={<Layout showRightPanel={false}><MyActiveOrders /></Layout>} />
+          <Route path="/orders/cancelled" element={<Layout showRightPanel={false}><MyCancelledOrders /></Layout>} />
+          <Route path="/orders/completed" element={<Layout showRightPanel={false}><MyCompletedOrders /></Layout>} />
+
         </Routes>
       </BrowserRouter>
     </div>

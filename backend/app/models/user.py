@@ -23,7 +23,7 @@ class User(BaseModel):
     email: EmailStr
     username: str
     display_name: str
-    password_hash: str
+    password_hash: Optional[str] = None
 
     role: UserRole = UserRole.USER
 
@@ -111,3 +111,6 @@ class ProfileResponse(BaseModel):
     favorite_genres: List[str] = []
     favorite_artists: List[dict] = []
     currently_listening_album: Optional[AlbumReference] = None
+
+class GoogleLoginRequest(BaseModel):
+    access_token: str = Field(min_length=1)

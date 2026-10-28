@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from db.mongodb import db
-from models.marketplace import RecommendedListingCreate
+from models.marketplace import RecommendedListingCreate, ListingStatus
 from fastapi import APIRouter
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -39,7 +39,7 @@ async def get_recommended_listings(
     listings = await (
         db.recommended_listings
         .find(
-            {"status": "available"},
+            {"status": ListingStatus.AVAILABLE.value},
             {"_id": 0}
         )
         .sort("created_at", -1)
@@ -109,7 +109,7 @@ async def get_album_listings(
         .find(
             {
                 "album_id": album_id,
-                "status": "available"
+                 "status": ListingStatus.AVAILABLE.value,
             },
             {"_id": 0}
         )
@@ -183,7 +183,7 @@ async def create_recommended_listing(
         "images": listing.images,
 
         # Marketplace
-        "status": "available",
+        "status": listing.status.value,
 
         # Admin / ownership
         "created_by": "System",
@@ -263,7 +263,7 @@ async def get_marketplace_hunt_matches(
             "album_id": {
                 "$in": album_ids
             },
-            "status": "available"
+            "status": listing.status.value,
         },
         {
             "_id": 0
@@ -376,7 +376,7 @@ async def get_recommended_listing(
     listing = await db.recommended_listings.find_one(
         {
             "id": listing_id,
-            "status": "available"
+            "status": ListingStatus.AVAILABLE.value,
         },
         {
             "_id": 0
@@ -385,7 +385,7 @@ async def get_recommended_listing(
 
     if not listing:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Marketplace listing not found"
         )
 

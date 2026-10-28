@@ -1,13 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, File, Form, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, File, Form, UploadFile, status
 from datetime import datetime, timezone
 from typing import Optional
 import uuid
 from helpers.aws_upload import upload_collection_image_to_s3
 
 from models.collection import (
-    CollectionItemCreate,
-    CollectionItemResponse,
-    CollectionItemUpdate
+    CollectionItemResponse
 )
 
 from db.mongodb import db
@@ -189,7 +187,7 @@ async def add_to_my_collection(
 
     if not album:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Album not found",
         )
 
@@ -272,7 +270,7 @@ async def get_collection_item(
 
     if not item:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Collection item not found"
         )
 
@@ -310,7 +308,7 @@ async def delete_collection(
 
     if result.deleted_count == 0:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Collection item not found"
         )
 
@@ -402,7 +400,7 @@ async def update_collection_item(
 
     if not updates:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="No fields to update",
         )
 
@@ -420,7 +418,7 @@ async def update_collection_item(
 
     if result.matched_count == 0:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Collection item not found",
         )
 

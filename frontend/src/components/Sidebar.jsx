@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Home, MessageSquare, ThumbsUp, Search, 
   Store, Users, FolderOpen, Star, Clock, 
-  Target, UserCheck, ChevronDown, AudioLines } from "lucide-react";
+  Target, UserCheck, ChevronDown, AudioLines, Truck, ShoppingCart } from "lucide-react";
 import React, { useState } from "react";
 import { getCurrentUser } from "../services/authService";
 
@@ -40,11 +40,20 @@ const mainNav = [
   {
     to: "/collection", label: "My Collection", icon: FolderOpen,
   },
+  {
+    label: "Orders",
+    icon: Truck,
+    children: [
+      { to: "/orders/completed", label: "Completed", end: true },
+      { to: "/orders/active", label: "Active", end: true },
+      { to: "/orders/cancelled", label: "Cancelled", end: true },
+    ],
+  },
 ];
 
 const shortcuts = [
   { to: "/topLists", label: "My Top 10", icon: Star },
-  { to: "/collection", label: "My Collection", icon: Clock },
+  { to: "/shoppingCart", label: "My Shopping Cart", icon: ShoppingCart },
   { to: "/hunt", label: "My Hunt List", icon: Target },
   { to: "/people", label: "Following", icon: UserCheck },
 ];

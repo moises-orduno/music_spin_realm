@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Search, Bell, MessageCircle, Menu } from "lucide-react";
+import { Search, Bell, MessageCircle, Menu, ShoppingCart } from "lucide-react";
 import { useDrawer } from "./Layout";
 import { getCurrentUser, logout } from "../services/authService";
 import { useNavigate } from "react-router-dom";
@@ -35,7 +35,7 @@ function UserMenu({ user, onLogout }) {
     };
   }, []);
 
-  const handleLogoutClick = ()=>{
+  const handleLogoutClick = () => {
     logout();
     navigate(`/`);
   }
@@ -101,6 +101,13 @@ export default function TopNav() {
           storageKey: `album-detail`,
         },
       }
+    );
+  };
+
+  const handleShoppinCartClick = () => {
+
+    navigate(
+      "/shoppingCart",
     );
   };
 
@@ -175,19 +182,28 @@ export default function TopNav() {
             <UserMenu user={user} onLogout={logout} />
           )}
 
-          <button
+          {/* <button
             className="w-9 h-9 rounded-full border border-[var(--border)] items-center justify-center btn-ghost hidden sm:flex"
             data-testid="notifications-btn"
           >
             <Bell size={15} strokeWidth={1.6} />
-          </button>
+          </button> */}
 
           <button
             className="w-9 h-9 rounded-full border border-[var(--border)] items-center justify-center btn-ghost hidden sm:flex"
+            data-testid="notifications-btn"
+            onClick={handleShoppinCartClick}
+
+          >
+            <ShoppingCart size={15} strokeWidth={1.6} />
+          </button>
+
+          {/* <button
+            className="hidden=true w-9 h-9 rounded-full border border-[var(--border)] items-center justify-center btn-ghost hidden sm:flex"
             data-testid="messages-btn"
           >
             <MessageCircle size={15} strokeWidth={1.6} />
-          </button>
+          </button> */}
 
           <div
             className="w-9 h-9 rounded-full border border-[var(--border-2)] shrink-0 overflow-hidden"

@@ -76,11 +76,24 @@ export default function People() {
 
                 {/* Avatar */}
                 <div
-                  className="w-[64px] h-[64px] rounded-full shrink-0 border border-[var(--border-2)]"
-                  style={{
-                    background: `linear-gradient(135deg, ${s.avatarColor}, #1a1612)`
-                  }}
-                />
+                  className="w-9 h-9 rounded-full border border-[var(--border-2)] shrink-0 overflow-hidden"
+                  data-testid="user-avatar"
+                >
+                  {s?.avatar_url ? (
+                    <img
+                      src={s.avatar_url}
+                      alt={s.display_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full"
+                      style={{
+                        background: "linear-gradient(135deg, #c2a876, #3a2a1a)",
+                      }}
+                    />
+                  )}
+                </div>
 
                 {/* User info */}
                 <div className="flex-1 min-w-0">

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from db.mongodb import db
 
 from models.comment import CommentDebate,CommentList,ReplyCreate,CommentVoteRequest,CommentCreate
@@ -20,7 +20,7 @@ async def add_debate_comment(
 
     if not debate:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Debate not found"
         )
 
@@ -64,7 +64,10 @@ async def reply_comment(
     )
 
     if not parent:
-        raise HTTPException(404, "Comment not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found"
+        )
 
     reply = CommentDebate(
         debate_id=parent["debate_id"],
@@ -173,7 +176,7 @@ async def add_list_comment(
 
     if not top_list:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="List not found"
         )
 

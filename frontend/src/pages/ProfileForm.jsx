@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft,
   Camera,
@@ -606,6 +606,8 @@ export default function ProfileForm() {
       sessionStorage.removeItem("profile-form");
 
       navigate(`/profile`);
+    } catch (err) {
+      console.error(err);
     } finally {
       setSubmitting(false);
     }
@@ -1198,20 +1200,34 @@ export default function ProfileForm() {
           </div>
         </div>
         {/* Actions */}
-        <div className="pt-2">
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
           <button
+            type="button"
+            onClick={() => navigate("/profile")}
+            disabled={submitting}
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] px-6 py-3 text-sm transition hover:border-[var(--accent)] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
             onClick={handleSubmit}
             disabled={submitting}
             data-testid="continue-btn"
-            className="w-full rounded-xl py-3 font-semibold text-[13px] text-white transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: "linear-gradient(90deg, #8b5cf6, #6d28d9)",
-              boxShadow: "0 6px 20px var(--accent-glow)",
-            }}
+            className="btn-accent inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting
-              ? ("Saving...")
-              : ("Save Changes")}
+            {submitting ? (
+              <>
+                <LoaderCircle size={17} className="animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save size={17} />
+                Save Changes
+              </>
+            )}
           </button>
         </div>
       </main>
