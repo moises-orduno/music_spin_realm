@@ -1,7 +1,7 @@
 
 import { React, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { UserPlus, UserCheck } from "lucide-react";
+import { UserPlus, UserCheck, UserSearchIcon } from "lucide-react";
 import { getProfilesFollowers, toggleFollowById } from "../services/userService";
 import { getCurrentUser } from "../services/authService";
 import { useNavigate } from "react-router-dom";
@@ -68,9 +68,9 @@ export default function PeopleFollowers() {
     <div className="space-y-8 fade-in-up" data-testid="peopl-followers-page">
       <div>
         <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">The Community</div>
-        <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">People</h1>
+        <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">Followers</h1>
         <p className="text-[14px] text-[var(--text-muted)] max-w-[560px]">
-          Discover collectors who share your taste — and others who will open your ears to something new.
+          Find people who follow you, continue working on building your community.
         </p>
       </div>
 
@@ -78,6 +78,30 @@ export default function PeopleFollowers() {
         <p>Loading profiles...</p>
 
       ) :
+        (
+          profiles.length <1  ?
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="col-span-full text-center py-16">
+                <div className="text-5xl mb-4"></div>
+
+                <h2 className="font-serif text-2xl mb-2">
+                  No followers yet
+                </h2>
+
+                <p className="text-[var(--text-muted)] mb-6">
+                  Go find people.
+                </p>
+
+                <button
+                  onClick={() => navigate("/people")}
+                  className="btn-accent inline-flex items-center gap-2 px-5 py-3 rounded-full"
+                >
+                  <UserSearchIcon size={14} />
+                  Go to People
+                </button>
+              </div>
+            </div>
+            :
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {profiles.map((s) => (
@@ -191,7 +215,7 @@ export default function PeopleFollowers() {
               })()}
             </Link>
           ))}
-        </div>}
+        </div>)}
     </div>
   );
 }

@@ -34,7 +34,7 @@ const mainNav = [
     children: [
       { to: "/people", label: "Discover", end: true },
       { to: "/people/following", label: "Following", end: true },
-      { to: "/people/followed", label: "Followed", end: true },
+      { to: "/people/followers", label: "Followers", end: true },
     ],
   },
   {

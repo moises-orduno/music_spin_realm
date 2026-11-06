@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { UserCheck, UserPlus, Plus } from "lucide-react";
-import { getMyCollection } from "../services/collectionService";
+import { getMyCollection, getCollectionByUser } from "../services/collectionService";
 import { getCurrentUser } from "../services/authService";
 import { useNavigate, useParams } from "react-router-dom";
 import { getProfile, toggleFollowById } from "../services/userService";
 import { getImageUrl } from "../lib/utils";
 
-function FavoriteSong({ song }) {
-  if (!song) {
+
+function CurrentlyListeningAlbum({ album }) {
+
+  if (!album) {
+
     return (
       <div
         className="
@@ -18,12 +21,16 @@ function FavoriteSong({ song }) {
           p-5
         "
       >
-        <h2 className="text-lg font-medium">
-          Favorite Song
-        </h2>
-
+        <div className="flex items-center gap-3 mb-5">
+          <span className="text-xl text-[var(--accent)]">
+            ♬
+          </span>
+          <h2 className="text-lg font-medium">
+            Currently Listening to
+          </h2>
+        </div>
         <p className="mt-6 text-sm text-[var(--muted)]">
-          No favorite song yet.
+          No album yet.
         </p>
       </div>
     );
@@ -45,43 +52,38 @@ function FavoriteSong({ song }) {
         </span>
 
         <h2 className="text-lg font-medium">
-          Favorite Song
+          Currently Listening to
         </h2>
       </div>
 
-      <div className="flex items-center gap-4">
-        <img
-          src={song.album_cover_url}
-          alt={song.album_title}
-          className="
-            w-28 h-28
-            rounded-lg
-            object-cover
-          "
-        />
+      <div>
+        <div
+          className="cover cover-placeholder aspect-square w-full hover-lift mb-3"
+          style={{
+            background: album?.cover_url
+              ? `url(${album.cover_url}) center / cover`
+              : undefined,
+          }}
+        >
+          {!album?.cover_url && (
+            <div className="text-center">
+              <div className="font-serif text-[14px] opacity-90">
+                {album?.title}
+              </div>
 
-        <div className="min-w-0">
-          <h3 className="font-medium text-[var(--text)]">
-            {song.title}
-          </h3>
+              <div className="text-[9.5px] mt-1 opacity-60">
+                {album?.artist?.name}
+              </div>
+            </div>
+          )}
+        </div>
 
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {song.artist}
-          </p>
+        <div className="text-[13px] truncate">
+          {album?.title}
+        </div>
 
-          <button
-            className="
-              mt-4
-              w-9 h-9
-              rounded-full
-              bg-[var(--accent)]
-              text-white
-              flex items-center justify-center
-              hover:opacity-90
-            "
-          >
-            ▶
-          </button>
+        <div className="text-[11px] text-[var(--text-muted)] truncate">
+          {album?.artist?.name}
         </div>
       </div>
     </div>
@@ -318,10 +320,8 @@ function ProfileStat({ value, label }) {
 function ProfileHeader({
   profile,
   isOwnProfile = false,
-  onEditProfile,
   setProfile,
 }) {
-
   const handleFollowClick = async (userId) => {
     try {
       const result = await toggleFollowById(userId);
@@ -337,137 +337,142 @@ function ProfileHeader({
   };
 
   return (
-    <section className="px-8 pt-10 pb-8">
+    <section className="
+      w-full max-w-6xl mx-auto
+      px-4 sm:px-6 lg:px-8
+      pt-6 sm:pt-10 pb-8
+    ">
+
       {/* Profile intro */}
-      <div className="flex items-start justify-between gap-8">
-        <div className="flex items-start gap-8">
-          {/* Avatar */}
-          <div className="shrink-0">
-            <img
-              src={getImageUrl(profile.avatar_url, `default_user_image.png`)}
-              alt={profile.display_name}
-              className="w-44 h-44 rounded-full object-cover border-2 border-[var(--accent)] p-1"
-              onError={(e) => {
-                e.currentTarget.src = `/images/default_user_image.png`;
-              }}
+      <div className="
+        flex flex-col items-center text-center
+        sm:flex-row sm:items-start sm:text-left
+        gap-5 sm:gap-6 lg:gap-8
+      ">
+
+        {/* Avatar */}
+        <div className="shrink-0">
+          <img
+            src={getImageUrl(profile.avatar_url, "default_user_image.png")}
+            alt={profile.display_name}
+            className="
+              w-28 h-28
+              sm:w-36 sm:h-36
+              lg:w-44 lg:h-44
+              rounded-full object-cover
+              border-2 border-[var(--accent)] p-1
+            "
+          />
+        </div>
+
+        {/* Profile information */}
+        <div className="
+          min-w-0 w-full flex-1
+          text-center sm:text-left
+          sm:pt-2
+        ">
+
+          <h1 className="
+            text-4xl sm:text-4xl lg:text-5xl
+            font-serif tracking-tight
+            text-[var(--text)]
+            break-words
+          ">
+            {profile.display_name}
+          </h1>
+
+          <p className="mt-1 text-base sm:text-lg text-[var(--muted)] break-all">
+            @{profile.username}
+          </p>
+
+          {profile.bio && (
+            <p className="
+              mt-3 sm:mt-4
+              max-w-2xl
+              text-sm sm:text-base
+              leading-6 sm:leading-7
+              text-[var(--muted)]
+            ">
+              {profile.bio}
+            </p>
+          )}
+
+          {/* Action */}
+          <div className="mt-4">
+            <button
+              className="
+                  inline-flex items-center justify-center
+                  rounded-full bg-[var(--accent)]
+                  text-white text-sm font-medium
+                  px-7 py-2.5
+                  hover:opacity-90 transition
+                "
+            >
+              Follow
+            </button>
+          </div>
+
+          {/* Statistics */}
+          <div className="
+            grid grid-cols-3
+            sm:flex sm:flex-wrap
+            justify-items-center sm:justify-items-start
+            gap-x-5 gap-y-5
+            sm:gap-x-8 sm:gap-y-4
+            mt-7
+          ">
+            <ProfileStat
+              value={profile.albums_count ?? 0}
+              label="Albums"
+            />
+
+            <ProfileStat
+              value={profile.lists_count ?? 0}
+              label="Lists"
+            />
+
+            <ProfileStat
+              value={profile.debates_count ?? 0}
+              label="Debates"
+            />
+
+            <ProfileStat
+              value={profile.following_count ?? 0}
+              label="Following"
+            />
+
+            <ProfileStat
+              value={profile.followers_count ?? 0}
+              label="Followers"
             />
           </div>
 
-          {/* Profile information */}
-          <div className="pt-2">
-            <h1
-              className="
-                text-5xl
-                font-serif
-                tracking-tight
-                text-[var(--text)]
-              "
-            >
-              {profile.display_name}
-            </h1>
-
-            <p className="mt-1 text-lg text-[var(--muted)]">
-              @{profile.username}
-            </p>
-
-            {profile.bio && (
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
-                {profile.bio}
-              </p>
-            )}
-
-            {/* Stats */}
-            <div className="flex items-center gap-10 mt-6">
-              <ProfileStat
-                value={profile.collections_count ?? 0}
-                label="Albums"
-              />
-
-              <ProfileStat
-                value={profile.lists_count ?? 0}
-                label="Lists"
-              />
-
-              <ProfileStat
-                value={profile.debates_count ?? 0}
-                label="Debates"
-              />
-
-              <ProfileStat
-                value={profile.following_count ?? 0}
-                label="Following"
-              />
-
-              <ProfileStat
-                value={profile.followers_count ?? 0}
-                label="Followers"
-              />
-            </div>
-          </div>
         </div>
-
-        {/* Action */}
-        {isOwnProfile ? (
-          <button
-            onClick={onEditProfile}
-            className="
-              px-6 py-2.5
-              rounded-full
-              border border-[var(--accent)]
-              text-[var(--accent)]
-              text-sm font-medium
-              hover:bg-[var(--accent)]/10
-              transition
-            "
-          >
-            ✎ Edit Profile
-          </button>
-        ) : (
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleFollowClick(profile.id);
-            }}
-            className={`shrink-0 border text-[12px] px-20 py-1.5 rounded-full transition flex items-center gap-1.5 ${profile.is_following
-              ? "border-[var(--border)] text-[var(--text-muted)]"
-              : "border-[var(--accent)]/40 text-[var(--accent-2)] hover:bg-[var(--accent-soft)]"
-              }`}
-            data-testid={`follow-btn-${profile.id}`}
-          >
-            {profile.is_following ? (
-              <>
-                <UserCheck size={11} />
-                Following
-              </>
-            ) : (
-              <>
-                <UserPlus size={11} />
-                Follow
-              </>
-            )}
-          </button>
-
-
-        )}
       </div>
 
       {/* Favorites */}
-      <div className="grid grid-cols-12 gap-5 mt-10">
-        {/* Favorite Genres */}
-        <div className="col-span-3">
+      <div className="
+        grid grid-cols-1
+        sm:grid-cols-2
+        lg:grid-cols-12
+        gap-4 sm:gap-5
+        mt-8 sm:mt-10
+      ">
+
+        <div className="lg:col-span-3">
           <FavoriteGenres genres={profile.favorite_genres || []} />
         </div>
 
-        {/* Favorite Artists */}
-        <div className="col-span-6">
+        <div className="sm:col-span-2 lg:col-span-6">
           <FavoriteArtists artists={profile.favorite_artists || []} />
         </div>
 
-        {/* Favorite Song */}
-        <div className="col-span-3">
-          <FavoriteSong song={profile.favorite_song} />
+        <div className="lg:col-span-3">
+          <CurrentlyListeningAlbum
+            album={profile.currently_listening_album}
+          />
         </div>
+
       </div>
     </section>
   );
@@ -580,20 +585,26 @@ export default function Collection() {
     }
 
     const loadCollection = async () => {
-
       try {
         setLoadingCollection(true);
-        setError(null);
-        const data = await getMyCollection();
+
+        let data;
+
+        if (username) {
+          data = await getCollectionByUser(username);
+        } else {
+          data = await getMyCollection();
+        }
 
         setCollectionAlbums(data.items);
         setFilteredCollectionAlbums(data.items);
+
       } catch (err) {
-        setError(err.message || "Failed to load collection");
+        console.error("Failed to load collection:", err.message);
       } finally {
         setLoadingCollection(false);
       }
-    }
+    };
 
     async function loadProfile() {
       try {
@@ -613,15 +624,15 @@ export default function Collection() {
 
   return (
     <div className="space-y-8 fade-in-up" data-testid="collection-page">
-      <div className="flex flex-wrap items-start justify-between gap-6">
+      <div className="flex-wrap items-start justify-between gap-6">
         <div>
           <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">
-            
-            {username ?  "My music" :"Your Shelf" }
+
+            {username ? "My music" : "Your Shelf"}
           </div>
 
           <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">
-            {username ?  "Collector" :"My Collection" }
+            {username ? "Collector" : "My Collection"}
 
           </h1>
           <p className="text-[13px] text-[var(--text-muted)]"> {username ? "Enjoy others collection" : "Share your collection with the world."}</p>
@@ -634,7 +645,7 @@ export default function Collection() {
 
             <ProfileHeader
               profile={profile}
-              isOwnProfile={user?profile.username === user.username:false}
+              isOwnProfile={user ? profile.username === user.username : false}
               setProfile={setProfile}
             />
 
@@ -740,6 +751,7 @@ export default function Collection() {
           artists
         </span>
 
+    {!username ?
         <span>
           <span className="text-[var(--text)] font-medium">
             $
@@ -752,6 +764,7 @@ export default function Collection() {
           </span>{" "}
           value
         </span>
+         : <div></div>}
       </div>
 
       {loadingCollection ? (
@@ -765,11 +778,11 @@ export default function Collection() {
           <div className="text-5xl mb-4">💿</div>
 
           <h2 className="font-serif text-2xl mb-2">
-            Your collection is empty
+            {username ? "The collection is empty" : "Your collection is empty"}
           </h2>
 
           <p className="text-[var(--text-muted)] mb-6">
-            Start building your shelf by adding the records you own.
+            {username ? "No records yet" : "Start building your shelf by adding the records you own."}
           </p>
           {!username ?
 

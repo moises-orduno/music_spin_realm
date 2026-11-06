@@ -35,6 +35,42 @@ export async function getMyCollection({
   return response.json();
 }
 
+export async function getCollectionByUser(username,{
+  search = "",
+  sort = "recently_added",
+  limit = 50,
+  skip = 0,
+} = {}) {
+
+  console.log("getCollectionByUser",username);
+  const params = new URLSearchParams();
+
+  if (search) {
+    params.append("search", search);
+  }
+
+  params.append("sort", sort);
+  params.append("limit", limit);
+  params.append("skip", skip);
+
+  const response = await authenticatedFetch(
+    `/collection/${username}?${params.toString()}`,
+    {
+      method: "GET",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+
+    throw new Error(
+      error.detail || "Failed to get collection"
+    );
+  }
+
+  return response.json();
+}
+
 export async function addToMyCollection(formData) {
   const token = getToken();
   const response = await fetch(

@@ -1,7 +1,7 @@
 
 import { React, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { UserPlus, UserCheck } from "lucide-react";
+import { UserPlus, UserCheck, UserSearchIcon } from "lucide-react";
 import { getProfilesFollowing, toggleFollowById } from "../services/userService";
 import { getCurrentUser } from "../services/authService";
 import { useNavigate } from "react-router-dom";
@@ -69,9 +69,9 @@ export default function PeopleFollowing() {
     <div className="space-y-8 fade-in-up" data-testid="people-following-page">
       <div>
         <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--accent)] mb-3">The Community</div>
-        <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">People</h1>
+        <h1 className="font-serif text-[32px] sm:text-[40px] leading-tight mb-3">Following</h1>
         <p className="text-[14px] text-[var(--text-muted)] max-w-[560px]">
-          Discover collectors who share your taste — and others who will open your ears to something new.
+          Find people who you follow, continue working on building your community.
         </p>
       </div>
 
@@ -79,120 +79,144 @@ export default function PeopleFollowing() {
         <p>Loading profiles...</p>
 
       ) :
+        (
+          profiles.length <1 ?
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="col-span-full text-center py-16">
+                <div className="text-5xl mb-4"></div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {profiles.map((s) => (
-            <Link
-              key={s.id}
-              to={`/collection/${s.username}`}
-              className="card-panel hover-lift p-6 cursor-pointer block"
-              data-testid={`person-${s.id}`}
-            >
-              <div className="flex items-start gap-4 mb-4">
+                <h2 className="font-serif text-2xl mb-2">
+                  Not following people yet
+                </h2>
 
-                {/* Avatar */}
-                <div
-                  className="w-9 h-9 rounded-full border border-[var(--border-2)] shrink-0 overflow-hidden"
-                  data-testid="user-avatar"
+                <p className="text-[var(--text-muted)] mb-6">
+                  Go find people.
+                </p>
+
+                <button
+                  onClick={() => navigate("/people")}
+                  className="btn-accent inline-flex items-center gap-2 px-5 py-3 rounded-full"
                 >
-                  {s?.avatar_url ? (
-                    <img
-                      src={s.avatar_url}
-                      alt={s.display_name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        background: "linear-gradient(135deg, #c2a876, #3a2a1a)",
-                      }}
-                    />
-                  )}
-                </div>
-
-                {/* User info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-3">
-
-                    <div className="min-w-0">
-                      <div className="text-[14px] font-medium truncate">
-                        {s.display_name}
-                      </div>
-
-                      <div className="text-[10.5px] text-[var(--text-dim)] mt-0.5">
-                        {s.followers_count} followers
-                      </div>
-                    </div>
-
-                    {/* Follow button */}
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleFollowClick(s.id);
-                      }}
-                      className={`shrink-0 border text-[11.5px] px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${s.is_following
-                        ? "border-[var(--border)] text-[var(--text-muted)]"
-                        : "border-[var(--accent)]/40 text-[var(--accent-2)] hover:bg-[var(--accent-soft)]"
-                        }`}
-                      data-testid={`follow-btn-${s.id}`}
-                    >
-                      {s.is_following ? (
-                        <>
-                          <UserCheck size={11} />
-                          Following
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus size={11} />
-                          Follow
-                        </>
-                      )}
-                    </button>
-
-                  </div>
-                </div>
+                  <UserSearchIcon size={14} />
+                  Go to People
+                </button>
               </div>
+            </div>
+            :
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {profiles.map((s) => (
+                <Link
+                  key={s.id}
+                  to={`/collection/${s.username}`}
+                  className="card-panel hover-lift p-6 cursor-pointer block"
+                  data-testid={`person-${s.id}`}
+                >
+                  <div className="flex items-start gap-4 mb-4">
 
-              <p className="font-serif text-[15px] italic text-[var(--text)]/85 leading-snug mb-4">
-                "{s.bio}"
-              </p>
-
-              {(() => {
-                const album = s.collection_album;
-
-                if (!album) {
-                  return (
-                    <div className="text-[11px] text-[var(--text-muted)]">
-                      No albums in the collection yet
+                    {/* Avatar */}
+                    <div
+                      className="w-9 h-9 rounded-full border border-[var(--border-2)] shrink-0 overflow-hidden"
+                      data-testid="user-avatar"
+                    >
+                      {s?.avatar_url ? (
+                        <img
+                          src={s.avatar_url}
+                          alt={s.display_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full"
+                          style={{
+                            background: "linear-gradient(135deg, #c2a876, #3a2a1a)",
+                          }}
+                        />
+                      )}
                     </div>
-                  );
-                }
 
-                return (
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={album.cover_url}
-                      alt={album.title}
-                      className="w-[44px] h-[44px] rounded object-cover border border-[var(--border)]"
-                    />
+                    {/* User info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-3">
 
-                    <div className="min-w-0">
-                      <div className="text-[12px] font-medium truncate">
-                        {album.title}
-                      </div>
+                        <div className="min-w-0">
+                          <div className="text-[14px] font-medium truncate">
+                            {s.display_name}
+                          </div>
 
-                      <div className="text-[10px] text-[var(--text-muted)]">
-                        Collection
+                          <div className="text-[10.5px] text-[var(--text-dim)] mt-0.5">
+                            {s.followers_count} followers
+                          </div>
+                        </div>
+
+                        {/* Follow button */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleFollowClick(s.id);
+                          }}
+                          className={`shrink-0 border text-[11.5px] px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${s.is_following
+                            ? "border-[var(--border)] text-[var(--text-muted)]"
+                            : "border-[var(--accent)]/40 text-[var(--accent-2)] hover:bg-[var(--accent-soft)]"
+                            }`}
+                          data-testid={`follow-btn-${s.id}`}
+                        >
+                          {s.is_following ? (
+                            <>
+                              <UserCheck size={11} />
+                              Following
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus size={11} />
+                              Follow
+                            </>
+                          )}
+                        </button>
+
                       </div>
                     </div>
                   </div>
-                );
-              })()}
-            </Link>
-          ))}
-        </div>}
+
+                  <p className="font-serif text-[15px] italic text-[var(--text)]/85 leading-snug mb-4">
+                    "{s.bio}"
+                  </p>
+
+                  {(() => {
+                    const album = s.collection_album;
+
+                    if (!album) {
+                      return (
+                        <div className="text-[11px] text-[var(--text-muted)]">
+                          No albums in the collection yet
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={album.cover_url}
+                          alt={album.title}
+                          className="w-[44px] h-[44px] rounded object-cover border border-[var(--border)]"
+                        />
+
+                        <div className="min-w-0">
+                          <div className="text-[12px] font-medium truncate">
+                            {album.title}
+                          </div>
+
+                          <div className="text-[10px] text-[var(--text-muted)]">
+                            Collection
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </Link>
+              ))}
+            </div>)
+      }
     </div>
   );
 }

@@ -44,46 +44,59 @@ function ConditionBadge({ code }) {
 }
 
 function CopyRow({ c, handleAlbumCopyClick }) {
-
   return (
     <div
       onClick={() => handleAlbumCopyClick(c)}
-      className="card-panel p-3 flex items-center gap-4"
+      className="card-panel p-3 sm:p-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full min-w-0"
       data-testid={`copy-${c.album?.id}-${c.catalog_number}`}
     >
-      {/* Album cover */}
-      <div
-        className="w-[54px] h-[54px] rounded shrink-0 cover"
-        style={{ background: c.album?.cover_url }}
-      />
+      {/* Top: Cover + Pressing */}
+      <div className="flex items-center gap-3 min-w-0 sm:contents">
+        {/* Album cover */}
+        <div
+          className="w-[54px] h-[54px] rounded shrink-0 cover"
+          style={{ background: c.album?.cover_url }}
+        />
 
-      {/* Pressing */}
-      <div className="min-w-[200px] shrink-0">
-        <div className="text-[13px] font-medium">
-          {c.pressing_country} · {c.pressing_year}
-        </div>
-
-        <div className="text-[11.5px] text-[var(--text-muted)]">
-          {c.label} · {c.catalog_number}
-        </div>
-      </div>
-
-      {/* Condition */}
-      <div className="flex items-center gap-3 shrink-0">
-        <ConditionBadge code={c.media_condition} />
-
-        <div className="min-w-0">
-          <div className="text-[12.5px]">
-            {c.media_condition}
+        {/* Pressing */}
+        <div className="min-w-0 flex-1 sm:flex-none sm:min-w-[200px]">
+          <div className="text-[13px] font-medium truncate">
+            {c.pressing_country} · {c.pressing_year}
           </div>
 
-          <div className="text-[11px] text-[var(--text-muted)]">
-            Sleeve: {c.sleeve_condition}
+          <div className="text-[11.5px] text-[var(--text-muted)] break-words">
+            {c.label} · {c.catalog_number}
           </div>
         </div>
       </div>
 
-      {/* Pressing details */}
+      {/* Bottom: Condition + Price */}
+      <div className="flex items-center justify-between gap-2 sm:contents">
+        {/* Condition */}
+        <div className="flex items-center gap-3 min-w-0">
+          <ConditionBadge code={c.media_condition} />
+
+          <div className="min-w-0">
+            <div className="text-[12.5px]">
+              {c.media_condition}
+            </div>
+
+            <div className="text-[11px] text-[var(--text-muted)]">
+              Sleeve: {c.sleeve_condition}
+            </div>
+          </div>
+        </div>
+
+        {/* Price */}
+        <div className="text-right shrink-0 sm:min-w-[90px] sm:ml-auto">
+          <div className="text-[15px] font-medium">
+            {c.currency === "USD" ? "$" : c.currency}{" "}
+            {Number(c.price).toFixed(2)}
+          </div>
+        </div>
+      </div>
+
+      {/* Pressing details - desktop only */}
       <div className="hidden xl:block min-w-0 flex-1">
         <div className="text-[12px] truncate">
           {c.format} · {c.speed} RPM
@@ -94,29 +107,22 @@ function CopyRow({ c, handleAlbumCopyClick }) {
         </div>
       </div>
 
-      {/* Price */}
-      <div className="text-right shrink-0 min-w-[90px]">
-        <div className="text-[15px] font-medium">
-          {c.currency === "USD" ? "$" : c.currency}{" "}
-          {Number(c.price).toFixed(2)}
-        </div>
-      </div>
-
       {/* Actions */}
-      <div className="flex items-center gap-2 ml-auto shrink-0">
+      <div className="flex items-center justify-end sm:ml-auto sm:shrink-0">
         <button
           type="button"
           disabled={c.isInCart}
+          onClick={(e) => e.stopPropagation()}
           className={`
-            h-9 rounded-lg border border-[var(--accent)]
+            h-9 w-full sm:w-auto rounded-lg border border-[var(--accent)]
             px-4 py-2 text-[12px] flex items-center justify-center gap-1.5
             font-medium transition-all
             ${c.isInCart
               ? "bg-[var(--accent)] text-white"
               : "text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white"
             }
-              disabled:opacity-50
-            `}
+            disabled:opacity-50
+          `}
           data-testid={`add-cart-${c.album?.id}-${c.catalog_number}`}
         >
           {c.isInCart ? (
@@ -131,8 +137,6 @@ function CopyRow({ c, handleAlbumCopyClick }) {
             </>
           )}
         </button>
-
-      
       </div>
     </div>
   );
@@ -170,7 +174,7 @@ export default function AlbumDetail() {
   });
 
   const handleAlbumCopyClick = (c) => {
-     if (!user) {
+    if (!user) {
       navigate("/login", {
         state: {
           message: "Log in add to cart.",
@@ -432,24 +436,30 @@ export default function AlbumDetail() {
       </section>
 
       {/* Available copies */}
-      <section className="card-panel p-5" data-testid="available-copies">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <section
+        className="card-panel p-4 sm:p-5 w-full min-w-0"
+        data-testid="available-copies"
+      >
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
-            <h2 className="font-serif text-[22px]">Available copies</h2>
+            <h2 className="font-serif text-[20px] sm:text-[22px]">
+              Available copies
+            </h2>
 
-            <span className="w-6 h-6 rounded-full bg-[var(--accent-soft)] text-[var(--accent-2)] flex items-center justify-center text-[11px] font-medium">
+            <span className="w-6 h-6 shrink-0 rounded-full bg-[var(--accent-soft)] text-[var(--accent-2)] flex items-center justify-center text-[11px] font-medium">
               {copies.length}
             </span>
           </div>
 
           {copies.length > 0 && (
-            <div className="flex items-center gap-2 text-[12px] text-[var(--text-muted)]">
+            <div className="flex items-center gap-2 text-[12px] text-[var(--text-muted)] self-start sm:self-auto">
               <span>Sort by:</span>
 
               <div className="relative">
                 <button
                   onClick={() => setShowSort(!showSort)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border-2)] text-[12px] hover:border-[var(--accent)]/40 transition"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-2)] text-[12px] hover:border-[var(--accent)]/40 transition"
                   data-testid="sort-btn"
                 >
                   {sort}
@@ -460,7 +470,7 @@ export default function AlbumDetail() {
                 </button>
 
                 {showSort && (
-                  <div className="absolute right-0 top-full mt-1 w-[190px] card-panel py-1.5 z-30">
+                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1 w-[190px] card-panel py-1.5 z-30">
                     {[
                       "Price: Low to High",
                       "Price: High to Low",
@@ -473,9 +483,9 @@ export default function AlbumDetail() {
                           setSort(s);
                           setShowSort(false);
                         }}
-                        className={`w-full text-left px-4 py-2 text-[12px] hover:bg-[var(--accent-soft)] ${s === sort
-                          ? "text-[var(--accent-2)]"
-                          : "text-[var(--text-muted)]"
+                        className={`w-full text-left px-4 py-2.5 text-[12px] hover:bg-[var(--accent-soft)] ${s === sort
+                            ? "text-[var(--accent-2)]"
+                            : "text-[var(--text-muted)]"
                           }`}
                       >
                         {s}
@@ -488,6 +498,7 @@ export default function AlbumDetail() {
           )}
         </div>
 
+        {/* Copies */}
         {copies.length === 0 ? (
           <div className="text-center py-10">
             <div className="text-3xl mb-3">💿</div>
@@ -502,9 +513,13 @@ export default function AlbumDetail() {
           </div>
         ) : (
           <>
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 w-full min-w-0">
               {copies.slice(0, 5).map((c) => (
-                <CopyRow key={c.id} c={c} handleAlbumCopyClick={handleAlbumCopyClick} />
+                <CopyRow
+                  key={c.id}
+                  c={c}
+                  handleAlbumCopyClick={handleAlbumCopyClick}
+                />
               ))}
             </div>
 
@@ -756,6 +771,7 @@ export default function AlbumDetail() {
 
             <div className="text-center mt-5">
               <button
+                onClick={() => navigate("/marketplace")}
                 className="text-[12.5px] text-[var(--accent-2)] hover:underline inline-flex items-center gap-1.5"
                 data-testid="more-recs"
               >

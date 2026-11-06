@@ -147,6 +147,150 @@ async def get_my_collection(
         "skip": skip
     }
 
+@router.get("/{username}")
+async def get_user_collection(
+    username: str,
+    search: Optional[str] = None,
+    sort: str = "recently_added",
+    limit: int = Query(50, ge=1, le=100),
+    skip: int = Query(0, ge=0)
+):
+    # Find user by username
+    target_user = await db.users.find_one(
+        {"username": username},
+        {"_id": 0, "id": 1, "username": 1}
+    )
+
+    if not target_user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    user_id = str(target_user["id"])
+
+    pipeline = [
+        {
+            "$match": {
+                "user_id": user_id
+            }
+        },
+        {
+            "$lookup": {
+                "from": "albums",
+                "let": {
+                    "album_id": "$album_id"
+                },
+                "pipeline": [
+                    {
+                        "$match": {
+                            "$expr": {
+                                "$eq": ["$id", "$$album_id"]
+                            }
+                        }
+                    }
+                ],
+                "as": "album"
+            }
+        },
+        {
+            "$unwind": {
+                "path": "$album",
+                "preserveNullAndEmptyArrays": True
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+
+                # Collection item fields
+                "id": 1,
+                "user_id": 1,
+                "album_id": 1,
+                "pressing": 1,
+                "pressing_country": 1,
+                "pressing_year": 1,
+                "label": 1,
+                "catalog_number": 1,
+                "barcode": 1,
+                "matrix_runout": 1,
+                "edition": 1,
+                "media_condition": 1,
+                "sleeve_condition": 1,
+                "favorite": 1,
+                "notes": 1,
+                "source": 1,
+                "source_release_id": 1,
+                "created_at": 1,
+                "updated_at": 1,
+
+                # Album fields
+                "album.id": 1,
+                "album.title": 1,
+                "album.artist": 1,
+                "album.year": 1,
+                "album.cover_url": 1,
+                "album.genres": 1,
+                "album.label": 1,
+                "album.total_lists": 1,
+                "album.total_debates": 1,
+                "album.country": 1,
+                "album.description": 1,
+                "album.created_by": 1
+            }
+        }
+    ]
+
+    if search:
+        escaped_search = re.escape(search)
+
+        pipeline.append({
+            "$match": {
+                "$or": [
+                    {
+                        "album.title": {
+                            "$regex": escaped_search,
+                            "$options": "i"
+                        }
+                    },
+                    {
+                        "album.artist.name": {
+                            "$regex": escaped_search,
+                            "$options": "i"
+                        }
+                    }
+                ]
+            }
+        })
+
+    sort_map = {
+        "recently_added": {"created_at": -1},
+        "oldest_added": {"created_at": 1},
+        "title": {"album.title": 1},
+        "artist": {"album.artist.name": 1},
+        "year": {"pressing_year": 1}
+    }
+
+    pipeline.append({
+        "$sort": sort_map.get(sort, {"created_at": -1})
+    })
+
+    pipeline.extend([
+        {"$skip": skip},
+        {"$limit": limit}
+    ])
+
+    items = await db.collection_items.aggregate(
+        pipeline
+    ).to_list(length=limit)
+
+    return {
+        "username": target_user["username"],
+        "items": items,
+        "limit": limit,
+        "skip": skip
+    }
+
 @router.post("/me", response_model=CollectionItemResponse)
 async def add_to_my_collection(
     album_id: str = Form(None),
