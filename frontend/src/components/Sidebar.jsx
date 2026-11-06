@@ -1,10 +1,12 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, MessageSquare, ThumbsUp, Search, 
-  Store, Users, FolderOpen, Star, Clock, 
-  Target, UserCheck, ChevronDown, AudioLines, Truck, ShoppingCart } from "lucide-react";
+import {
+  Home, MessageSquare, ThumbsUp, Search,
+  Store, Users, FolderOpen, Star, Clock,
+  Target, UserCheck, ChevronDown, AudioLines, Truck, ShoppingCart
+} from "lucide-react";
 import React, { useState } from "react";
 import { getCurrentUser } from "../services/authService";
-
+import { useDrawer } from "./Layout"; 
 const mainNav = [
   {
     to: "/", label: "Home", icon: Home, end: true,
@@ -58,33 +60,28 @@ const shortcuts = [
   { to: "/people", label: "Following", icon: UserCheck },
 ];
 
-function NavSection({ item, active }) {
+function NavSection({ item, active, onNavigate }) {
   const [manuallyOpen, setManuallyOpen] = useState(false);
 
   const Icon = item.icon;
-
   const open = active || manuallyOpen;
 
-   return (
+  return (
     <div>
       <button
         type="button"
         onClick={() => setManuallyOpen((value) => !value)}
-        className={`nav-item w-full flex items-center gap-3 px-3 py-2.5 text-[13.5px] ${
-          active ? "active" : ""
-        }`}
+        className={`nav-item w-full flex items-center gap-3 px-3 py-2.5 text-[13.5px] ${active ? "active" : ""
+          }`}
       >
         <Icon size={16.5} strokeWidth={1.7} />
 
-        <span className="flex-1 text-left">
-          {item.label}
-        </span>
+        <span className="flex-1 text-left">{item.label}</span>
 
         <ChevronDown
           size={15}
-          className={`transition-transform duration-200 ${
-            open ? "rotate-180" : ""
-          }`}
+          className={`transition-transform duration-200 ${open ? "rotate-180" : ""
+            }`}
         />
       </button>
 
@@ -95,11 +92,11 @@ function NavSection({ item, active }) {
               key={child.to}
               to={child.to}
               end={child.end}
+              onClick={() => setOpen(false)}
               className={({ isActive }) =>
-                `px-3 py-2 text-[12.5px] rounded-md transition-colors ${
-                  isActive
-                    ? "text-[var(--foreground)] font-medium"
-                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                `px-3 py-2 text-[12.5px] rounded-md transition-colors ${isActive
+                  ? "text-[var(--foreground)] font-medium"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 }`
               }
             >
@@ -115,6 +112,12 @@ function NavSection({ item, active }) {
 export default function Sidebar() {
 
   const location = useLocation();
+
+  const { setOpen } = useDrawer();
+
+  const handleNavigate = () => {
+    setOpen(false);
+  };
 
   const isSectionActive = (item) => {
     if (!item.children) return false;
@@ -159,9 +162,8 @@ export default function Sidebar() {
               key={item.to}
               to={item.to}
               end={item.end}
-              data-testid={`nav-${item.label
-                .toLowerCase()
-                .replace(/\s/g, "-")}`}
+              onClick={handleNavigate}
+              data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, "-")}`}
               className={({ isActive }) =>
                 `nav-item flex items-center gap-3 px-3 py-2.5 text-[13.5px] ${isActive ? "active" : ""
                 }`
@@ -183,6 +185,7 @@ export default function Sidebar() {
             <NavLink
               key={label}
               to={to}
+              onClick={handleNavigate}
               data-testid={`shortcut-${label.toLowerCase().replace(/\s/g, "-")}`}
               className="nav-item flex items-center gap-3 px-3 py-2 text-[12.5px]"
             >
@@ -197,7 +200,7 @@ export default function Sidebar() {
       <NavLink to="/profile" className="mt-auto card-panel p-3 flex items-center gap-3 hover:border-[var(--accent)]/40 transition" data-testid="user-mini-card">
         <div className="w-10 h-10 rounded-full shrink-0" style={{ background: "radial-gradient(circle at 30% 30%, #c2a876, #1a1612)" }} />
         <div className="min-w-0 flex-1">
-          <div className="text-[12.5px] font-medium truncate">{getCurrentUser()?getCurrentUser().username:""}</div>
+          <div className="text-[12.5px] font-medium truncate">{getCurrentUser() ? getCurrentUser().username : ""}</div>
           <div className="text-[10.5px] text-[var(--text-muted)]">View profile →</div>
         </div>
       </NavLink>
